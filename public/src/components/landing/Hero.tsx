@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Award } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 
 export default function Hero(): React.JSX.Element {
   const [isVisible, setIsVisible] = useState<boolean>(false);
