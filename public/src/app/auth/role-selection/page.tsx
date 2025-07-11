@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { GraduationCap, Heart, Building2, User, ArrowLeft, ArrowRight } from 'lucide-react';
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 type Role = 'student' | 'sponsor' | 'school' | null;
 type SponsorType = 'individual' | 'corporate' | null;
@@ -13,6 +15,7 @@ export default function RoleSelection(): React.JSX.Element {
   const [selectedRole, setSelectedRole] = useState<Role>(null);
   const [selectedSponsorType, setSponsorType] = useState<SponsorType>(null);
   const [showSponsorTypes, setShowSponsorTypes] = useState(false);
+  const router = useRouter();
 
   const handleRoleSelect = (role: Role) => {
     if (role === 'sponsor') {
@@ -34,20 +37,27 @@ export default function RoleSelection(): React.JSX.Element {
     setSponsorType(null);
   };
 
-  const handleContinue = () => {
-    // This would normally redirect to the appropriate dashboard
-    console.log('Selected role:', selectedRole);
-    if (selectedRole === 'sponsor') {
-      console.log('Sponsor type:', selectedSponsorType);
-    }
-    
-    // Simulate redirect based on role
-    if (selectedRole === 'student') {
-      console.log('Redirecting to student feed...');
-    } else if (selectedRole === 'sponsor') {
-      console.log('Redirecting to sponsor dashboard...');
-    } else if (selectedRole === 'school') {
-      console.log('Redirecting to school dashboard...');
+  const handleContinue = async () => {
+    if (!selectedRole || (selectedRole === "sponsor" && !selectedSponsorType)) return;
+    try {
+      const token = localStorage.getItem("token");
+      const payload: any = { role: selectedRole };
+      if (selectedRole === "sponsor") payload.sponsorType = selectedSponsorType;
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/select-role`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+      }
+      // Redirect based on role
+      if (selectedRole === "student") router.push("/student");
+      else if (selectedRole === "sponsor") router.push("/sponsor");
+      else if (selectedRole === "school") router.push("/university");
+      else if (selectedRole === "admin") router.push("/admin");
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Role selection failed");
     }
   };
 

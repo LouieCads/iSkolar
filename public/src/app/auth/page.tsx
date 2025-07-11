@@ -63,10 +63,24 @@ export default function Auth({ defaultView = "login" }: AuthProps) {
     const checkAuth = async () => {
       setIsLoading(true);
       try {
-        const token = await localStorage.getItem('token');
+        const token = localStorage.getItem('token');
         if (token) {
-          router.replace('/admin');
-        } 
+          // Check user profile for role
+          const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/profile`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const user = response.data.user;
+          if (!user.role) {
+            router.replace('/auth/welcome');
+          } else {
+            // Redirect to respective dashboard
+            if (user.role === 'student') router.replace('/student');
+            else if (user.role === 'sponsor') router.replace('/sponsor');
+            else if (user.role === 'school') router.replace('/university');
+            else if (user.role === 'admin') router.replace('/admin');
+            else router.replace('/auth/welcome');
+          }
+        }
       } catch (e) {
         // Ignore errors, stay on sign-in
       } finally {
@@ -88,7 +102,7 @@ export default function Auth({ defaultView = "login" }: AuthProps) {
         saveLogin: saveLogin
       });
       
-      console.log("Login successful:", response.data);
+      console.log(response.data.message, response.data);
       
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
@@ -102,7 +116,7 @@ export default function Auth({ defaultView = "login" }: AuthProps) {
         setShowLoginNotification(false);
       }, 2000);
 
-      router.push('/admin');
+      router.push('/auth/welcome');
     } catch (error: any) {
       console.error("Login error:", error);
       if (error.response?.data?.message) {
