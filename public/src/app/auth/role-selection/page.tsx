@@ -35,7 +35,7 @@ export default function RoleSelection(): React.JSX.Element {
             // Redirect to respective dashboard
             if (user.role === 'student') router.replace('/student');
             else if (user.role === 'sponsor') router.replace('/sponsor');
-            else if (user.role === 'school') router.replace('/university');
+            else if (user.role === 'school') router.replace('/school');
             else if (user.role === 'admin') router.replace('/admin');
             else router.replace('/auth/welcome');
           }

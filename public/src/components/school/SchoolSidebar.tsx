@@ -86,7 +86,7 @@ const menuItems: MenuItem[] = [
   },
 ];
 
-export function UniversitySidebar({ activeTab, onTabChange }: UniversitySidebarProps) {
+export function SchoolSidebar({ activeTab, onTabChange }: UniversitySidebarProps) {
   const [openSettings, setOpenSettings] = useState<boolean>(false);
 
   const handleSettingsClick = (): void => {
@@ -95,7 +95,7 @@ export function UniversitySidebar({ activeTab, onTabChange }: UniversitySidebarP
 
   return (
     <Sidebar className="border-r border-gray-200 bg-white">
-      <SidebarHeader className="p-4 pl-35 border-b border-gray-200">
+      <SidebarHeader className="p-4 pl-17  border-b border-gray-200">
         <div className="flex items-center justify-between">
           <Link href="/university" className="flex items-center space-x-2">
             <Image
@@ -113,7 +113,7 @@ export function UniversitySidebar({ activeTab, onTabChange }: UniversitySidebarP
           </Button>
         </div>
       </SidebarHeader>
-      <SidebarContent className="p-4 pl-30">
+      <SidebarContent className="p-4 pl-12">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
