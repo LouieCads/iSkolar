@@ -1,9 +1,11 @@
-import { 
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   Shield,
+  Users,
   Repeat,
-  Settings,
   FileBadge,
+  CheckCircle,
+  Settings,
   ChevronDown,
   LogOut
 } from "lucide-react";
@@ -15,7 +17,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -38,10 +39,10 @@ interface MenuItem {
   submenus?: Submenu[];
 }
 
-interface AdminSidebarProps {
+interface UniversitySidebarProps {
   activeTab: string;
   onTabChange: (tabId: string) => void;
-  onLogout: () => void;
+  // onLogout: () => void;
 }
 
 const menuItems: MenuItem[] = [
@@ -51,9 +52,19 @@ const menuItems: MenuItem[] = [
     icon: LayoutDashboard,
   },
   {
-    id: "kyc-status",
-    title: "KYC/KYB Status",
+    id: "kyc-approvals",
+    title: "KYC Pre-Approvals",
     icon: Shield,
+  },
+  {
+    id: "scholar-selection",
+    title: "Scholar Selection",
+    icon: Users,
+  },
+  {
+    id: "tuition-confirmation",
+    title: "Tuition Confirmation",
+    icon: CheckCircle,
   },
   {
     id: "scholarships",
@@ -70,19 +81,12 @@ const menuItems: MenuItem[] = [
     title: "Settings",
     icon: Settings,
     submenus: [
-      { id: "general", title: "General" },
-      { id: "user-management", title: "User Management" },
-      { id: "personal-information", title: "Scholarship Details" },
-      { id: "academic-data", title: "Academic Details" },
-      { id: "scholarship-tags", title: "Token & Payment" },
-      { id: "sponsors", title: "KYC Configuration" },
-      { id: "document-type", title: "Credentials" },
-      { id: "notification", title: "Notification" },
-    ]
+      { id: "profile-settings", title: "Profile & Wallet" },
+    ],
   },
 ];
 
-export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarProps) {
+export function UniversitySidebar({ activeTab, onTabChange }: UniversitySidebarProps) {
   const [openSettings, setOpenSettings] = useState<boolean>(false);
 
   const handleSettingsClick = (): void => {
@@ -93,10 +97,10 @@ export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarP
     <Sidebar className="border-r border-gray-200 bg-white">
       <SidebarHeader className="p-4 pl-35 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <Link href="/admin" className="flex items-center space-x-2">
+          <Link href="/university" className="flex items-center space-x-2">
             <Image
               src="/iSkolar_logo.png"
-              alt="ScholarPass Logo"
+              alt="iSkolar Logo"
               width={33}
               height={35}
             />
@@ -104,12 +108,11 @@ export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarP
               iSkolar
             </span>
           </Link>
-          <Button variant="ghost" size="icon" onClick={onLogout}>
+          <Button variant="ghost" size="icon" >
             <LogOut className="h-5 w-5" />
           </Button>
         </div>
       </SidebarHeader>
-      
       <SidebarContent className="p-4 pl-30">
         <SidebarGroup>
           <SidebarGroupContent>

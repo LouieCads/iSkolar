@@ -48,9 +48,9 @@ export default function Hero(): React.JSX.Element {
             <span className="font-bold text-xl sm:text-2xl tracking-wide text-center bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-transparent bg-clip-text animate-pulse">
               Scholarships find you so you don’t have to
             </span>
-            <span className="mt-4 text-[#1e3a8a]/80 font-semibold text-sm sm:text-base tracking-wide">
+            {/* <span className="mt-4 text-[#1e3a8a]/80 font-semibold text-sm sm:text-base tracking-wide">
               Built for students, built by students
-            </span>
+            </span> */}
           </div>
         </div>
 
