@@ -1,11 +1,45 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import axios from "axios";
 
 export default function Welcome(): React.JSX.Element {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Check user profile for role
+          const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/profile`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const user = response.data.user;
+          if (!user.role) {
+            router.replace('/auth/welcome');
+          } else {
+            // Redirect to respective dashboard
+            if (user.role === 'student') router.replace('/student');
+            else if (user.role === 'sponsor') router.replace('/sponsor');
+            else if (user.role === 'school') router.replace('/university');
+            else if (user.role === 'admin') router.replace('/admin');
+            else router.replace('/auth/welcome');
+          }
+        }
+      } catch (e) {
+        // Ignore errors, stay on sign-in
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,8 +14,40 @@ type SponsorType = 'individual' | 'corporate' | null;
 export default function RoleSelection(): React.JSX.Element {
   const [selectedRole, setSelectedRole] = useState<Role>(null);
   const [selectedSponsorType, setSponsorType] = useState<SponsorType>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showSponsorTypes, setShowSponsorTypes] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Check user profile for role
+          const response = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/profile`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const user = response.data.user;
+          if (!user.role) {
+            router.replace('/auth/role-selection');
+          } else {
+            // Redirect to respective dashboard
+            if (user.role === 'student') router.replace('/student');
+            else if (user.role === 'sponsor') router.replace('/sponsor');
+            else if (user.role === 'school') router.replace('/university');
+            else if (user.role === 'admin') router.replace('/admin');
+            else router.replace('/auth/welcome');
+          }
+        }
+      } catch (e) {
+        // Ignore errors, stay on sign-in
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   const handleRoleSelect = (role: Role) => {
     if (role === 'sponsor') {

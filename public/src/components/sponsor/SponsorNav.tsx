@@ -4,10 +4,13 @@ import {
   BadgeDollarSign,
   FileText,
   Wallet,
+  ChevronDown,
   Bell,
   User,
+  LogOut,
 } from "lucide-react";
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 const sponsorMenu = [
@@ -17,10 +20,35 @@ const sponsorMenu = [
   { id: "applications", label: "Applications", icon: FileText, href: "/sponsor/applications" },
   { id: "funds", label: "Funds", icon: Wallet, href: "/sponsor/funds" },
   { id: "notifications", label: "Notifications", icon: Bell, href: "/sponsor/notifications" },
-  { id: "profile", label: "Profile", icon: User, href: "/sponsor/profile" },
 ];
 
 export default function SponsorNav() {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const router = useRouter();
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    // Add your logout logic here
+    console.log("Logging out...");
+    // Example: clear auth tokens, redirect to login, etc.
+    localStorage.removeItem('token');
+   router.push('/auth');
+  };
+
   return (
     <nav className="w-full flex items-center justify-center bg-white border-b border-gray-200 py-3 px-35 sticky top-0 z-100">
       <div className="flex items-center space-x-3 min-w-0">
@@ -48,7 +76,45 @@ export default function SponsorNav() {
           </li>
         ))}
       </ul>
-      {/* Right: Empty for now, can add user actions here later */}
+      <div className="flex items-center space-x-3 min-w-0">
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="flex flex-col items-center cursor-pointer text-gray-700 hover:text-blue-700 transition-colors group focus:outline-none"
+          >
+            <div className="flex items-center">
+              <User className="w-5 h-5 mb-1 group-hover:scale-110 transition-transform" />
+              <ChevronDown className="w-3 h-3 ml-1 mb-1 group-hover:scale-110 transition-transform" />
+            </div>
+            <span className="text-xs font-normal tracking-wide">
+              Profile
+            </span>
+          </button>
+
+          {isDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+              <a
+                href="/student/profile"
+                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                onClick={() => setIsDropdownOpen(false)}
+              >
+                <User className="w-4 h-4 mr-3" />
+                <span className="font-medium">My Profile</span>
+              </a>
+              <button
+                onClick={() => {
+                  setIsDropdownOpen(false);
+                  handleLogout();
+                }}
+                className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <LogOut className="w-4 h-4 mr-3" />
+                <span className="font-medium">Logout</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
       <div className="w-40 md:w-64" />
     </nav>
   );

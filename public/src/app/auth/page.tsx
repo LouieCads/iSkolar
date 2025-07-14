@@ -109,6 +109,25 @@ export default function Auth({ defaultView = "login" }: AuthProps) {
         if (response.data.expiresIn) {
           localStorage.setItem('tokenExpiresIn', response.data.expiresIn);
         }
+        // Fetch user profile to check role
+        try {
+          const profileRes = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/profile`, {
+            headers: { Authorization: `Bearer ${response.data.token}` }
+          });
+          const user = profileRes.data.user;
+          if (!user.role) {
+            router.push('/auth/welcome');
+          } else {
+            if (user.role === 'student') router.push('/student');
+            else if (user.role === 'sponsor') router.push('/sponsor');
+            else if (user.role === 'school') router.push('/university');
+            else if (user.role === 'admin') router.push('/admin');
+            else router.push('/auth/welcome');
+          }
+        } catch (profileErr) {
+          // If profile fetch fails, fallback to welcome page
+          router.push('/auth/welcome');
+        }
       }
 
       setShowLoginNotification(true);
@@ -116,7 +135,6 @@ export default function Auth({ defaultView = "login" }: AuthProps) {
         setShowLoginNotification(false);
       }, 2000);
 
-      router.push('/auth/welcome');
     } catch (error: any) {
       console.error("Login error:", error);
       if (error.response?.data?.message) {
