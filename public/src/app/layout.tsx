@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getPlatformName } from "@/lib/getPlatformName";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,10 +13,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "iSkolar",
-  description: "A blockchain-powered scholarship startup that connects Filipino university students and sponsors through transparent fund disbursement, credential-based applications, and wallet-to-wallet tuition payments.",
-};
+// This function runs on the server at build time or request time
+export async function generateMetadata(): Promise<Metadata> {
+  const platformName = await getPlatformName();
+  return {
+    title: platformName,
+    description: `A blockchain-powered scholarship startup that connects Filipino university students and sponsors through transparent fund disbursement, credential-based applications, and wallet-to-wallet tuition payments.`,
+  };
+}
 
 export default function RootLayout({
   children,

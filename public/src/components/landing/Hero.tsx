@@ -3,12 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { GraduationCap } from "lucide-react";
+import { getPlatformName } from "@/lib/getPlatformName";
 
 export default function Hero(): React.JSX.Element {
+  const [platformName, setPlatformName] = useState("iSkolar");
   const [isVisible, setIsVisible] = useState<boolean>(false);
 
   useEffect(() => {
     setIsVisible(true);
+    getPlatformName().then(setPlatformName);
   }, []);
 
   const features: string[] = [
@@ -42,15 +45,12 @@ export default function Hero(): React.JSX.Element {
             </span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-[#1e3a8a]/80 mb-6 sm:mb-8">
-            iSkolar connects Filipino students with sponsors through transparent blockchain-powered scholarships.
+            {platformName} connects Filipino students with sponsors through transparent blockchain-powered scholarships.
           </p>
           <div className="mb-2 sm:mb-4 flex flex-col items-center">
             <span className="font-bold text-xl sm:text-2xl tracking-wide text-center bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 text-transparent bg-clip-text animate-pulse">
               Scholarships find you so you don’t have to
             </span>
-            {/* <span className="mt-4 text-[#1e3a8a]/80 font-semibold text-sm sm:text-base tracking-wide">
-              Built for students, built by students
-            </span> */}
           </div>
         </div>
 
@@ -99,7 +99,7 @@ export default function Hero(): React.JSX.Element {
                       <div className="flex justify-between items-center mb-3 sm:mb-4">
                         <div>
                           <h4 className="text-[#1e3a8a] font-bold text-base sm:text-lg">
-                            iSkolar
+                            {platformName}
                           </h4>
                           <p className="text-xs text-gray-500">
                             ID: #IS2025-1458

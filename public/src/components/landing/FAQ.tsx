@@ -1,12 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Accordion,
   AccordionItem,
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
+import { getPlatformName } from "@/lib/getPlatformName";
 
 interface FAQ {
   question: string;
@@ -14,16 +15,21 @@ interface FAQ {
 }
 
 export default function FAQ(): React.JSX.Element {
+  const [platformName, setPlatformName] = useState("iSkolar");
+  useEffect(() => {
+    getPlatformName().then(setPlatformName);
+  }, []);
+
   const faqs: FAQ[] = [
     {
-      question: "What is iSkolar?",
+      question: `What is ${platformName}?`,
       answer:
-        "iSkolar is a blockchain-integrated scholarship platform connecting Filipino university students with individual and corporate sponsors. It ensures transparent, secure, and direct scholarship distribution, with funds sent directly to schools on behalf of students.",
+        `${platformName} is a blockchain-integrated scholarship platform connecting Filipino university students with individual and corporate sponsors. It ensures transparent, secure, and direct scholarship distribution, with funds sent directly to schools on behalf of students.`,
     },
     {
-      question: "What makes iSkolar unique?",
+      question: `What makes ${platformName} unique?`,
       answer:
-        "iSkolar automatically notifies students who match the criteria and tags of new scholarship banners posted by sponsors. This ensures that eligible students never miss out on opportunities, and sponsors reach the right candidates efficiently, making the scholarship process more targeted and effective for everyone.",
+        `${platformName} automatically notifies students who match the criteria and tags of new scholarship banners posted by sponsors. This ensures that eligible students never miss out on opportunities, and sponsors reach the right candidates efficiently, making the scholarship process more targeted and effective for everyone.`,
     },
     {
       question: "How do I get started on iSkolar?",
@@ -80,7 +86,7 @@ export default function FAQ(): React.JSX.Element {
             Frequently Asked Questions
           </h2>
           <p className="text-base sm:text-lg text-[#0054a6]/70">
-            Find answers to common questions about iSkolar and how it works.
+            Find answers to common questions about {platformName} and how it works.
           </p>
         </div>
 

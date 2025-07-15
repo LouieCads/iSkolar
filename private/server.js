@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const authRoutes = require("./routes/auth");
-// const platformRoutes = require("./routes/platform");
+const platformRoutes = require("./routes/platform");
 
 dotenv.config();
 const app = express();
@@ -14,9 +14,12 @@ const MONGODB_URI = process.env.MONGODB_URI;
 app.use(express.json());
 app.use(cors());
 
+// Serve uploaded logos and public assets
+app.use("/public", express.static("public/public"));
+
 // Routes
 app.use("/auth", authRoutes);
-// app.use("/platform", platformRoutes);
+app.use("/platform", platformRoutes);
 
 // connection
 mongoose

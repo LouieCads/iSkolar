@@ -25,6 +25,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { useState } from "react";
+import { usePlatform } from "@/hooks/use-platform";
 
 interface Submenu {
   id: string;
@@ -84,6 +85,7 @@ const menuItems: MenuItem[] = [
 
 export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarProps) {
   const [openSettings, setOpenSettings] = useState<boolean>(false);
+  const { platform, loading } = usePlatform();
 
   const handleSettingsClick = (): void => {
     setOpenSettings(!openSettings);
@@ -101,7 +103,7 @@ export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarP
               height={35}
             />
             <span className="text-xl font-bold text-blue-900">
-              iSkolar
+              {loading ? 'Loading...' : platform?.name || 'iSkolar'}
             </span>
           </Link>
           <Button variant="ghost" size="icon" onClick={onLogout}>

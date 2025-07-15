@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { CheckCircle, Upload, Trophy, Zap, Star, GraduationCap } from "lucide-react";
+import { getPlatformName } from "@/lib/getPlatformName";
 
 interface Step {
   icon: React.ReactNode;
@@ -11,6 +12,7 @@ interface Step {
 
 export default function HowItWorks(): React.JSX.Element {
   const sectionRef = useRef<HTMLElement>(null);
+  const [platformName, setPlatformName] = useState("iSkolar");
   const [isVisible, setIsVisible] = useState<boolean>(false);
 
   useEffect(() => {
@@ -31,6 +33,8 @@ export default function HowItWorks(): React.JSX.Element {
       observer.observe(sectionRef.current);
     }
 
+    getPlatformName().then(setPlatformName);
+
     return () => {
       if (sectionRef.current) {
         observer.unobserve(sectionRef.current);
@@ -47,7 +51,7 @@ export default function HowItWorks(): React.JSX.Element {
     {
       icon: <Upload className="w-10 h-10" style={{ color: "#2563eb" }} />,
       title: "Upload Academic Credentials",
-      description: "Students freely upload academic documents, certificates, and achievements to their profile. Sponsors can review credentials directly—no school verification required."
+      description: "Students freely upload academic documents, certificates, and achievements to their profile. Sponsors can review credentials directly."
     },
     {
       icon: <GraduationCap className="w-10 h-10" style={{ color: "#2563eb" }} />,
@@ -85,17 +89,17 @@ export default function HowItWorks(): React.JSX.Element {
 
   return (
     <section id="how-it-works" className="section bg-white pt-24 pb-32" ref={sectionRef}>
-      <div className="container mx-auto px-4 md:px-13 lg:px-38">
+      <div className="container mx-auto px-4 md:px-12 lg:px-25">
         <div
           className={`text-center max-w-2xl mx-auto mb-16 transition-all duration-1500 ease-out ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-40"
           }`}
         >
           <h2 className="mb-4 text-4xl font-bold bg-gradient-to-r from-[#0054a6] to-[#0077e6] text-transparent bg-clip-text">
-            How iSkolar Works
+            How {platformName} Works
           </h2>
           <p className="text-lg" style={{ color: "#0054a6", opacity: 0.7 }}>
-            A transparent platform connecting Filipino students with sponsors through blockchain-verified scholarship distribution.
+            A transparent platform connecting Filipino students with sponsors through blockchain-verified scholarship distribution on {platformName}.
           </p>
         </div>
 
@@ -106,7 +110,7 @@ export default function HowItWorks(): React.JSX.Element {
             return (
               <div
                 key={index}
-                className={`w-full h-[300px] transition-all duration-900 ease-out ${
+                className={`w-full h-[325px] transition-all duration-900 ease-out ${
                   isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-45"
                 }`}
                 style={{ transitionDelay: `${200 + index * 150}ms` }}

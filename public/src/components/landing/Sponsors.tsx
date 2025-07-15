@@ -1,15 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Construction, Award } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Award } from "lucide-react";
 
 export default function Sponsors(): React.JSX.Element {
   const sectionRef = useRef<HTMLDivElement>(null);
