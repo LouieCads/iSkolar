@@ -207,12 +207,12 @@ exports.selectRole = async (req, res) => {
         break;
 
       case "school":
-        persona = new School({}); 
+        persona = new School({});
         personaModel = "School";
         break;
 
       case "admin":
-        persona = new Admin({}); 
+        persona = new Admin({});
         personaModel = "Admin";
         break;
 
@@ -239,7 +239,7 @@ exports.selectRole = async (req, res) => {
         personaId: user.personaId,
         personaModel: user.personaModel,
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET
     );
 
     res.status(200).json({

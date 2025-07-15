@@ -16,7 +16,7 @@ import Image from "next/image";
 const sponsorMenu = [
   { id: "home", label: "Home", icon: Home, href: "/sponsor" },
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/sponsor/dashboard" },
-  { id: "banners", label: "Scholarship Banners", icon: BadgeDollarSign, href: "/sponsor/banners" },
+  { id: "scholarships", label: "Scholarships", icon: BadgeDollarSign, href: "/sponsor/scholarships" },
   { id: "applications", label: "Applications", icon: FileText, href: "/sponsor/applications" },
   { id: "funds", label: "Funds", icon: Wallet, href: "/sponsor/funds" },
   { id: "notifications", label: "Notifications", icon: Bell, href: "/sponsor/notifications" },
@@ -58,7 +58,7 @@ export default function SponsorNav() {
         <input
           type="text"
           placeholder="Search..."
-          className="rounded-xl border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 w-40 md:w-64"
+          className="rounded-xl border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 w-40 md:w-50"
         />
       </div>
       <ul className="flex space-x-8 mx-auto">

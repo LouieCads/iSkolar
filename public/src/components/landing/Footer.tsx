@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getPlatformDetails } from "@/lib/getPlatformDetails";
+import { getPlatformDetails } from "../../lib/getPlatformDetails";
 
 // Type definitions
 interface LinkItem {

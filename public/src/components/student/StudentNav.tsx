@@ -54,7 +54,7 @@ export default function StudentNav() {
         <input
           type="text"
           placeholder="Search..."
-          className="rounded-xl border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 w-40 md:w-64"
+          className="rounded-xl border border-gray-300 px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 w-40 md:w-55"
         />
       </div>
       <ul className="flex space-x-8 mx-auto">

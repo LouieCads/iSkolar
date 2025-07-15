@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const authRoutes = require("./routes/auth");
 const platformRoutes = require("./routes/platform");
+const userManagementRoutes = require("./routes/user-management");
 
 dotenv.config();
 const app = express();
@@ -20,6 +21,7 @@ app.use("/public", express.static("public/public"));
 // Routes
 app.use("/auth", authRoutes);
 app.use("/platform", platformRoutes);
+app.use("/user-management", userManagementRoutes);
 
 // connection
 mongoose

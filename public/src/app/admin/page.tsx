@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AdminSidebar } from "../../components/admin/AdminSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import General from "@/components/admin/settings/General";
+import { UserManagement } from "@/components/admin/settings/UserManagement";
 
 export default function Admin(): React.JSX.Element  {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -41,6 +42,7 @@ export default function Admin(): React.JSX.Element  {
         <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-auto">
           <div className="max-w-7xl mx-auto w-full">
             {activeTab === "general" && <General />}
+            {activeTab === "user-management" && <UserManagement />}
           </div>
         </main>
       </div>

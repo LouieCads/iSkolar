@@ -86,7 +86,7 @@ export default function RoleSelection(): React.JSX.Element {
       // Redirect based on role
       if (selectedRole === "student") router.push("/student");
       else if (selectedRole === "sponsor") router.push("/sponsor");
-      else if (selectedRole === "school") router.push("/university");
+      else if (selectedRole === "school") router.push("/school");
       else if (selectedRole === "admin") router.push("/admin");
     } catch (error: any) {
       alert(error.response?.data?.message || "Role selection failed");
