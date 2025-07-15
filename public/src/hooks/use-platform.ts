@@ -6,6 +6,10 @@ interface Platform {
   email?: string;
   phoneNumber?: string;
   logoUrl?: string;
+  facebook?: string;
+  twitter?: string;
+  instagram?: string;
+  linkedin?: string;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -29,7 +33,18 @@ export const usePlatform = () => {
     }
   };
 
-  const updatePlatform = async (fields: { name: string; email?: string; phoneNumber?: string }, token?: string) => {
+  const updatePlatform = async (
+    fields: {
+      name: string;
+      email?: string;
+      phoneNumber?: string;
+      facebook?: string;
+      twitter?: string;
+      instagram?: string;
+      linkedin?: string;
+    },
+    token?: string
+  ) => {
     try {
       setUpdating(true);
       setError(null);

@@ -33,6 +33,26 @@ const platformSchema = new mongoose.Schema({
     default: "+63 966 564 0148",
     trim: true,
   },
+  facebook: {
+    type: String,
+    default: "https://facebook.com/iskolarph",
+    trim: true,
+  },
+  twitter: {
+    type: String,
+    default: "https://twitter.com/iskolarph",
+    trim: true,
+  },
+  instagram: {
+    type: String,
+    default: "https://instagram.com/iskolarph",
+    trim: true,
+  },
+  linkedin: {
+    type: String,
+    default: "https://linkedin.com/company/iskolarph",
+    trim: true,
+  },
   platformFee: {
     type: Number,
     min: [0, "Platform fee cannot be negative."],

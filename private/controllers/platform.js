@@ -5,24 +5,32 @@ const jwt = require("jsonwebtoken");
 
 exports.updatePlatform = async (req, res) => {
   try {
-    const { name, email, phoneNumber } = req.body;
+    const { name, email, phoneNumber, facebook, twitter, instagram, linkedin } =
+      req.body;
 
-    // Validate name is provided
     if (!name || name.trim() === "") {
       return res.status(400).json({ message: "Platform name is required" });
     }
 
-    // Find the platform document (there should only be one)
     let platform = await Platform.findOne();
-
     if (!platform) {
-      // If no platform exists, create one
-      platform = new Platform({ name: name.trim(), email, phoneNumber });
+      platform = new Platform({
+        name: name.trim(),
+        email,
+        phoneNumber,
+        facebook,
+        twitter,
+        instagram,
+        linkedin,
+      });
     } else {
-      // Update existing platform fields
       platform.name = name.trim();
       if (email !== undefined) platform.email = email;
       if (phoneNumber !== undefined) platform.phoneNumber = phoneNumber;
+      if (facebook !== undefined) platform.facebook = facebook;
+      if (twitter !== undefined) platform.twitter = twitter;
+      if (instagram !== undefined) platform.instagram = instagram;
+      if (linkedin !== undefined) platform.linkedin = linkedin;
     }
 
     await platform.save();
@@ -33,6 +41,10 @@ exports.updatePlatform = async (req, res) => {
         name: platform.name,
         email: platform.email,
         phoneNumber: platform.phoneNumber,
+        facebook: platform.facebook,
+        twitter: platform.twitter,
+        instagram: platform.instagram,
+        linkedin: platform.linkedin,
         updatedAt: platform.updatedAt,
       },
     });
@@ -45,19 +57,20 @@ exports.updatePlatform = async (req, res) => {
 exports.getPlatformName = async (req, res) => {
   try {
     let platform = await Platform.findOne();
-
-    // If not found, create with defaults
     if (!platform) {
       platform = await Platform.create({});
     }
-
     res.status(200).json({
       platform: {
         name: platform.name,
         logoUrl: platform.logoUrl,
         email: platform.email,
-        phoneNumber: platform.phoneNumber
-      }
+        phoneNumber: platform.phoneNumber,
+        facebook: platform.facebook,
+        twitter: platform.twitter,
+        instagram: platform.instagram,
+        linkedin: platform.linkedin,
+      },
     });
   } catch (error) {
     console.error("Get platform name error:", error);

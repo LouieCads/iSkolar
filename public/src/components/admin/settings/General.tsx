@@ -11,6 +11,10 @@ interface FormValues {
   platformName: string;
   email: string;
   phoneNumber: string;
+  facebook: string;
+  twitter: string;
+  instagram: string;
+  linkedin: string;
   logo: File | null;
 }
 
@@ -26,6 +30,10 @@ const validationSchema = Yup.object({
     .min(7, "Phone number is too short")
     .max(20, "Phone number is too long")
     .required("Phone number is required"),
+  facebook: Yup.string().url("Invalid Facebook URL").required("Facebook link is required"),
+  twitter: Yup.string().url("Invalid Twitter URL").required("Twitter link is required"),
+  instagram: Yup.string().url("Invalid Instagram URL").required("Instagram link is required"),
+  linkedin: Yup.string().url("Invalid LinkedIn URL").required("LinkedIn link is required"),
   logo: Yup.mixed<File>()
     .nullable()
     .optional()
@@ -49,6 +57,10 @@ export default function General(): React.JSX.Element {
       platformName: "",
       email: "",
       phoneNumber: "",
+      facebook: "",
+      twitter: "",
+      instagram: "",
+      linkedin: "",
       logo: null,
     },
     validationSchema,
@@ -59,6 +71,10 @@ export default function General(): React.JSX.Element {
           name: values.platformName,
           email: values.email,
           phoneNumber: values.phoneNumber,
+          facebook: values.facebook,
+          twitter: values.twitter,
+          instagram: values.instagram,
+          linkedin: values.linkedin,
         });
         setShowSuccessNotification(true);
         setTimeout(() => setShowSuccessNotification(false), 3000);
@@ -73,6 +89,10 @@ export default function General(): React.JSX.Element {
       formik.setFieldValue("platformName", platform.name || "");
       formik.setFieldValue("email", platform.email || "");
       formik.setFieldValue("phoneNumber", platform.phoneNumber || "");
+      formik.setFieldValue("facebook", platform.facebook || "");
+      formik.setFieldValue("twitter", platform.twitter || "");
+      formik.setFieldValue("instagram", platform.instagram || "");
+      formik.setFieldValue("linkedin", platform.linkedin || "");
     }
   }, [platform, loading]);
 
@@ -184,6 +204,66 @@ export default function General(): React.JSX.Element {
           />
           {formik.touched.phoneNumber && formik.errors.phoneNumber && (
             <div className="text-red-500 text-xs mt-1">{formik.errors.phoneNumber}</div>
+          )}
+          <Label htmlFor="facebook" className="mb-3 mt-6 text-blue-900">Facebook Link</Label>
+          <Input
+            id="facebook"
+            name="facebook"
+            type="url"
+            placeholder="Enter Facebook link"
+            value={formik.values.facebook}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            aria-invalid={formik.touched.facebook && !!formik.errors.facebook}
+            className={formik.touched.facebook && formik.errors.facebook ? "border-red-500" : ""}
+          />
+          {formik.touched.facebook && formik.errors.facebook && (
+            <div className="text-red-500 text-xs mt-1">{formik.errors.facebook}</div>
+          )}
+          <Label htmlFor="twitter" className="mb-3 mt-6 text-blue-900">Twitter Link</Label>
+          <Input
+            id="twitter"
+            name="twitter"
+            type="url"
+            placeholder="Enter Twitter link"
+            value={formik.values.twitter}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            aria-invalid={formik.touched.twitter && !!formik.errors.twitter}
+            className={formik.touched.twitter && formik.errors.twitter ? "border-red-500" : ""}
+          />
+          {formik.touched.twitter && formik.errors.twitter && (
+            <div className="text-red-500 text-xs mt-1">{formik.errors.twitter}</div>
+          )}
+          <Label htmlFor="instagram" className="mb-3 mt-6 text-blue-900">Instagram Link</Label>
+          <Input
+            id="instagram"
+            name="instagram"
+            type="url"
+            placeholder="Enter Instagram link"
+            value={formik.values.instagram}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            aria-invalid={formik.touched.instagram && !!formik.errors.instagram}
+            className={formik.touched.instagram && formik.errors.instagram ? "border-red-500" : ""}
+          />
+          {formik.touched.instagram && formik.errors.instagram && (
+            <div className="text-red-500 text-xs mt-1">{formik.errors.instagram}</div>
+          )}
+          <Label htmlFor="linkedin" className="mb-3 mt-6 text-blue-900">LinkedIn Link</Label>
+          <Input
+            id="linkedin"
+            name="linkedin"
+            type="url"
+            placeholder="Enter LinkedIn link"
+            value={formik.values.linkedin}
+            onChange={formik.handleChange}
+            onBlur={formik.handleBlur}
+            aria-invalid={formik.touched.linkedin && !!formik.errors.linkedin}
+            className={formik.touched.linkedin && formik.errors.linkedin ? "border-red-500" : ""}
+          />
+          {formik.touched.linkedin && formik.errors.linkedin && (
+            <div className="text-red-500 text-xs mt-1">{formik.errors.linkedin}</div>
           )}
         </div>
         <div className="flex-1 flex flex-col md:pl-5 pt-8 md:pt-0">

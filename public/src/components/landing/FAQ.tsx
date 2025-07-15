@@ -7,7 +7,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
-import { getPlatformName } from "@/lib/getPlatformName";
+import { getPlatformDetails } from "@/lib/getPlatformDetails";
 
 interface FAQ {
   question: string;
@@ -17,7 +17,7 @@ interface FAQ {
 export default function FAQ(): React.JSX.Element {
   const [platformName, setPlatformName] = useState("iSkolar");
   useEffect(() => {
-    getPlatformName().then(setPlatformName);
+    getPlatformDetails().then((data) => setPlatformName(data.name));
   }, []);
 
   const faqs: FAQ[] = [

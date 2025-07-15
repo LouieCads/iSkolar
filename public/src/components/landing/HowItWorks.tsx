@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { CheckCircle, Upload, Trophy, Zap, Star, GraduationCap } from "lucide-react";
-import { getPlatformName } from "@/lib/getPlatformName";
+import { getPlatformDetails } from "@/lib/getPlatformDetails";
 
 interface Step {
   icon: React.ReactNode;
@@ -33,7 +33,7 @@ export default function HowItWorks(): React.JSX.Element {
       observer.observe(sectionRef.current);
     }
 
-    getPlatformName().then(setPlatformName);
+    getPlatformDetails().then((data) => setPlatformName(data.name));
 
     return () => {
       if (sectionRef.current) {

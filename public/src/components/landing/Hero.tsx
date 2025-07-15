@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { GraduationCap } from "lucide-react";
-import { getPlatformName } from "@/lib/getPlatformName";
+import { getPlatformDetails } from "@/lib/getPlatformDetails";
 
 export default function Hero(): React.JSX.Element {
   const [platformName, setPlatformName] = useState("iSkolar");
@@ -11,7 +11,7 @@ export default function Hero(): React.JSX.Element {
 
   useEffect(() => {
     setIsVisible(true);
-    getPlatformName().then(setPlatformName);
+    getPlatformDetails().then((data) => setPlatformName(data.name));
   }, []);
 
   const features: string[] = [
