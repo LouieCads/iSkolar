@@ -136,7 +136,8 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
     role: "Student",
     subRole: "",
     status: "Active",
-    isVerified: false
+    isVerified: false,
+    adminLevel: "admin", 
   });
 
   React.useEffect(() => {
@@ -147,7 +148,8 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
         role: user.role || "Student",
         subRole: user.subRole || "",
         status: user.status || "Active",
-        isVerified: user.isVerified || false
+        isVerified: user.isVerified || false,
+        adminLevel: user.adminLevel || "admin", 
       });
     } else {
       setFormData({
@@ -156,7 +158,8 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
         role: "Student",
         subRole: "",
         status: "Active",
-        isVerified: false
+        isVerified: false,
+        adminLevel: "admin", 
       });
     }
   }, [user, isOpen]);
@@ -265,6 +268,23 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
             </div>
           )}
 
+          {formData.role.toLowerCase() === "admin" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Admin Level
+              </label>
+              <select
+                name="adminLevel"
+                value={formData.adminLevel || "admin"}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="admin">Admin</option>
+                <option value="super_admin">Super Admin</option>
+              </select>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Status
@@ -346,8 +366,11 @@ export function UserManagement() {
           status: u.status,
           isVerified: u.isVerified,
           dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
-          lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : ""
+          lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : "",
+          createdAt: u.createdAt,
         }));
+        // Sort users by createdAt descending (latest to oldest)
+        mapped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setUsers(mapped);
       } catch (err) {
         setError("Failed to fetch users");
@@ -386,6 +409,7 @@ export function UserManagement() {
         role: userData.role.toLowerCase(),
         status: userData.status ? userData.status.toLowerCase() : undefined,
         subRole: userData.role.toLowerCase() === "sponsor" ? (userData.subRole ? userData.subRole.toLowerCase() : undefined) : undefined,
+        adminLevel: userData.role.toLowerCase() === "admin" ? (userData.adminLevel || "admin") : undefined,
       };
       if (!editingUser && !payload.password) {
         alert("Password is required for new users.");
@@ -406,8 +430,11 @@ export function UserManagement() {
         status: u.status,
         isVerified: u.isVerified,
         dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
-        lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : ""
+        lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : "",
+        createdAt: u.createdAt,
       }));
+      // Sort users by createdAt descending (latest to oldest)
+      mapped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setUsers(mapped);
     } catch (err) {
       setError("Failed to save user");
@@ -427,8 +454,11 @@ export function UserManagement() {
           status: u.status,
           isVerified: u.isVerified,
           dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
-          lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : ""
+          lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : "",
+          createdAt: u.createdAt,
         }));
+        // Sort users by createdAt descending (latest to oldest)
+        mapped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setUsers(mapped);
       } catch (err) {
         setError("Failed to delete user");
@@ -450,8 +480,11 @@ export function UserManagement() {
         status: u.status,
         isVerified: u.isVerified,
         dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
-        lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : ""
+        lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : "",
+        createdAt: u.createdAt,
       }));
+      // Sort users by createdAt descending (latest to oldest)
+      mapped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setUsers(mapped);
     } catch (err) {
       setError("Failed to update user status");

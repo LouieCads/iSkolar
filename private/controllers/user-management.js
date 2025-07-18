@@ -44,7 +44,8 @@ exports.getAllUsers = async (req, res) => {
 // Add a new user
 exports.addUser = async (req, res) => {
   try {
-    const { email, password, role, subRole, isVerified, status } = req.body;
+    const { email, password, role, subRole, isVerified, status, adminLevel } =
+      req.body;
     if (!email || !password || !role) {
       return res
         .status(400)
@@ -75,7 +76,7 @@ exports.addUser = async (req, res) => {
         personaModel = "School";
         break;
       case "admin":
-        persona = new Admin({});
+        persona = new Admin({ adminLevel: adminLevel || "admin" });
         personaModel = "Admin";
         break;
       default:
@@ -105,7 +106,8 @@ exports.addUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, password, role, subRole, isVerified, status } = req.body;
+    const { email, password, role, subRole, isVerified, status, adminLevel } =
+      req.body;
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ error: "User not found" });
     if (email) user.email = email;
@@ -122,11 +124,9 @@ exports.updateUser = async (req, res) => {
           break;
         case "sponsor":
           if (!subRole || !["individual", "corporate"].includes(subRole)) {
-            return res
-              .status(400)
-              .json({
-                error: "Sponsor type must be 'individual' or 'corporate'",
-              });
+            return res.status(400).json({
+              error: "Sponsor type must be 'individual' or 'corporate'",
+            });
           }
           persona = new Sponsor({ subRole });
           personaModel = "Sponsor";
@@ -136,7 +136,7 @@ exports.updateUser = async (req, res) => {
           personaModel = "School";
           break;
         case "admin":
-          persona = new Admin({});
+          persona = new Admin({ adminLevel: adminLevel || "admin" });
           personaModel = "Admin";
           break;
         default:
@@ -155,6 +155,14 @@ exports.updateUser = async (req, res) => {
     ) {
       // If sponsor type is updated, update subRole in Sponsor document
       await Sponsor.findByIdAndUpdate(user.personaId, { subRole });
+    } else if (
+      role === "admin" &&
+      user.personaModel === "Admin" &&
+      user.personaId &&
+      adminLevel
+    ) {
+      // If admin level is updated, update adminLevel in Admin document
+      await Admin.findByIdAndUpdate(user.personaId, { adminLevel });
     }
     if (typeof isVerified === "boolean") user.isVerified = isVerified;
     if (status && ["active", "suspended", "inactive"].includes(status))
