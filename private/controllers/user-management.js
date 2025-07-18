@@ -1,5 +1,35 @@
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
+const Student = require("../models/Student");
+const Sponsor = require("../models/Sponsor");
+const School = require("../models/School");
+const Admin = require("../models/Admin");
+
+// Helper to delete persona by model and id
+async function deletePersona(model, id) {
+  if (!model || !id) return;
+  try {
+    switch (model) {
+      case "Student":
+        await Student.findByIdAndDelete(id);
+        break;
+      case "Sponsor":
+        await Sponsor.findByIdAndDelete(id);
+        break;
+      case "School":
+        await School.findByIdAndDelete(id);
+        break;
+      case "Admin":
+        await Admin.findByIdAndDelete(id);
+        break;
+      default:
+        break;
+    }
+  } catch (err) {
+    // Log error but don't block user update
+    console.error(`Failed to delete old persona (${model}):`, err);
+  }
+}
 
 // Get all users
 exports.getAllUsers = async (req, res) => {
@@ -14,8 +44,7 @@ exports.getAllUsers = async (req, res) => {
 // Add a new user
 exports.addUser = async (req, res) => {
   try {
-    const { email, password, role, isVerified, isActive, isSuspended } =
-      req.body;
+    const { email, password, role, subRole, isVerified, status } = req.body;
     if (!email || !password || !role) {
       return res
         .status(400)
@@ -26,13 +55,41 @@ exports.addUser = async (req, res) => {
       return res.status(409).json({ error: "User already exists" });
     }
     const hashed = await bcrypt.hash(password, 10);
+    let persona, personaModel;
+    switch (role) {
+      case "student":
+        persona = new Student({});
+        personaModel = "Student";
+        break;
+      case "sponsor":
+        if (!subRole || !["individual", "corporate"].includes(subRole)) {
+          return res.status(400).json({
+            error: "Sponsor type must be 'individual' or 'corporate'",
+          });
+        }
+        persona = new Sponsor({ subRole });
+        personaModel = "Sponsor";
+        break;
+      case "school":
+        persona = new School({});
+        personaModel = "School";
+        break;
+      case "admin":
+        persona = new Admin({});
+        personaModel = "Admin";
+        break;
+      default:
+        return res.status(400).json({ error: "Invalid role" });
+    }
+    await persona.save();
     const user = new User({
       email,
       password: hashed,
       role,
+      personaId: persona._id,
+      personaModel,
       isVerified: !!isVerified,
-      isActive: isActive !== false,
-      isSuspended: !!isSuspended,
+      status: status || "active",
     });
     await user.save();
     res.status(201).json({
@@ -48,16 +105,60 @@ exports.addUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, password, role, isVerified, isActive, isSuspended } =
-      req.body;
+    const { email, password, role, subRole, isVerified, status } = req.body;
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ error: "User not found" });
     if (email) user.email = email;
     if (password) user.password = await bcrypt.hash(password, 10);
-    if (role) user.role = role;
+    let persona, personaModel;
+    if (role && role !== user.role) {
+      // Delete old persona document
+      await deletePersona(user.personaModel, user.personaId);
+      // Create new persona
+      switch (role) {
+        case "student":
+          persona = new Student({});
+          personaModel = "Student";
+          break;
+        case "sponsor":
+          if (!subRole || !["individual", "corporate"].includes(subRole)) {
+            return res
+              .status(400)
+              .json({
+                error: "Sponsor type must be 'individual' or 'corporate'",
+              });
+          }
+          persona = new Sponsor({ subRole });
+          personaModel = "Sponsor";
+          break;
+        case "school":
+          persona = new School({});
+          personaModel = "School";
+          break;
+        case "admin":
+          persona = new Admin({});
+          personaModel = "Admin";
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid role" });
+      }
+      await persona.save();
+      user.role = role;
+      user.personaId = persona._id;
+      user.personaModel = personaModel;
+    } else if (
+      role === "sponsor" &&
+      user.personaModel === "Sponsor" &&
+      user.personaId &&
+      subRole &&
+      ["individual", "corporate"].includes(subRole)
+    ) {
+      // If sponsor type is updated, update subRole in Sponsor document
+      await Sponsor.findByIdAndUpdate(user.personaId, { subRole });
+    }
     if (typeof isVerified === "boolean") user.isVerified = isVerified;
-    if (typeof isActive === "boolean") user.isActive = isActive;
-    if (typeof isSuspended === "boolean") user.isSuspended = isSuspended;
+    if (status && ["active", "suspended", "inactive"].includes(status))
+      user.status = status;
     await user.save();
     res.json({
       message: "User updated",
@@ -87,8 +188,7 @@ exports.suspendUser = async (req, res) => {
     const { suspend } = req.body;
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ error: "User not found" });
-    user.isSuspended = !!suspend;
-    user.isActive = !suspend;
+    user.status = suspend ? "suspended" : "active";
     await user.save();
     res.json({ message: suspend ? "User suspended" : "User unsuspended" });
   } catch (err) {
@@ -114,18 +214,17 @@ exports.assignRole = async (req, res) => {
   }
 };
 
-// Assign status (active/suspended)
+// Assign status (active/suspended/inactive)
 exports.assignStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    if (!["active", "suspended"].includes(status)) {
+    if (!["active", "suspended", "inactive"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ error: "User not found" });
-    user.isActive = status === "active";
-    user.isSuspended = status === "suspended";
+    user.status = status;
     await user.save();
     res.json({ message: "Status updated" });
   } catch (err) {

@@ -59,12 +59,12 @@ exports.login = async (req, res) => {
     }
 
     // Check if user is active
-    if (!user.isActive) {
+    if (user.status === "inactive") {
       return res.status(401).json({ message: "Account is deactivated" });
     }
 
     // Check if user is suspended
-    if (user.isSuspended) {
+    if (user.status === "suspended") {
       return res.status(401).json({ message: "Account is suspended" });
     }
 
@@ -160,7 +160,7 @@ exports.selectRole = async (req, res) => {
   try {
     const {
       role,
-      sponsorType, // for sponsor role
+      subRole, // for sponsor role
     } = req.body;
 
     const userId = req.user.id;
@@ -193,16 +193,13 @@ exports.selectRole = async (req, res) => {
         break;
 
       case "sponsor":
-        if (
-          !sponsorType ||
-          !["individual", "corporate"].includes(sponsorType)
-        ) {
+        if (!subRole || !["individual", "corporate"].includes(subRole)) {
           return res.status(400).json({
             message:
               "Sponsor type is required and must be 'individual' or 'corporate'",
           });
         }
-        persona = new Sponsor({ sponsorType });
+        persona = new Sponsor({ subRole });
         personaModel = "Sponsor";
         break;
 

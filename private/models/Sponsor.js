@@ -2,16 +2,16 @@ const mongoose = require("mongoose");
 
 const sponsorSchema = new mongoose.Schema({
   // Sponsor Type
-  sponsorType: {
+  subRole: {
     type: String,
     enum: ["individual", "corporate"],
-      },
+  },
 
   // Personal Information (for Individual Sponsors)
   firstName: {
     type: String,
     trim: true,
-      },
+  },
   middleName: {
     type: String,
     trim: true,
@@ -59,10 +59,10 @@ const sponsorSchema = new mongoose.Schema({
     type: String,
   },
   address: {
-    street: { type: String,},
-    city: { type: String, },
-    province: { type: String,  },
-    zipCode: { type: String, },
+    street: { type: String },
+    city: { type: String },
+    province: { type: String },
+    zipCode: { type: String },
   },
 
   // Financial Information
@@ -77,11 +77,6 @@ const sponsorSchema = new mongoose.Schema({
   },
 
   // KYC/KYB Status
-  verificationStatus: {
-    type: String,
-    enum: ["pending", "approved", "denied"],
-    default: "pending",
-  },
   verificationSubmittedAt: {
     type: Date,
   },
@@ -112,8 +107,8 @@ const sponsorSchema = new mongoose.Schema({
           "financial_statement",
         ],
       },
-      fileName: { type: String,  },
-      fileUrl: { type: String,  },
+      fileName: { type: String },
+      fileUrl: { type: String },
       uploadedAt: { type: Date, default: Date.now },
       isVerified: { type: Boolean, default: false },
     },
@@ -129,24 +124,23 @@ const sponsorSchema = new mongoose.Schema({
   // Scholarship Programs
   scholarshipPrograms: [
     {
-      title: { type: String, },
-      description: { type: String,  },
+      title: { type: String },
+      description: { type: String },
       scholarshipType: {
         type: String,
         enum: ["merit_based", "skill_based"],
-        
       },
       purpose: {
         type: String,
         enum: ["tuition", "allowance"],
       },
-      totalScholars: { type: Number,  },
-      amountPerScholar: { type: Number,  },
-      applicationDeadline: { type: Date,  },
+      totalScholars: { type: Number },
+      amountPerScholar: { type: Number },
+      applicationDeadline: { type: Date },
       schoolId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "School",
-     },
+      },
       selectionMode: {
         type: String,
         enum: ["auto", "manual"],
@@ -161,10 +155,6 @@ const sponsorSchema = new mongoose.Schema({
   ],
 
   // System fields
-  isActive: {
-    type: Boolean,
-    default: true,
-  },
   createdAt: {
     type: Date,
     default: Date.now,

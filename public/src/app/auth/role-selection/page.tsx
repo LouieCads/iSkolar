@@ -9,11 +9,11 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 
 type Role = 'student' | 'sponsor' | 'school' | null;
-type SponsorType = 'individual' | 'corporate' | null;
+type SubRole = 'individual' | 'corporate' | null;
 
 export default function RoleSelection(): React.JSX.Element {
   const [selectedRole, setSelectedRole] = useState<Role>(null);
-  const [selectedSponsorType, setSponsorType] = useState<SponsorType>(null);
+  const [selectedSubRole, setSubRole] = useState<SubRole>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [showSponsorTypes, setShowSponsorTypes] = useState(false);
   const router = useRouter();
@@ -59,22 +59,22 @@ export default function RoleSelection(): React.JSX.Element {
     }
   };
 
-  const handleSponsorTypeSelect = (type: SponsorType) => {
-    setSponsorType(type);
+  const handleSponsorTypeSelect = (type: SubRole) => {
+    setSubRole(type);
   };
 
   const handleBack = () => {
     setShowSponsorTypes(false);
     setSelectedRole(null);
-    setSponsorType(null);
+    setSubRole(null);
   };
 
   const handleContinue = async () => {
-    if (!selectedRole || (selectedRole === "sponsor" && !selectedSponsorType)) return;
+    if (!selectedRole || (selectedRole === "sponsor" && !selectedSubRole)) return;
     try {
       const token = localStorage.getItem("token");
       const payload: any = { role: selectedRole };
-      if (selectedRole === "sponsor") payload.sponsorType = selectedSponsorType;
+      if (selectedRole === "sponsor") payload.subRole = selectedSubRole;
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/select-role`,
         payload,
@@ -93,7 +93,7 @@ export default function RoleSelection(): React.JSX.Element {
     }
   };
 
-  const canContinue = selectedRole && (selectedRole !== 'sponsor' || selectedSponsorType);
+  const canContinue = selectedRole && (selectedRole !== 'sponsor' || selectedSubRole);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-accent flex items-center justify-center p-4 font-sans">
@@ -187,11 +187,11 @@ export default function RoleSelection(): React.JSX.Element {
             {/* Individual Sponsor */}
             <Card 
               className={`cursor-pointer transition-all duration-300 shadow-lg border-2 border-transparent hover:border-green-500 hover:shadow-xl hover:-translate-y-1 hover:scale-105 rounded-2xl bg-card/90 ${
-                selectedSponsorType === 'individual' ? 'border-green-500 ring-2 ring-green-500 bg-green-50 scale-105' : ''
+                selectedSubRole === 'individual' ? 'border-green-500 ring-2 ring-green-500 bg-green-50 scale-105' : ''
               }`}
               onClick={() => handleSponsorTypeSelect('individual')}
               tabIndex={0}
-              aria-pressed={selectedSponsorType === 'individual'}
+              aria-pressed={selectedSubRole === 'individual'}
             >
               <CardHeader className="text-center pb-4">
                 <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110">
@@ -210,11 +210,11 @@ export default function RoleSelection(): React.JSX.Element {
             {/* Corporate Sponsor */}
             <Card 
               className={`cursor-pointer transition-all duration-300 shadow-lg border-2 border-transparent hover:border-green-500 hover:shadow-xl hover:-translate-y-1 hover:scale-105 rounded-2xl bg-card/90 ${
-                selectedSponsorType === 'corporate' ? 'border-green-500 ring-2 ring-green-500 bg-green-50 scale-105' : ''
+                selectedSubRole === 'corporate' ? 'border-green-500 ring-2 ring-green-500 bg-green-50 scale-105' : ''
               }`}
               onClick={() => handleSponsorTypeSelect('corporate')}
               tabIndex={0}
-              aria-pressed={selectedSponsorType === 'corporate'}
+              aria-pressed={selectedSubRole === 'corporate'}
             >
               <CardHeader className="text-center pb-4">
                 <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110">

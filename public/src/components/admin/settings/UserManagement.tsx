@@ -15,62 +15,6 @@ import {
   Filter
 } from "lucide-react";
 
-// Mock data for demonstration
-// const mockUsers = [
-//   {
-//     id: 1,
-//     name: "John Doe",
-//     email: "john.doe@email.com",
-//     role: "Student",
-//     status: "Active",
-//     isVerified: true,
-//     dateJoined: "2024-01-15",
-//     lastLogin: "2024-03-10"
-//   },
-//   {
-//     id: 2,
-//     name: "Jane Smith",
-//     email: "jane.smith@sponsor.com",
-//     role: "Sponsor",
-//     subRole: "Individual",
-//     status: "Active",
-//     isVerified: false,
-//     dateJoined: "2024-02-20",
-//     lastLogin: "2024-03-12"
-//   },
-//   {
-//     id: 3,
-//     name: "Tech Corp",
-//     email: "contact@techcorp.com",
-//     role: "Sponsor",
-//     subRole: "Corporate",
-//     status: "Active",
-//     isVerified: true,
-//     dateJoined: "2024-01-10",
-//     lastLogin: "2024-03-11"
-//   },
-//   {
-//     id: 4,
-//     name: "University of Excellence",
-//     email: "admin@university.edu",
-//     role: "School",
-//     status: "Suspended",
-//     isVerified: false,
-//     dateJoined: "2024-01-05",
-//     lastLogin: "2024-03-08"
-//   },
-//   {
-//     id: 5,
-//     name: "Alice Johnson",
-//     email: "alice.johnson@email.com",
-//     role: "Student",
-//     status: "Active",
-//     isVerified: true,
-//     dateJoined: "2024-02-28",
-//     lastLogin: "2024-03-12"
-//   }
-// ];
-
 // UserTable Component
 const UserTable = ({ users, onEdit, onDelete, onToggleSuspend }) => {
   const getRoleIcon = (role) => {
@@ -110,7 +54,6 @@ const UserTable = ({ users, onEdit, onDelete, onToggleSuspend }) => {
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-gray-200">
-            <th className="text-left p-4 font-medium text-gray-700">Name</th>
             <th className="text-left p-4 font-medium text-gray-700">Email</th>
             <th className="text-left p-4 font-medium text-gray-700">Role</th>
             <th className="text-left p-4 font-medium text-gray-700">Status</th>
@@ -125,10 +68,9 @@ const UserTable = ({ users, onEdit, onDelete, onToggleSuspend }) => {
               <td className="p-4">
                 <div className="flex items-center space-x-3">
                   {getRoleIcon(user.role)}
-                  <span className="font-medium text-gray-900">{user.name}</span>
+                  <span className="font-medium text-gray-900">{user.email}</span>
                 </div>
               </td>
-              <td className="p-4 text-gray-600">{user.email}</td>
               <td className="p-4">
                 <div className="flex flex-col">
                   <span className="text-gray-900">{user.role}</span>
@@ -189,8 +131,8 @@ const UserTable = ({ users, onEdit, onDelete, onToggleSuspend }) => {
 // UserFormModal Component
 const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
+    password: "",
     role: "Student",
     subRole: "",
     status: "Active",
@@ -200,8 +142,8 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
   React.useEffect(() => {
     if (user) {
       setFormData({
-        name: user.name || "",
         email: user.email || "",
+        password: "",
         role: user.role || "Student",
         subRole: user.subRole || "",
         status: user.status || "Active",
@@ -209,8 +151,8 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
       });
     } else {
       setFormData({
-        name: "",
         email: "",
+        password: "",
         role: "Student",
         subRole: "",
         status: "Active",
@@ -221,6 +163,10 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!user && !formData.password) {
+      alert("Password is required for new users.");
+      return;
+    }
     onSave(formData);
     onClose();
   };
@@ -255,20 +201,6 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
             <input
@@ -280,6 +212,23 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+
+          {/* Password input for new users */}
+          {!user && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -392,10 +341,9 @@ export function UserManagement() {
         // Map backend fields to frontend display fields
         const mapped = res.data.map(u => ({
           id: u._id,
-          name: u.email, // No name field in backend, fallback to email
           email: u.email,
           role: u.role,
-          status: u.isSuspended ? "Suspended" : "Active",
+          status: u.status,
           isVerified: u.isVerified,
           dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
           lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : ""
@@ -412,8 +360,7 @@ export function UserManagement() {
 
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
-      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRole = roleFilter === "All" || user.role === roleFilter;
       const matchesStatus = statusFilter === "All" || user.status === statusFilter;
       const matchesVerified = verifiedFilter === "All" || (verifiedFilter === "Verified" ? user.isVerified : !user.isVerified);
@@ -431,35 +378,84 @@ export function UserManagement() {
     setIsModalOpen(true);
   };
 
-  const handleSaveUser = (userData) => {
-    if (editingUser) {
-      // Update existing user
-      setUsers(prev => prev.map(user => 
-        user.id === editingUser.id ? { ...user, ...userData } : user
-      ));
-    } else {
-      // Add new user
-      const newUser = {
+  const handleSaveUser = async (userData) => {
+    try {
+      // Ensure status and role are lowercase for backend
+      const payload = {
         ...userData,
-        id: Math.max(...users.map(u => u.id)) + 1,
-        dateJoined: new Date().toISOString().split('T')[0],
-        lastLogin: new Date().toISOString().split('T')[0]
+        role: userData.role.toLowerCase(),
+        status: userData.status ? userData.status.toLowerCase() : undefined,
+        subRole: userData.role.toLowerCase() === "sponsor" ? (userData.subRole ? userData.subRole.toLowerCase() : undefined) : undefined,
       };
-      setUsers(prev => [...prev, newUser]);
+      if (!editingUser && !payload.password) {
+        alert("Password is required for new users.");
+        return;
+      }
+      if (editingUser) {
+        delete payload.password;
+        await axios.put(`${baseUrl}/user-management/users/${editingUser.id}`, payload);
+      } else {
+        await axios.post(`${baseUrl}/user-management/users`, payload);
+      }
+      // Refresh user list
+      const res = await axios.get(`${baseUrl}/user-management/users`);
+      const mapped = res.data.map(u => ({
+        id: u._id,
+        email: u.email,
+        role: u.role,
+        status: u.status,
+        isVerified: u.isVerified,
+        dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
+        lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : ""
+      }));
+      setUsers(mapped);
+    } catch (err) {
+      setError("Failed to save user");
     }
   };
 
-  const handleDeleteUser = (user) => {
-    if (window.confirm(`Are you sure you want to delete ${user.name}?`)) {
-      setUsers(prev => prev.filter(u => u.id !== user.id));
+  const handleDeleteUser = async (user) => {
+    if (window.confirm(`Are you sure you want to delete ${user.email}?`)) {
+      try {
+        await axios.delete(`${baseUrl}/user-management/users/${user.id}`);
+        // Refresh user list
+        const res = await axios.get(`${baseUrl}/user-management/users`);
+        const mapped = res.data.map(u => ({
+          id: u._id,
+          email: u.email,
+          role: u.role,
+          status: u.status,
+          isVerified: u.isVerified,
+          dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
+          lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : ""
+        }));
+        setUsers(mapped);
+      } catch (err) {
+        setError("Failed to delete user");
+      }
     }
   };
 
-  const handleToggleSuspend = (user) => {
-    const newStatus = user.status === "Active" ? "Suspended" : "Active";
-    setUsers(prev => prev.map(u => 
-      u.id === user.id ? { ...u, status: newStatus } : u
-    ));
+  const handleToggleSuspend = async (user) => {
+    // Use backend status values (lowercase)
+    const suspend = user.status === "active";
+    try {
+      await axios.patch(`${baseUrl}/user-management/users/${user.id}/suspend`, { suspend });
+      // Refresh user list
+      const res = await axios.get(`${baseUrl}/user-management/users`);
+      const mapped = res.data.map(u => ({
+        id: u._id,
+        email: u.email,
+        role: u.role,
+        status: u.status,
+        isVerified: u.isVerified,
+        dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
+        lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : ""
+      }));
+      setUsers(mapped);
+    } catch (err) {
+      setError("Failed to update user status");
+    }
   };
 
   const getRoleStats = () => {

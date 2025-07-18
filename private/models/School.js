@@ -30,34 +30,34 @@ const schoolSchema = new mongoose.Schema({
     type: String,
   },
   address: {
-    street: { type: String, },
-    city: { type: String,  },
-    province: { type: String,  },
-    zipCode: { type: String,  },
+    street: { type: String },
+    city: { type: String },
+    province: { type: String },
+    zipCode: { type: String },
   },
 
   // Administrative Information
   president: {
-    name: { type: String, },
-    email: { type: String, },
-    phone: { type: String,  },
+    name: { type: String },
+    email: { type: String },
+    phone: { type: String },
   },
   registrar: {
-    name: { type: String, },
-    email: { type: String, },
-    phone: { type: String, },
+    name: { type: String },
+    email: { type: String },
+    phone: { type: String },
   },
 
   // Academic Programs
   courses: [
     {
-      code: { type: String, },
-      name: { type: String, },
+      code: { type: String },
+      name: { type: String },
       level: {
         type: String,
         enum: ["undergraduate", "graduate", "postgraduate"],
       },
-      duration: { type: Number, }, // in years
+      duration: { type: Number }, // in years
       isActive: { type: Boolean, default: true },
     },
   ],
@@ -81,25 +81,6 @@ const schoolSchema = new mongoose.Schema({
     },
   },
 
-  // Verification Status
-  verificationStatus: {
-    type: String,
-    enum: ["pending", "approved", "denied"],
-    default: "pending",
-  },
-  verificationSubmittedAt: {
-    type: Date,
-  },
-  verificationApprovedAt: {
-    type: Date,
-  },
-  verificationDeniedAt: {
-    type: Date,
-  },
-  verificationDenialReason: {
-    type: String,
-  },
-
   // Documents
   documents: [
     {
@@ -112,8 +93,8 @@ const schoolSchema = new mongoose.Schema({
           "bank_statement",
         ],
       },
-      fileName: { type: String, },
-      fileUrl: { type: String, },
+      fileName: { type: String },
+      fileUrl: { type: String },
       uploadedAt: { type: Date, default: Date.now },
       isVerified: { type: Boolean, default: false },
     },
@@ -181,10 +162,6 @@ const schoolSchema = new mongoose.Schema({
   ],
 
   // System fields
-  isActive: {
-    type: Boolean,
-    default: true,
-  },
   createdAt: {
     type: Date,
     default: Date.now,

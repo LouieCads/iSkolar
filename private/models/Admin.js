@@ -1,25 +1,6 @@
 const mongoose = require("mongoose");
 
 const adminSchema = new mongoose.Schema({
-  // Basic Information
-  // firstName: {
-  //   type: String,
-  //   required: true,
-  //   trim: true,
-  // },
-  // lastName: {
-  //   type: String,
-  //   required: true,
-  //   trim: true,
-  // },
-
-  // Contact Information
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-
   // Administrative Information
   adminLevel: {
     type: String,
@@ -55,10 +36,6 @@ const adminSchema = new mongoose.Schema({
   ],
 
   // System fields
-  isActive: {
-    type: Boolean,
-    default: true,
-  },
   lastLoginAt: {
     type: Date,
   },

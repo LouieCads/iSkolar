@@ -20,10 +20,10 @@ const studentSchema = new mongoose.Schema({
   gender: {
     type: String,
     enum: ["male", "female"],
-   },
+  },
   nationality: {
     type: String,
-     default: "Filipino",
+    default: "Filipino",
   },
 
   // Contact Information
@@ -41,44 +41,21 @@ const studentSchema = new mongoose.Schema({
   schoolId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "School",
-   },
+  },
   course: {
     type: String,
-     },
+  },
   yearLevel: {
     type: String,
     enum: ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"],
-      },
+  },
   studentId: {
     type: String,
-      },
+  },
   gwa: {
     type: Number,
     min: 1.0,
     max: 5.0,
-  },
-
-  // KYC Status
-  kycStatus: {
-    type: String,
-    enum: ["pending", "pre_approved", "approved", "denied"],
-    default: "pending",
-  },
-  kycSubmittedAt: {
-    type: Date,
-  },
-  kycApprovedAt: {
-    type: Date,
-  },
-  kycDeniedAt: {
-    type: Date,
-  },
-  kycDenialReason: {
-    type: String,
-  },
-  kycSubmissionCount: {
-    type: Number,
-    default: 0,
   },
 
   // Documents
@@ -87,9 +64,9 @@ const studentSchema = new mongoose.Schema({
       type: {
         type: String,
         enum: ["cor", "report_card"],
-            },
-      fileName: { type: String, },
-      fileUrl: { type: String, },
+      },
+      fileName: { type: String },
+      fileUrl: { type: String },
       uploadedAt: { type: Date, default: Date.now },
       isVerified: { type: Boolean, default: false },
     },
@@ -120,10 +97,6 @@ const studentSchema = new mongoose.Schema({
   ],
 
   // System fields
-  isActive: {
-    type: Boolean,
-    default: true,
-  },
   createdAt: {
     type: Date,
     default: Date.now,
