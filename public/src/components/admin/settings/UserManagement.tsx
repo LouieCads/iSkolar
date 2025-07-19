@@ -734,6 +734,7 @@ export function UserManagement() {
                   <p className="font-semibold text-[14px]">Success</p>
                   <p className="text-[12px]">{notification.message}</p>
                 </div>
+                <button onClick={() => setNotification({ show: false, type: '', message: '' })} className="ml-auto text-gray-400 hover:text-gray-600">&times;</button>
               </div>
             </motion.div>
           )}

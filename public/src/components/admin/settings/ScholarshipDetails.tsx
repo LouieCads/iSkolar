@@ -1,87 +1,94 @@
 import React, { useState, useEffect } from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
+import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Edit, Trash2, Save, Award, Target, Tag } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-// Types for scholarship configuration
-interface ScholarshipType {
-  id: string;
-  name: string;
-  description: string;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+// --- Tabs ---
+const TABS = [
+  { id: "types", label: "Types", icon: Award },
+  { id: "purposes", label: "Purposes", icon: Target },
+  // { id: "criteria", label: "Criteria Tags", icon: Tag }, // Uncomment to enable
+];
+
+// --- Notification ---
+function Notification({ show, type, message, onClose }) {
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          initial={{ opacity: 1, x: 500 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 500 }}
+          transition={{ type: "spring", stiffness: 900, damping: 25, duration: 0.2 }}
+          className={`fixed w-[325px] flex justify-end items-center h-[55px] bottom-5 right-5 rounded-[10px] text-[#002828] ${type === 'delete' ? 'bg-red-500' : 'bg-[#26D871]'} shadow-xl z-100`}
+        >
+          <div className="flex gap-3 items-center w-[320px] h-[55px] bg-gray-50 rounded-[5px] border-white px-3 py-2">
+            <div>
+              {type === 'delete' ? (
+                <Trash2 width={23} height={23} className="text-red-500" />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="23"
+                  height="23"
+                  fill="#26D871"
+                  className="bi bi-check-square-fill"
+                  viewBox="0 0 16 16"
+                >
+                  <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm10.03 4.97a.75.75 0 0 1 .011 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.75.75 0 0 1 1.08-.022z" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <p className="font-semibold text-[14px]">{type === 'delete' ? 'Deleted' : 'Success'}</p>
+              <p className="text-[12px]">{message}</p>
+            </div>
+            <button onClick={onClose} className="ml-auto text-gray-400 hover:text-gray-600">&times;</button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }
 
-interface ScholarshipPurpose {
-  id: string;
-  name: string;
-  description: string;
+// --- Delete Confirmation Modal ---
+function DeleteModal({ show, onCancel, onConfirm, label }) {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md">
+      <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full animate-fade-in">
+        <div className="flex flex-col items-center">
+          <Trash2 className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
+          <h3 className="text-lg font-bold text-gray-900 mb-1">Delete?</h3>
+          <p className="text-sm text-gray-600 mb-1 text-center">Are you sure you want to delete <span className="font-semibold text-red-600">{label}</span>?</p>
+          <p className="text-sm text-gray-600 mb-4 text-center">This action cannot be undone.</p>
+          <div className="flex gap-3 w-full justify-center">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors font-medium cursor-pointer"
+            >Cancel</button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors font-medium cursor-pointer shadow"
+            >Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-interface CriteriaTag {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-}
-
-interface FormValues {
-  scholarshipTypes: ScholarshipType[];
-  scholarshipPurposes: ScholarshipPurpose[];
-  criteriaTags: CriteriaTag[];
-}
-
-// Validation schema
-const validationSchema = Yup.object({
-  scholarshipTypes: Yup.array().of(
-    Yup.object({
-      name: Yup.string().min(2, "Type name must be at least 2 characters").required("Type name is required"),
-      description: Yup.string().min(5, "Description must be at least 5 characters").required("Description is required"),
-    })
-  ).min(1, "At least one scholarship type is required"),
-  scholarshipPurposes: Yup.array().of(
-    Yup.object({
-      name: Yup.string().min(2, "Purpose name must be at least 2 characters").required("Purpose name is required"),
-      description: Yup.string().min(5, "Description must be at least 5 characters").required("Description is required"),
-    })
-  ).min(1, "At least one scholarship purpose is required"),
-  criteriaTags: Yup.array().of(
-    Yup.object({
-      name: Yup.string().min(2, "Tag name must be at least 2 characters").required("Tag name is required"),
-      category: Yup.string().required("Category is required"),
-      description: Yup.string().min(5, "Description must be at least 5 characters").required("Description is required"),
-    })
-  ),
-});
-
-// Scholarship Type Management Component
-const ScholarshipTypeManager = ({ types, onAdd, onEdit, onDelete }) => {
-  const [editingType, setEditingType] = useState<ScholarshipType | null>(null);
-  const [newType, setNewType] = useState({ name: "", description: "" });
-
-  const handleAdd = () => {
-    if (newType.name.trim() && newType.description.trim()) {
-      onAdd({ id: Date.now().toString(), ...newType });
-      setNewType({ name: "", description: "" });
-    }
-  };
-
-  const handleEdit = (type: ScholarshipType) => {
-    setEditingType(type);
-  };
-
-  const handleSaveEdit = () => {
-    if (editingType && editingType.name.trim() && editingType.description.trim()) {
-      onEdit(editingType);
-      setEditingType(null);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingType(null);
-  };
+// --- Scholarship Types ---
+function ScholarshipTypeManager({ types, onAdd, onEdit, onDelete }) {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [newType, setNewType] = useState("");
+  const [editValue, setEditValue] = useState("");
+  const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
 
   return (
     <div className="space-y-2">
@@ -89,137 +96,86 @@ const ScholarshipTypeManager = ({ types, onAdd, onEdit, onDelete }) => {
         <Award className="w-3 h-3 text-blue-600" />
         <h3 className="text-sm font-semibold text-gray-900">Scholarship Types</h3>
       </div>
-      
-      {/* Add new type */}
-      <div className="bg-gray-50 p-2 rounded border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
-          <div>
+      <div className="bg-gray-50 p-2 rounded border border-gray-200 flex gap-2 items-end">
+        <div className="flex-1">
             <Label className="text-xs font-medium text-gray-700">Type Name</Label>
             <Input
-              value={newType.name}
-              onChange={(e) => setNewType({ ...newType, name: e.target.value })}
+            value={newType}
+            onChange={e => setNewType(e.target.value)}
               placeholder="e.g., Merit-based"
               className="mt-1 text-xs"
             />
-          </div>
-          <div className="md:col-span-2">
-            <Label className="text-xs font-medium text-gray-700">Description</Label>
-            <Input
-              value={newType.description}
-              onChange={(e) => setNewType({ ...newType, description: e.target.value })}
-              placeholder="e.g., Based on academic standing (GWA, Dean's List)"
-              className="mt-1 text-xs"
-            />
-          </div>
         </div>
         <Button
-          onClick={handleAdd}
-          disabled={!newType.name.trim() || !newType.description.trim()}
-          className="mt-1.5 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-1 text-xs"
+          onClick={() => { onAdd(newType); setNewType(""); }}
+          disabled={!newType.trim()}
+          className="px-2 py-1 bg-blue-600 text-white rounded text-xs"
         >
-          <Plus className="w-2 h-2" />
-          Add Type
+          <Plus className="w-2 h-2" /> Add Type
         </Button>
       </div>
-
-      {/* Existing types */}
       <div className="space-y-1">
-        {types.map((type) => (
-          <div key={type.id} className="bg-white p-2 rounded border border-gray-200 hover:shadow-sm transition-shadow">
-            {editingType?.id === type.id ? (
-              <div className="space-y-1.5">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
-                  <div>
-                    <Label className="text-xs font-medium text-gray-700">Type Name</Label>
+        {types.map((type, idx) => (
+          <div key={type} className="bg-white p-2 rounded border border-gray-200 flex items-center justify-between">
+            {editingIndex === idx ? (
+              <>
                     <Input
-                      value={editingType.name}
-                      onChange={(e) => setEditingType({ ...editingType, name: e.target.value })}
-                      className="mt-1 text-xs"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label className="text-xs font-medium text-gray-700">Description</Label>
-                    <Input
-                      value={editingType.description}
-                      onChange={(e) => setEditingType({ ...editingType, description: e.target.value })}
-                      className="mt-1 text-xs"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-1">
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  className="text-xs mr-2"
+                />
                   <Button
-                    onClick={handleSaveEdit}
-                    disabled={!editingType.name.trim() || !editingType.description.trim()}
-                    className="px-1.5 py-0.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-0.5 text-xs"
+                  onClick={() => { onEdit(idx, editValue); setEditingIndex(null); }}
+                  disabled={!editValue.trim()}
+                  className="px-1.5 py-0.5 bg-green-600 text-white rounded text-xs"
                   >
                     <Save className="w-2.5 h-2.5" />
-                    Save
                   </Button>
                   <Button
-                    onClick={handleCancelEdit}
-                    className="px-1.5 py-0.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-xs"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
+                  onClick={() => setEditingIndex(null)}
+                  className="px-1.5 py-0.5 bg-gray-600 text-white rounded text-xs ml-1"
+                >Cancel</Button>
+              </>
             ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 text-xs">{type.name}</h4>
-                  <p className="text-xs text-gray-600">{type.description}</p>
-                </div>
+              <>
+                <span className="text-xs font-medium text-gray-900">{type}</span>
                 <div className="flex gap-0.5">
                   <Button
-                    onClick={() => handleEdit(type)}
+                    onClick={() => { setEditingIndex(idx); setEditValue(type); }}
                     className="p-0.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
                     title="Edit Type"
                   >
                     <Edit className="w-2.5 h-2.5" />
                   </Button>
                   <Button
-                    onClick={() => onDelete(type.id)}
+                    onClick={() => setDeleteIdx(idx)}
                     className="p-0.5 bg-red-50 text-red-600 hover:bg-red-100 rounded"
                     title="Delete Type"
                   >
                     <Trash2 className="w-2.5 h-2.5" />
                   </Button>
                 </div>
-              </div>
+              </>
             )}
           </div>
         ))}
       </div>
+      <DeleteModal
+        show={deleteIdx !== null}
+        label={deleteIdx !== null ? types[deleteIdx] : ""}
+        onCancel={() => setDeleteIdx(null)}
+        onConfirm={() => { onDelete(deleteIdx); setDeleteIdx(null); }}
+      />
     </div>
   );
-};
+}
 
-// Scholarship Purpose Management Component
-const ScholarshipPurposeManager = ({ purposes, onAdd, onEdit, onDelete }) => {
-  const [editingPurpose, setEditingPurpose] = useState<ScholarshipPurpose | null>(null);
-  const [newPurpose, setNewPurpose] = useState({ name: "", description: "" });
-
-  const handleAdd = () => {
-    if (newPurpose.name.trim() && newPurpose.description.trim()) {
-      onAdd({ id: Date.now().toString(), ...newPurpose });
-      setNewPurpose({ name: "", description: "" });
-    }
-  };
-
-  const handleEdit = (purpose: ScholarshipPurpose) => {
-    setEditingPurpose(purpose);
-  };
-
-  const handleSaveEdit = () => {
-    if (editingPurpose && editingPurpose.name.trim() && editingPurpose.description.trim()) {
-      onEdit(editingPurpose);
-      setEditingPurpose(null);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingPurpose(null);
-  };
+// --- Scholarship Purposes ---
+function ScholarshipPurposeManager({ purposes, onAdd, onEdit, onDelete }) {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [newPurpose, setNewPurpose] = useState("");
+  const [editValue, setEditValue] = useState("");
+  const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
 
   return (
     <div className="space-y-2">
@@ -227,493 +183,270 @@ const ScholarshipPurposeManager = ({ purposes, onAdd, onEdit, onDelete }) => {
         <Target className="w-3 h-3 text-green-600" />
         <h3 className="text-sm font-semibold text-gray-900">Scholarship Purposes</h3>
       </div>
-      
-      {/* Add new purpose */}
-      <div className="bg-gray-50 p-2 rounded border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
-          <div>
+      <div className="bg-gray-50 p-2 rounded border border-gray-200 flex gap-2 items-end">
+        <div className="flex-1">
             <Label className="text-xs font-medium text-gray-700">Purpose Name</Label>
             <Input
-              value={newPurpose.name}
-              onChange={(e) => setNewPurpose({ ...newPurpose, name: e.target.value })}
+            value={newPurpose}
+            onChange={e => setNewPurpose(e.target.value)}
               placeholder="e.g., Tuition"
               className="mt-1 text-xs"
             />
-          </div>
-          <div className="md:col-span-2">
-            <Label className="text-xs font-medium text-gray-700">Description</Label>
-            <Input
-              value={newPurpose.description}
-              onChange={(e) => setNewPurpose({ ...newPurpose, description: e.target.value })}
-              placeholder="e.g., Intended for covering school fees"
-              className="mt-1 text-xs"
-            />
-          </div>
         </div>
         <Button
-          onClick={handleAdd}
-          disabled={!newPurpose.name.trim() || !newPurpose.description.trim()}
-          className="mt-1.5 px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-1 text-xs"
+          onClick={() => { onAdd(newPurpose); setNewPurpose(""); }}
+          disabled={!newPurpose.trim()}
+          className="px-2 py-1 bg-green-600 text-white rounded text-xs"
         >
-          <Plus className="w-2 h-2" />
-          Add Purpose
+          <Plus className="w-2 h-2" /> Add Purpose
         </Button>
       </div>
-
-      {/* Existing purposes */}
       <div className="space-y-1">
-        {purposes.map((purpose) => (
-          <div key={purpose.id} className="bg-white p-2 rounded border border-gray-200 hover:shadow-sm transition-shadow">
-            {editingPurpose?.id === purpose.id ? (
-              <div className="space-y-1.5">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
-                  <div>
-                    <Label className="text-xs font-medium text-gray-700">Purpose Name</Label>
+        {purposes.map((purpose, idx) => (
+          <div key={purpose} className="bg-white p-2 rounded border border-gray-200 flex items-center justify-between">
+            {editingIndex === idx ? (
+              <>
                     <Input
-                      value={editingPurpose.name}
-                      onChange={(e) => setEditingPurpose({ ...editingPurpose, name: e.target.value })}
-                      className="mt-1 text-xs"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label className="text-xs font-medium text-gray-700">Description</Label>
-                    <Input
-                      value={editingPurpose.description}
-                      onChange={(e) => setEditingPurpose({ ...editingPurpose, description: e.target.value })}
-                      className="mt-1 text-xs"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-1">
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  className="text-xs mr-2"
+                />
                   <Button
-                    onClick={handleSaveEdit}
-                    disabled={!editingPurpose.name.trim() || !editingPurpose.description.trim()}
-                    className="px-1.5 py-0.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-0.5 text-xs"
+                  onClick={() => { onEdit(idx, editValue); setEditingIndex(null); }}
+                  disabled={!editValue.trim()}
+                  className="px-1.5 py-0.5 bg-green-600 text-white rounded text-xs"
                   >
                     <Save className="w-2.5 h-2.5" />
-                    Save
                   </Button>
                   <Button
-                    onClick={handleCancelEdit}
-                    className="px-1.5 py-0.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-xs"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
+                  onClick={() => setEditingIndex(null)}
+                  className="px-1.5 py-0.5 bg-gray-600 text-white rounded text-xs ml-1"
+                >Cancel</Button>
+              </>
             ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 text-xs">{purpose.name}</h4>
-                  <p className="text-xs text-gray-600">{purpose.description}</p>
-                </div>
+              <>
+                <span className="text-xs font-medium text-gray-900">{purpose}</span>
                 <div className="flex gap-0.5">
                   <Button
-                    onClick={() => handleEdit(purpose)}
+                    onClick={() => { setEditingIndex(idx); setEditValue(purpose); }}
                     className="p-0.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
                     title="Edit Purpose"
                   >
                     <Edit className="w-2.5 h-2.5" />
                   </Button>
                   <Button
-                    onClick={() => onDelete(purpose.id)}
+                    onClick={() => setDeleteIdx(idx)}
                     className="p-0.5 bg-red-50 text-red-600 hover:bg-red-100 rounded"
                     title="Delete Purpose"
                   >
                     <Trash2 className="w-2.5 h-2.5" />
                   </Button>
                 </div>
-              </div>
+              </>
             )}
           </div>
         ))}
       </div>
+      <DeleteModal
+        show={deleteIdx !== null}
+        label={deleteIdx !== null ? purposes[deleteIdx] : ""}
+        onCancel={() => setDeleteIdx(null)}
+        onConfirm={() => { onDelete(deleteIdx); setDeleteIdx(null); }}
+      />
     </div>
   );
-};
+}
 
-// Criteria Tags Management Component
-const CriteriaTagsManager = ({ tags, onAdd, onEdit, onDelete }) => {
-  const [editingTag, setEditingTag] = useState<CriteriaTag | null>(null);
-  const [newTag, setNewTag] = useState({ name: "", category: "", description: "" });
+// --- Criteria Tags (commented out for now) ---
+/*
+function CriteriaTagsManager({ tags, onAdd, onEdit, onDelete }) {
+  // ...criteria tags component code here...
+}
+*/
 
-  const categories = [
-    "Academic",
-    "Demographic",
-    "Financial",
-    "Geographic",
-    "Skills",
-    "Other"
-  ];
+export function ScholarshipDetails() {
+  const [types, setTypes] = useState<string[]>([]);
+  const [purposes, setPurposes] = useState<string[]>([]);
+  // const [criteriaTags, setCriteriaTags] = useState<string[]>([]); // For future use
+  const [tab, setTab] = useState("types");
+  const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState({ show: false, type: '', message: '' });
+  const [error, setError] = useState("");
 
-  const handleAdd = () => {
-    if (newTag.name.trim() && newTag.category && newTag.description.trim()) {
-      onAdd({ id: Date.now().toString(), ...newTag });
-      setNewTag({ name: "", category: "", description: "" });
-    }
-  };
-
-  const handleEdit = (tag: CriteriaTag) => {
-    setEditingTag(tag);
-  };
-
-  const handleSaveEdit = () => {
-    if (editingTag && editingTag.name.trim() && editingTag.category && editingTag.description.trim()) {
-      onEdit(editingTag);
-      setEditingTag(null);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingTag(null);
-  };
-
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      Academic: "bg-blue-100 text-blue-800",
-      Demographic: "bg-purple-100 text-purple-800",
-      Financial: "bg-green-100 text-green-800",
-      Geographic: "bg-orange-100 text-orange-800",
-      Skills: "bg-pink-100 text-pink-800",
-      Other: "bg-gray-100 text-gray-800"
-    };
-    return colors[category] || colors.Other;
-  };
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-1.5 mb-2">
-        <Tag className="w-3 h-3 text-purple-600" />
-        <h3 className="text-sm font-semibold text-gray-900">Criteria Tags</h3>
-      </div>
-      
-      {/* Add new tag */}
-      <div className="bg-gray-50 p-2 rounded border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-1.5">
-          <div>
-            <Label className="text-xs font-medium text-gray-700">Tag Name</Label>
-            <Input
-              value={newTag.name}
-              onChange={(e) => setNewTag({ ...newTag, name: e.target.value })}
-              placeholder="e.g., Nursing"
-              className="mt-1 text-xs"
-            />
-          </div>
-          <div>
-            <Label className="text-xs font-medium text-gray-700">Category</Label>
-            <select
-              value={newTag.category}
-              onChange={(e) => setNewTag({ ...newTag, category: e.target.value })}
-              className="mt-1 w-full px-1.5 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
-            >
-              <option value="">Select Category</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <Label className="text-xs font-medium text-gray-700">Description</Label>
-            <Input
-              value={newTag.description}
-              onChange={(e) => setNewTag({ ...newTag, description: e.target.value })}
-              placeholder="e.g., Students enrolled in Nursing programs"
-              className="mt-1 text-xs"
-            />
-          </div>
-        </div>
-        <Button
-          onClick={handleAdd}
-          disabled={!newTag.name.trim() || !newTag.category || !newTag.description.trim()}
-          className="mt-1.5 px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors flex items-center gap-1 text-xs"
-        >
-          <Plus className="w-2.5 h-2" />
-          Add Tag
-        </Button>
-      </div>
-
-      {/* Existing tags */}
-      <div className="space-y-1">
-        {tags.map((tag) => (
-          <div key={tag.id} className="bg-white p-2 rounded border border-gray-200 hover:shadow-sm transition-shadow">
-            {editingTag?.id === tag.id ? (
-              <div className="space-y-1.5">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-1.5">
-                  <div>
-                    <Label className="text-xs font-medium text-gray-700">Tag Name</Label>
-                    <Input
-                      value={editingTag.name}
-                      onChange={(e) => setEditingTag({ ...editingTag, name: e.target.value })}
-                      className="mt-1 text-xs"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs font-medium text-gray-700">Category</Label>
-                    <select
-                      value={editingTag.category}
-                      onChange={(e) => setEditingTag({ ...editingTag, category: e.target.value })}
-                      className="mt-1 w-full px-1.5 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
-                    >
-                      {categories.map((category) => (
-                        <option key={category} value={category}>{category}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label className="text-xs font-medium text-gray-700">Description</Label>
-                    <Input
-                      value={editingTag.description}
-                      onChange={(e) => setEditingTag({ ...editingTag, description: e.target.value })}
-                      className="mt-1 text-xs"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    onClick={handleSaveEdit}
-                    disabled={!editingTag.name.trim() || !editingTag.category || !editingTag.description.trim()}
-                    className="px-1.5 py-0.5 bg-green-600 text-white rounded hover:bg-green-700 transition-colors flex items-center gap-0.5 text-xs"
-                  >
-                    <Save className="w-2.5 h-2.5" />
-                    Save
-                  </Button>
-                  <Button
-                    onClick={handleCancelEdit}
-                    className="px-1.5 py-0.5 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-xs"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <h4 className="font-medium text-gray-900 text-xs">{tag.name}</h4>
-                    <span className={`px-1 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(tag.category)}`}>
-                      {tag.category}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-600">{tag.description}</p>
-                </div>
-                <div className="flex gap-0.5">
-                  <Button
-                    onClick={() => handleEdit(tag)}
-                    className="p-0.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
-                    title="Edit Tag"
-                  >
-                    <Edit className="w-2.5 h-2.5" />
-                  </Button>
-                  <Button
-                    onClick={() => onDelete(tag.id)}
-                    className="p-0.5 bg-red-50 text-red-600 hover:bg-red-100 rounded"
-                    title="Delete Tag"
-                  >
-                    <Trash2 className="w-2.5 h-2.5" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Main Scholarship Details Component
-export function ScholarshipDetails(): React.JSX.Element {
-  const [showSuccessNotification, setShowSuccessNotification] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
-
-  // Default data - in a real app, this would come from an API
-  const defaultData = {
-    scholarshipTypes: [
-      { id: "1", name: "Merit-based", description: "Based on academic standing (GWA, Dean's List)" },
-      { id: "2", name: "Skill-based", description: "Based on submitted credentials (Awards, Certifications)" }
-    ],
-    scholarshipPurposes: [
-      { id: "1", name: "Tuition", description: "Intended for covering school fees" },
-      { id: "2", name: "Allowance", description: "Provides financial support for daily needs" }
-    ],
-    criteriaTags: [
-      { id: "1", name: "Nursing", category: "Academic", description: "Students enrolled in Nursing programs" },
-      { id: "2", name: "3rd Year", category: "Academic", description: "Students in their third year of study" },
-      { id: "3", name: "Public School", category: "Demographic", description: "Students from public schools" },
-      { id: "4", name: "GPA ≥ 90", category: "Academic", description: "Students with GPA of 90 or higher" }
-    ]
-  };
-
-  const formik = useFormik<FormValues>({
-    initialValues: defaultData,
-    validationSchema,
-    onSubmit: async (values: FormValues) => {
+  // Fetch initial data
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
       try {
-        setLoading(true);
-        setError("");
-        setShowSuccessNotification(false);
-        
-        // Simulate API call - replace with actual API endpoint
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Here you would make the actual API call:
-        // await axios.post('/api/admin/scholarship-details', values);
-        
-        setShowSuccessNotification(true);
-        setTimeout(() => setShowSuccessNotification(false), 3000);
-      } catch (err) {
-        setError("Failed to save scholarship details");
+        const { data } = await axios.get(`${API_BASE_URL}/platform/scholarship-details`);
+        setTypes(data.types || []);
+        setPurposes(data.purposes || []);
+        // setCriteriaTags(data.criteriaTags || []); // For future use
+      } catch {
+        setTypes(["Merit-based", "Skill-based"]);
+        setPurposes(["Tuition", "Allowance"]);
+        // setCriteriaTags([]); // For future use
       } finally {
         setLoading(false);
       }
-    },
-  });
+    }
+    fetchData();
+  }, []);
 
-  const handleAddType = (type: ScholarshipType) => {
-    formik.setFieldValue("scholarshipTypes", [...formik.values.scholarshipTypes, type]);
+  // --- CRUD handlers for types ---
+  const addType = async (type: string) => {
+    if (!type.trim() || types.includes(type)) return;
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/platform/scholarship-types`, { type });
+      setTypes(data.types);
+      setNotification({ show: true, type: 'add', message: 'Type added!' });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to add type");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
+  };
+  const editType = async (idx: number, newType: string) => {
+    if (!newType.trim() || types.includes(newType)) return;
+    setLoading(true);
+    try {
+      const { data } = await axios.put(`${API_BASE_URL}/platform/scholarship-types`, {
+        oldType: types[idx],
+        newType,
+      });
+      setTypes(data.types);
+      setNotification({ show: true, type: 'edit', message: 'Type updated!' });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to update type");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
+  };
+  const deleteType = async (idx: number) => {
+    setLoading(true);
+    try {
+      const { data } = await axios.delete(`${API_BASE_URL}/platform/scholarship-types`, {
+        data: { type: types[idx] },
+      });
+      setTypes(data.types);
+      setNotification({ show: true, type: 'delete', message: 'Type deleted!' });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to delete type");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
   };
 
-  const handleEditType = (editedType: ScholarshipType) => {
-    const updatedTypes = formik.values.scholarshipTypes.map(type =>
-      type.id === editedType.id ? editedType : type
+  // --- CRUD handlers for purposes ---
+  const addPurpose = async (purpose: string) => {
+    if (!purpose.trim() || purposes.includes(purpose)) return;
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/platform/scholarship-purposes`, { purpose });
+      setPurposes(data.purposes);
+      setNotification({ show: true, type: 'add', message: 'Purpose added!' });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to add purpose");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
+  };
+  const editPurpose = async (idx: number, newPurpose: string) => {
+    if (!newPurpose.trim() || purposes.includes(newPurpose)) return;
+    setLoading(true);
+    try {
+      const { data } = await axios.put(`${API_BASE_URL}/platform/scholarship-purposes`, {
+        oldPurpose: purposes[idx],
+        newPurpose,
+      });
+      setPurposes(data.purposes);
+      setNotification({ show: true, type: 'edit', message: 'Purpose updated!' });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to update purpose");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
+  };
+  const deletePurpose = async (idx: number) => {
+    setLoading(true);
+    try {
+      const { data } = await axios.delete(`${API_BASE_URL}/platform/scholarship-purposes`, {
+        data: { purpose: purposes[idx] },
+      });
+      setPurposes(data.purposes);
+      setNotification({ show: true, type: 'delete', message: 'Purpose deleted!' });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to delete purpose");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
+  };
+
+  // --- CRUD handlers for criteria tags (commented out for now) ---
+  /*
+  const addTag = async (tag: string) => { ... };
+  const editTag = async (idx: number, newTag: string) => { ... };
+  const deleteTag = async (idx: number) => { ... };
+  */
+
+  // --- Rendered Section ---
+  let section = null;
+  if (tab === "types") {
+    section = (
+      <div className="bg-white rounded-md shadow-sm border border-gray-200 p-3">
+        <ScholarshipTypeManager types={types} onAdd={addType} onEdit={editType} onDelete={deleteType} />
+      </div>
     );
-    formik.setFieldValue("scholarshipTypes", updatedTypes);
-  };
-
-  const handleDeleteType = (typeId: string) => {
-    const updatedTypes = formik.values.scholarshipTypes.filter(type => type.id !== typeId);
-    formik.setFieldValue("scholarshipTypes", updatedTypes);
-  };
-
-  const handleAddPurpose = (purpose: ScholarshipPurpose) => {
-    formik.setFieldValue("scholarshipPurposes", [...formik.values.scholarshipPurposes, purpose]);
-  };
-
-  const handleEditPurpose = (editedPurpose: ScholarshipPurpose) => {
-    const updatedPurposes = formik.values.scholarshipPurposes.map(purpose =>
-      purpose.id === editedPurpose.id ? editedPurpose : purpose
+  } else if (tab === "purposes") {
+    section = (
+      <div className="bg-white rounded-md shadow-sm border border-gray-200 p-3">
+        <ScholarshipPurposeManager purposes={purposes} onAdd={addPurpose} onEdit={editPurpose} onDelete={deletePurpose} />
+      </div>
     );
-    formik.setFieldValue("scholarshipPurposes", updatedPurposes);
-  };
-
-  const handleDeletePurpose = (purposeId: string) => {
-    const updatedPurposes = formik.values.scholarshipPurposes.filter(purpose => purpose.id !== purposeId);
-    formik.setFieldValue("scholarshipPurposes", updatedPurposes);
-  };
-
-  const handleAddTag = (tag: CriteriaTag) => {
-    formik.setFieldValue("criteriaTags", [...formik.values.criteriaTags, tag]);
-  };
-
-  const handleEditTag = (editedTag: CriteriaTag) => {
-    const updatedTags = formik.values.criteriaTags.map(tag =>
-      tag.id === editedTag.id ? editedTag : tag
+  /*
+  } else if (tab === "criteria") {
+    section = (
+      <div className="bg-white rounded-md shadow-sm border border-gray-200 p-3">
+        <CriteriaTagsManager tags={criteriaTags} onAdd={addTag} onEdit={editTag} onDelete={deleteTag} />
+      </div>
     );
-    formik.setFieldValue("criteriaTags", updatedTags);
-  };
-
-  const handleDeleteTag = (tagId: string) => {
-    const updatedTags = formik.values.criteriaTags.filter(tag => tag.id !== tagId);
-    formik.setFieldValue("criteriaTags", updatedTags);
-  };
+  */
+  }
 
   return (
     <div className="relative">
-      {/* Header */}
       <div className="mb-3">
         <h1 className="text-lg font-bold text-gray-900">Scholarship Details</h1>
-        <p className="text-xs text-gray-600">Manage scholarship types, purposes, and criteria tags</p>
+        <p className="text-xs text-gray-600">Manage scholarship types and purposes</p>
       </div>
-
-      {/* Success Notification */}
-      <AnimatePresence>
-        {showSuccessNotification && (
-          <motion.div
-            initial={{ opacity: 1, x: 500 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 500 }}
-            transition={{
-              type: "spring",
-              stiffness: 900,
-              damping: 25,
-              duration: 0.2,
-            }}
-            className="fixed w-[300px] flex justify-end items-center h-[50px] bottom-5 right-5 rounded-md text-[#002828] bg-[#26D871] shadow-xl z-100"
+      {/* Segmented Control */}
+      <div className="flex gap-2 mb-5">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`flex items-center gap-1 px-4 py-2 rounded-full text-xs font-medium border transition-colors duration-150 ${
+              tab === id
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+            }`}
           >
-            <div className="flex gap-2 items-center w-[295px] h-[50px] bg-gray-50 rounded border-white px-2 py-1">
-              <div>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  fill="#26D871"
-                  className="bi bi-check-square-fill"
-                  viewBox="0 0 16 16"
-                >
-                  <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm10.03 4.97a.75.75 0 0 1 .011 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.75.75 0 0 1 1.08-.022z" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-semibold text-xs">Success</p>
-                <p className="text-xs">Scholarship details updated!</p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Error Notification */}
+            <Icon className="w-4 h-4" /> {label}
+          </button>
+        ))}
+      </div>
+      <Notification {...notification} onClose={() => setNotification({ show: false, type: '', message: '' })} />
       {error && (
-        <div className="absolute top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-2 py-1 rounded z-10 text-xs">
-          {error}
-        </div>
+        <div className="fixed bottom-5 right-5 bg-red-100 border border-red-400 text-red-800 px-3 py-2 rounded shadow text-xs z-50">{error}</div>
       )}
-
-      {/* Main Content */}
-      <div className="space-y-4">
-        {/* Scholarship Types */}
-        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-3">
-          <ScholarshipTypeManager
-            types={formik.values.scholarshipTypes}
-            onAdd={handleAddType}
-            onEdit={handleEditType}
-            onDelete={handleDeleteType}
-          />
-        </div>
-
-        {/* Scholarship Purposes */}
-        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-3">
-          <ScholarshipPurposeManager
-            purposes={formik.values.scholarshipPurposes}
-            onAdd={handleAddPurpose}
-            onEdit={handleEditPurpose}
-            onDelete={handleDeletePurpose}
-          />
-        </div>
-
-        {/* Criteria Tags */}
-        <div className="bg-white rounded-md shadow-sm border border-gray-200 p-3">
-          <CriteriaTagsManager
-            tags={formik.values.criteriaTags}
-            onAdd={handleAddTag}
-            onEdit={handleEditTag}
-            onDelete={handleDeleteTag}
-          />
-        </div>
-      </div>
-
-      {/* Save Button */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <Button 
-          type="button"
-          onClick={() => formik.handleSubmit()}
-          className="px-6 py-2 text-sm bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg"
-          disabled={loading || !formik.isValid}
-        >
-          {loading ? "Saving..." : "Save Changes"}
-        </Button>
-      </div>
+      {section}
     </div>
   );
 }

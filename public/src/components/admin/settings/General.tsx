@@ -154,6 +154,7 @@ export default function General(): React.JSX.Element {
                 <p className="font-semibold text-[14px]">Success</p>
                 <p className="text-[12px]">Platform settings updated!</p>
               </div>
+              <button onClick={() => setShowSuccessNotification(false)} className="ml-auto text-gray-400 hover:text-gray-600">&times;</button>
             </div>
           </motion.div>
         )}
