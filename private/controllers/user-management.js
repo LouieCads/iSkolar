@@ -35,7 +35,44 @@ async function deletePersona(model, id) {
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
-    res.json(users);
+
+    // Populate persona information for each user
+    const usersWithPersona = await Promise.all(
+      users.map(async (user) => {
+        const userObj = user.toObject();
+
+        if (user.personaId && user.personaModel) {
+          try {
+            let persona;
+            switch (user.personaModel) {
+              case "Sponsor":
+                persona = await Sponsor.findById(user.personaId);
+                if (persona) {
+                  userObj.subRole = persona.subRole;
+                }
+                break;
+              case "Admin":
+                persona = await Admin.findById(user.personaId);
+                if (persona) {
+                  userObj.adminLevel = persona.adminLevel;
+                }
+                break;
+              default:
+                break;
+            }
+          } catch (err) {
+            console.error(
+              `Failed to populate persona for user ${user._id}:`,
+              err
+            );
+          }
+        }
+
+        return userObj;
+      })
+    );
+
+    res.json(usersWithPersona);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch users" });
   }

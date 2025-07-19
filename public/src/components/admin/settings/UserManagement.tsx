@@ -12,7 +12,6 @@ import {
   GraduationCap,
   X,
   Save,
-  Filter
 } from "lucide-react";
 
 // UserTable Component
@@ -74,8 +73,11 @@ const UserTable = ({ users, onEdit, onDelete, onToggleSuspend }) => {
               <td className="p-3">
                 <div className="flex flex-col">
                   <span className="text-gray-900 text-sm">{user.role}</span>
-                  {user.subRole && (
-                    <span className="text-xs text-gray-500">{user.subRole}</span>
+                  {user.role.toLowerCase() === "sponsor" && user.subRole && (
+                    <span className="text-xs text-green-600 font-medium mt-0.5">{user.subRole}</span>
+                  )}
+                  {user.role.toLowerCase() === "admin" && user.adminLevel && (
+                    <span className="text-xs text-yellow-600 font-medium mt-0.5">{user.adminLevel === "super_admin" ? "Super Admin" : "Admin"}</span>
                   )}
                 </div>
               </td>
@@ -91,14 +93,14 @@ const UserTable = ({ users, onEdit, onDelete, onToggleSuspend }) => {
                 <div className="flex items-center space-x-1">
                   <button
                     onClick={() => onEdit(user)}
-                    className="p-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
+                    className="p-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded cursor-pointer"
                     title="Edit User"
                   >
-                    <Edit className="w-3 h-3" />
+                    <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => onToggleSuspend(user)}
-                    className={`p-1 rounded ${
+                    className={`p-1 rounded cursor-pointer ${
                       user.status === "Active"
                         ? "bg-orange-50 text-orange-600 hover:bg-orange-100"
                         : "bg-green-50 text-green-600 hover:bg-green-100"
@@ -106,17 +108,17 @@ const UserTable = ({ users, onEdit, onDelete, onToggleSuspend }) => {
                     title={user.status === "Active" ? "Suspend User" : "Activate User"}
                   >
                     {user.status === "Active" ? (
-                      <ShieldOff className="w-3 h-3" />
+                      <ShieldOff className="w-4 h-4" />
                     ) : (
-                      <Shield className="w-3 h-3" />
+                      <Shield className="w-4 h-4" />
                     )}
                   </button>
                   <button
                     onClick={() => onDelete(user)}
-                    className="p-1 bg-red-50 text-red-600 hover:bg-red-100 rounded"
+                    className="p-1 bg-red-50 text-red-600 hover:bg-red-100 rounded cursor-pointer"
                     title="Delete User"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </td>
@@ -146,7 +148,7 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
         email: user.email || "",
         password: "",
         role: user.role || "Student",
-        subRole: user.subRole || "",
+        subRole: user.subRole || (user.role === "sponsor" ? "Individual" : ""),
         status: user.status || "Active",
         isVerified: user.isVerified || false,
         adminLevel: user.adminLevel || "admin", 
@@ -163,6 +165,12 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
       });
     }
   }, [user, isOpen]);
+
+  useEffect(() => {
+    if (formData.role === "sponsor" && !formData.subRole) {
+      setFormData(prev => ({ ...prev, subRole: "Individual" }));
+    }
+  }, [formData.role]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -186,22 +194,32 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-md p-4 w-full max-w-md">
-          <div className="flex justify-between items-center mb-3">
-            <h2 className="text-base font-semibold text-gray-900">
-              {user ? "Edit User" : "Add New User"}
-            </h2>
-            <button
-              onClick={onClose}
-              className="p-1 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+  // Handler for clicking outside the modal
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
-          <div className="space-y-3">
+  return (
+    <div
+      className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50"
+      onClick={handleBackdropClick}
+    >
+      <div className="bg-white rounded-md p-4 w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-base font-semibold text-gray-900">
+            {user ? "Edit User" : "Add New User"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">
                 Email
@@ -261,7 +279,6 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
                   onChange={handleChange}
                   className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 >
-                  <option value="">Select Type</option>
                   <option value="Individual">Individual</option>
                   <option value="Corporate">Corporate</option>
                 </select>
@@ -319,14 +336,14 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3 py-1.5 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors text-sm"
+                className="px-3 py-1.5 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors text-sm cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-1.5 text-sm"
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-1.5 text-sm cursor-pointer"
               >
                 <Save className="w-3 h-3" />
                 <span>{user ? "Update" : "Create"}</span>
@@ -349,6 +366,8 @@ export function UserManagement() {
   const [editingUser, setEditingUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
@@ -363,6 +382,8 @@ export function UserManagement() {
           id: u._id,
           email: u.email,
           role: u.role,
+          subRole: u.subRole || "",
+          adminLevel: u.adminLevel || "",
           status: u.status,
           isVerified: u.isVerified,
           dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
@@ -427,6 +448,8 @@ export function UserManagement() {
         id: u._id,
         email: u.email,
         role: u.role,
+        subRole: u.subRole || "",
+        adminLevel: u.adminLevel || "",
         status: u.status,
         isVerified: u.isVerified,
         dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
@@ -442,27 +465,35 @@ export function UserManagement() {
   };
 
   const handleDeleteUser = async (user) => {
-    if (window.confirm(`Are you sure you want to delete ${user.email}?`)) {
-      try {
-        await axios.delete(`${baseUrl}/user-management/users/${user.id}`);
-        // Refresh user list
-        const res = await axios.get(`${baseUrl}/user-management/users`);
-        const mapped = res.data.map(u => ({
-          id: u._id,
-          email: u.email,
-          role: u.role,
-          status: u.status,
-          isVerified: u.isVerified,
-          dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
-          lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : "",
-          createdAt: u.createdAt,
-        }));
-        // Sort users by createdAt descending (latest to oldest)
-        mapped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setUsers(mapped);
-      } catch (err) {
-        setError("Failed to delete user");
-      }
+    setUserToDelete(user);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      await axios.delete(`${baseUrl}/user-management/users/${userToDelete.id}`);
+      // Refresh user list
+      const res = await axios.get(`${baseUrl}/user-management/users`);
+      const mapped = res.data.map(u => ({
+        id: u._id,
+        email: u.email,
+        role: u.role,
+        subRole: u.subRole || "",
+        adminLevel: u.adminLevel || "",
+        status: u.status,
+        isVerified: u.isVerified,
+        dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
+        lastLogin: u.updatedAt ? u.updatedAt.split('T')[0] : "",
+        createdAt: u.createdAt,
+      }));
+      mapped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setUsers(mapped);
+    } catch (err) {
+      setError("Failed to delete user");
+    } finally {
+      setShowDeleteModal(false);
+      setUserToDelete(null);
     }
   };
 
@@ -477,6 +508,8 @@ export function UserManagement() {
         id: u._id,
         email: u.email,
         role: u.role,
+        subRole: u.subRole || "",
+        adminLevel: u.adminLevel || "",
         status: u.status,
         isVerified: u.isVerified,
         dateJoined: u.createdAt ? u.createdAt.split('T')[0] : "",
@@ -506,7 +539,7 @@ export function UserManagement() {
   };
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen">
+    <div className="p-2 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-4">
@@ -534,6 +567,7 @@ export function UserManagement() {
                   {stat.label === "Students" && <GraduationCap className="w-5 h-5 text-blue-600" />}
                   {stat.label === "Sponsors" && <Users className="w-5 h-5 text-green-600" />}
                   {stat.label === "Schools" && <Building className="w-5 h-5 text-purple-600" />}
+                  {stat.label === "Admins" && <Shield className="w-5 h-5 text-yellow-600" />}
                 </div>
               </div>
             </div>
@@ -590,7 +624,7 @@ export function UserManagement() {
 
             <button
               onClick={handleAddUser}
-              className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-1.5 text-sm"
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-1.5 text-sm cursor-pointer"
             >
               <Plus className="w-3 h-3" />
               <span>Add User</span>
@@ -621,6 +655,32 @@ export function UserManagement() {
           user={editingUser}
           onSave={handleSaveUser}
         />
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md">
+            <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full animate-fade-in">
+              <div className="flex flex-col items-center">
+                <Trash2 className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Delete User?</h3>
+                <p className="text-sm text-gray-600 mb-1 text-center">Are you sure you want to delete <span className="font-semibold text-red-600">{userToDelete?.email}</span>?</p>
+                <p className="text-sm text-gray-600 mb-4 text-center">This action cannot be undone.</p>
+                <div className="flex gap-3 w-full justify-center">
+                  <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors font-medium cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteUser}
+                    className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors font-medium cursor-pointer shadow"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
           </>
         )}
       </div>
