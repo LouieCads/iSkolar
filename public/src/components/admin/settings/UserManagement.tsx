@@ -20,20 +20,20 @@ const UserTable = ({ users, onEdit, onDelete, onToggleSuspend }) => {
   const getRoleIcon = (role) => {
     switch (role.toLowerCase()) {
       case "student":
-        return <GraduationCap className="w-4 h-4 text-blue-600" />;
+        return <GraduationCap className="w-3 h-3 text-blue-600" />;
       case "sponsor":
-        return <Users className="w-4 h-4 text-green-600" />;
+        return <Users className="w-3 h-3 text-green-600" />;
       case "school":
-        return <Building className="w-4 h-4 text-purple-600" />;
+        return <Building className="w-3 h-3 text-purple-600" />;
       case "admin":
-        return <Shield className="w-4 h-4 text-yellow-600" />;
+        return <Shield className="w-3 h-3 text-yellow-600" />;
       default:
-        return <Users className="w-4 h-4 text-gray-600" />;
+        return <Users className="w-3 h-3 text-gray-600" />;
     }
   };
 
   const getStatusBadge = (status) => {
-    const baseClasses = "px-2 py-1 rounded-full text-xs font-medium";
+    const baseClasses = "px-1.5 py-0.5 rounded-full text-xs font-medium";
     if (status === "Active") {
       return `${baseClasses} bg-green-100 text-green-800`;
     } else if (status === "Suspended") {
@@ -43,7 +43,7 @@ const UserTable = ({ users, onEdit, onDelete, onToggleSuspend }) => {
   };
 
   const getVerifiedBadge = (isVerified) => {
-    const baseClasses = "ml-2 px-2 py-1 rounded-full text-xs font-medium";
+    const baseClasses = "ml-1.5 px-1.5 py-0.5 rounded-full text-xs font-medium";
     return isVerified
       ? `${baseClasses} bg-blue-100 text-blue-800`
       : `${baseClasses} bg-yellow-100 text-yellow-800`;
@@ -54,69 +54,69 @@ const UserTable = ({ users, onEdit, onDelete, onToggleSuspend }) => {
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-gray-200">
-            <th className="text-left p-4 font-medium text-gray-700">Email</th>
-            <th className="text-left p-4 font-medium text-gray-700">Role</th>
-            <th className="text-left p-4 font-medium text-gray-700">Status</th>
-            <th className="text-left p-4 font-medium text-gray-700">Date Joined</th>
-            <th className="text-left p-4 font-medium text-gray-700">Last Login</th>
-            <th className="text-left p-4 font-medium text-gray-700">Actions</th>
+            <th className="text-left p-3 font-medium text-gray-700 text-sm">Email</th>
+            <th className="text-left p-3 font-medium text-gray-700 text-sm">Role</th>
+            <th className="text-left p-3 font-medium text-gray-700 text-sm">Status</th>
+            <th className="text-left p-3 font-medium text-gray-700 text-sm">Date Joined</th>
+            <th className="text-left p-3 font-medium text-gray-700 text-sm">Last Login</th>
+            <th className="text-left p-3 font-medium text-gray-700 text-sm">Actions</th>
           </tr>
         </thead>
         <tbody>
           {users.map((user) => (
             <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
-              <td className="p-4">
-                <div className="flex items-center space-x-3">
+              <td className="p-3">
+                <div className="flex items-center space-x-2">
                   {getRoleIcon(user.role)}
-                  <span className="font-medium text-gray-900">{user.email}</span>
+                  <span className="font-medium text-gray-900 text-sm">{user.email}</span>
                 </div>
               </td>
-              <td className="p-4">
+              <td className="p-3">
                 <div className="flex flex-col">
-                  <span className="text-gray-900">{user.role}</span>
+                  <span className="text-gray-900 text-sm">{user.role}</span>
                   {user.subRole && (
                     <span className="text-xs text-gray-500">{user.subRole}</span>
                   )}
                 </div>
               </td>
-              <td className="p-4">
+              <td className="p-3">
                 <span className={getStatusBadge(user.status)}>{user.status}</span>
                 <span className={getVerifiedBadge(user.isVerified)}>
                   {user.isVerified ? "Verified" : "Unverified"}
                 </span>
               </td>
-              <td className="p-4 text-gray-600">{user.dateJoined}</td>
-              <td className="p-4 text-gray-600">{user.lastLogin}</td>
-              <td className="p-4">
-                <div className="flex items-center space-x-2">
+              <td className="p-3 text-gray-600 text-sm">{user.dateJoined}</td>
+              <td className="p-3 text-gray-600 text-sm">{user.lastLogin}</td>
+              <td className="p-3">
+                <div className="flex items-center space-x-1">
                   <button
                     onClick={() => onEdit(user)}
-                    className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                    className="p-1 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
                     title="Edit User"
                   >
-                    <Edit className="w-4 h-4" />
+                    <Edit className="w-3 h-3" />
                   </button>
                   <button
                     onClick={() => onToggleSuspend(user)}
                     className={`p-1 rounded ${
                       user.status === "Active"
-                        ? "text-orange-600 hover:bg-orange-50"
-                        : "text-green-600 hover:bg-green-50"
+                        ? "bg-orange-50 text-orange-600 hover:bg-orange-100"
+                        : "bg-green-50 text-green-600 hover:bg-green-100"
                     }`}
                     title={user.status === "Active" ? "Suspend User" : "Activate User"}
                   >
                     {user.status === "Active" ? (
-                      <ShieldOff className="w-4 h-4" />
+                      <ShieldOff className="w-3 h-3" />
                     ) : (
-                      <Shield className="w-4 h-4" />
+                      <Shield className="w-3 h-3" />
                     )}
                   </button>
                   <button
                     onClick={() => onDelete(user)}
-                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                    className="p-1 bg-red-50 text-red-600 hover:bg-red-100 rounded"
                     title="Delete User"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
               </td>
@@ -188,152 +188,152 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {user ? "Edit User" : "Add New User"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+              <div className="bg-white rounded-md p-4 w-full max-w-md">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-base font-semibold text-gray-900">
+              {user ? "Edit User" : "Add New User"}
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-1 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* Password input for new users */}
-          {!user && (
+          <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Email
               </label>
               <input
-                type="password"
-                name="password"
-                value={formData.password}
+                type="email"
+                name="email"
+                value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               />
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role
-            </label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="student">Student</option>
-              <option value="sponsor">Sponsor</option>
-              <option value="school">School</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
+            {/* Password input for new users */}
+            {!user && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+            )}
 
-          {formData.role === "sponsor" && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sponsor Type
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Role
               </label>
               <select
-                name="subRole"
-                value={formData.subRole}
+                name="role"
+                value={formData.role}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
-                <option value="">Select Type</option>
-                <option value="Individual">Individual</option>
-                <option value="Corporate">Corporate</option>
-              </select>
-            </div>
-          )}
-
-          {formData.role.toLowerCase() === "admin" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Admin Level
-              </label>
-              <select
-                name="adminLevel"
-                value={formData.adminLevel || "admin"}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
+                <option value="student">Student</option>
+                <option value="sponsor">Sponsor</option>
+                <option value="school">School</option>
                 <option value="admin">Admin</option>
-                <option value="super_admin">Super Admin</option>
               </select>
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="Active">Active</option>
-              <option value="Suspended">Suspended</option>
-            </select>
-          </div>
+            {formData.role === "sponsor" && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Sponsor Type
+                </label>
+                <select
+                  name="subRole"
+                  value={formData.subRole}
+                  onChange={handleChange}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">Select Type</option>
+                  <option value="Individual">Individual</option>
+                  <option value="Corporate">Corporate</option>
+                </select>
+              </div>
+            )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Verification Status
-            </label>
-            <select
-              name="isVerified"
-              value={formData.isVerified ? "true" : "false"}
-              onChange={e => setFormData(prev => ({ ...prev, isVerified: e.target.value === "true" }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="true">Verified</option>
-              <option value="false">Unverified</option>
-            </select>
-          </div>
+            {formData.role.toLowerCase() === "admin" && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Admin Level
+                </label>
+                <select
+                  name="adminLevel"
+                  value={formData.adminLevel || "admin"}
+                  onChange={handleChange}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+              </div>
+            )}
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
-            >
-              <Save className="w-4 h-4" />
-              <span>{user ? "Update" : "Create"}</span>
-            </button>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="Active">Active</option>
+                <option value="Suspended">Suspended</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Verification Status
+              </label>
+              <select
+                name="isVerified"
+                value={formData.isVerified ? "true" : "false"}
+                onChange={e => setFormData(prev => ({ ...prev, isVerified: e.target.value === "true" }))}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="true">Verified</option>
+                <option value="false">Unverified</option>
+              </select>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3 py-1.5 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-1.5 text-sm"
+              >
+                <Save className="w-3 h-3" />
+                <span>{user ? "Update" : "Create"}</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
     </div>
   );
 };
@@ -506,34 +506,34 @@ export function UserManagement() {
   };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">User Management</h1>
-          <p className="text-gray-600">Manage students, sponsors, and schools</p>
+        <div className="mb-4">
+          <h1 className="text-xl font-bold text-gray-900 mb-1">User Management</h1>
+          <p className="text-sm text-gray-600">Manage students, sponsors, and schools</p>
         </div>
         {loading && (
-          <div className="text-center text-gray-500 py-8">Loading users...</div>
+          <div className="text-center text-gray-500 py-6 text-sm">Loading users...</div>
         )}
         {error && (
-          <div className="text-center text-red-500 py-8">{error}</div>
+          <div className="text-center text-red-500 py-6 text-sm">{error}</div>
         )}
         {!loading && !error && (
           <>
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4">
           {getRoleStats().map((stat, index) => (
-            <div key={index} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+            <div key={index} className="bg-white p-3 rounded-md shadow-sm border border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                  <p className={`text-2xl font-bold ${stat.color}`}>{stat.count}</p>
+                  <p className="text-xs font-medium text-gray-600">{stat.label}</p>
+                  <p className={`text-xl font-bold ${stat.color}`}>{stat.count}</p>
                 </div>
-                <div className={`p-3 rounded-full bg-gray-100`}>
-                  {stat.label === "Students" && <GraduationCap className="w-6 h-6 text-blue-600" />}
-                  {stat.label === "Sponsors" && <Users className="w-6 h-6 text-green-600" />}
-                  {stat.label === "Schools" && <Building className="w-6 h-6 text-purple-600" />}
+                <div className={`p-2 rounded-full bg-gray-100`}>
+                  {stat.label === "Students" && <GraduationCap className="w-5 h-5 text-blue-600" />}
+                  {stat.label === "Sponsors" && <Users className="w-5 h-5 text-green-600" />}
+                  {stat.label === "Schools" && <Building className="w-5 h-5 text-purple-600" />}
                 </div>
               </div>
             </div>
@@ -541,24 +541,24 @@ export function UserManagement() {
         </div>
 
         {/* Controls */}
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex-1 flex gap-4">
+        <div className="bg-white p-3 rounded-md shadow-sm border border-gray-200 mb-4">
+          <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+            <div className="flex-1 flex gap-3">
               <div className="relative">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search className="w-4 h-4 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search users..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="pl-8 pr-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 />
               </div>
               
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="All">All Roles</option>
                 <option value="student">Students</option>
@@ -570,7 +570,7 @@ export function UserManagement() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="All">All Status</option>
                 <option value="Active">Active</option>
@@ -580,7 +580,7 @@ export function UserManagement() {
               <select
                 value={verifiedFilter}
                 onChange={(e) => setVerifiedFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="All">All Verification</option>
                 <option value="Verified">Verified</option>
@@ -590,18 +590,18 @@ export function UserManagement() {
 
             <button
               onClick={handleAddUser}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-1.5 text-sm"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3 h-3" />
               <span>Add User</span>
             </button>
           </div>
         </div>
 
         {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white rounded-md shadow-sm border border-gray-200">
+          <div className="p-3 border-b border-gray-200">
+            <h2 className="text-base font-semibold text-gray-900">
               Users ({filteredUsers.length})
             </h2>
           </div>

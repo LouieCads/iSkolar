@@ -35,7 +35,7 @@ const platformSchema = new mongoose.Schema({
   },
   facebook: {
     type: String,
-    default: "https://facebook.com/iskolarph",
+    default: "https://www.facebook.com/profile.php?id=61575967087555",
     trim: true,
   },
   twitter: {

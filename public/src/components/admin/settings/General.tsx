@@ -118,6 +118,11 @@ export default function General(): React.JSX.Element {
 
   return (
     <div className="relative">
+      {/* Header */}
+      <div className="mb-4">
+        <h1 className="text-xl font-bold text-gray-900 mb-1">General Settings</h1>
+        <p className="text-sm text-gray-600">Manage system preferences and configurations</p>
+      </div>
       <AnimatePresence>
         {showSuccessNotification && (
           <motion.div
@@ -154,13 +159,13 @@ export default function General(): React.JSX.Element {
         )}
       </AnimatePresence>
       {error && (
-        <div className="absolute top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-10">
+        <div className="absolute top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded z-10 text-sm">
           {error}
         </div>
       )}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex flex-col md:flex-row items-stretch w-full max-w-5xl mx-auto mt-10">
-        <div className="flex-1 flex flex-col md:pr-8 border-b md:border-b-0 md:border-r border-gray-200 pb-8 md:pb-0">
-          <Label htmlFor="platformName" className="mb-3 text-blue-900">Platform Name</Label>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col md:flex-row items-stretch w-full max-w-5xl mx-auto mt-6">
+        <div className="flex-1 flex flex-col md:pr-6 border-b md:border-b-0 md:border-r border-gray-200 pb-6 md:pb-0">
+          <Label htmlFor="platformName" className="mb-2 text-blue-900 text-sm">Platform Name</Label>
           <Input
             id="platformName"
             name="platformName"
@@ -170,12 +175,12 @@ export default function General(): React.JSX.Element {
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             aria-invalid={formik.touched.platformName && !!formik.errors.platformName}
-            className={formik.touched.platformName && formik.errors.platformName ? "border-red-500" : ""}
+            className={`text-sm ${formik.touched.platformName && formik.errors.platformName ? "border-red-500" : ""}`}
           />
           {formik.touched.platformName && formik.errors.platformName && (
             <div className="text-red-500 text-xs mt-1">{formik.errors.platformName}</div>
           )}
-          <Label htmlFor="email" className="mb-3 mt-6 text-blue-900">Platform Email</Label>
+          <Label htmlFor="email" className="mb-2 mt-4 text-blue-900 text-sm">Platform Email</Label>
           <Input
             id="email"
             name="email"
@@ -185,12 +190,12 @@ export default function General(): React.JSX.Element {
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             aria-invalid={formik.touched.email && !!formik.errors.email}
-            className={formik.touched.email && formik.errors.email ? "border-red-500" : ""}
+            className={`text-sm ${formik.touched.email && formik.errors.email ? "border-red-500" : ""}`}
           />
           {formik.touched.email && formik.errors.email && (
             <div className="text-red-500 text-xs mt-1">{formik.errors.email}</div>
           )}
-          <Label htmlFor="phoneNumber" className="mb-3 mt-6 text-blue-900">Platform Phone Number</Label>
+          <Label htmlFor="phoneNumber" className="mb-2 mt-4 text-blue-900 text-sm">Platform Phone Number</Label>
           <Input
             id="phoneNumber"
             name="phoneNumber"
@@ -200,12 +205,12 @@ export default function General(): React.JSX.Element {
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             aria-invalid={formik.touched.phoneNumber && !!formik.errors.phoneNumber}
-            className={formik.touched.phoneNumber && formik.errors.phoneNumber ? "border-red-500" : ""}
+            className={`text-sm ${formik.touched.phoneNumber && formik.errors.phoneNumber ? "border-red-500" : ""}`}
           />
           {formik.touched.phoneNumber && formik.errors.phoneNumber && (
             <div className="text-red-500 text-xs mt-1">{formik.errors.phoneNumber}</div>
           )}
-          <Label htmlFor="facebook" className="mb-3 mt-6 text-blue-900">Facebook Link</Label>
+          <Label htmlFor="facebook" className="mb-2 mt-4 text-blue-900 text-sm">Facebook Link</Label>
           <Input
             id="facebook"
             name="facebook"
@@ -215,12 +220,12 @@ export default function General(): React.JSX.Element {
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             aria-invalid={formik.touched.facebook && !!formik.errors.facebook}
-            className={formik.touched.facebook && formik.errors.facebook ? "border-red-500" : ""}
+            className={`text-sm ${formik.touched.facebook && formik.errors.facebook ? "border-red-500" : ""}`}
           />
           {formik.touched.facebook && formik.errors.facebook && (
             <div className="text-red-500 text-xs mt-1">{formik.errors.facebook}</div>
           )}
-          <Label htmlFor="twitter" className="mb-3 mt-6 text-blue-900">Twitter Link</Label>
+          <Label htmlFor="twitter" className="mb-2 mt-4 text-blue-900 text-sm">Twitter Link</Label>
           <Input
             id="twitter"
             name="twitter"
@@ -230,12 +235,12 @@ export default function General(): React.JSX.Element {
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             aria-invalid={formik.touched.twitter && !!formik.errors.twitter}
-            className={formik.touched.twitter && formik.errors.twitter ? "border-red-500" : ""}
+            className={`text-sm ${formik.touched.twitter && formik.errors.twitter ? "border-red-500" : ""}`}
           />
           {formik.touched.twitter && formik.errors.twitter && (
             <div className="text-red-500 text-xs mt-1">{formik.errors.twitter}</div>
           )}
-          <Label htmlFor="instagram" className="mb-3 mt-6 text-blue-900">Instagram Link</Label>
+          <Label htmlFor="instagram" className="mb-2 mt-4 text-blue-900 text-sm">Instagram Link</Label>
           <Input
             id="instagram"
             name="instagram"
@@ -245,12 +250,12 @@ export default function General(): React.JSX.Element {
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             aria-invalid={formik.touched.instagram && !!formik.errors.instagram}
-            className={formik.touched.instagram && formik.errors.instagram ? "border-red-500" : ""}
+            className={`text-sm ${formik.touched.instagram && formik.errors.instagram ? "border-red-500" : ""}`}
           />
           {formik.touched.instagram && formik.errors.instagram && (
             <div className="text-red-500 text-xs mt-1">{formik.errors.instagram}</div>
           )}
-          <Label htmlFor="linkedin" className="mb-3 mt-6 text-blue-900">LinkedIn Link</Label>
+          <Label htmlFor="linkedin" className="mb-2 mt-4 text-blue-900 text-sm">LinkedIn Link</Label>
           <Input
             id="linkedin"
             name="linkedin"
@@ -260,29 +265,29 @@ export default function General(): React.JSX.Element {
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             aria-invalid={formik.touched.linkedin && !!formik.errors.linkedin}
-            className={formik.touched.linkedin && formik.errors.linkedin ? "border-red-500" : ""}
+            className={`text-sm ${formik.touched.linkedin && formik.errors.linkedin ? "border-red-500" : ""}`}
           />
           {formik.touched.linkedin && formik.errors.linkedin && (
             <div className="text-red-500 text-xs mt-1">{formik.errors.linkedin}</div>
           )}
         </div>
-        <div className="flex-1 flex flex-col md:pl-5 pt-8 md:pt-0">
-          <Label htmlFor="logo" className="mb-3 text-blue-900">Platform Logo</Label>
-          <div className="w-full cursor-pointer flex flex-col items-center gap-3">
+        <div className="flex-1 flex flex-col md:pl-4 pt-6 md:pt-0">
+          <Label htmlFor="logo" className="mb-2 text-blue-900 text-sm">Platform Logo</Label>
+          <div className="w-full cursor-pointer flex flex-col items-center gap-2">
             <input
               id="logo"
               name="logo"
               type="file"
               accept="image/png, image/jpeg, image/svg+xml"
               onChange={handleLogoChange}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
           </div>
           {formik.touched.logo && formik.errors.logo && (
             <div className="text-red-500 text-xs">{formik.errors.logo as string}</div>
           )}
         </div>
-        <div className="w-30 h-30 rounded-md border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden mt-3">
+        <div className="w-28 h-28 rounded-md border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden mt-2">
           {logoPreview ? (
             <img src={logoPreview} alt="Logo Preview" className="object-contain w-full h-full" />
           ) : (
@@ -290,11 +295,11 @@ export default function General(): React.JSX.Element {
           )}
         </div>
       </div>
-      <div className="w-full flex justify-end mt-8">
+      <div className="fixed bottom-4 right-4 z-50">
         <Button 
           type="button"
           onClick={() => formik.handleSubmit()}
-          className="w-full md:w-auto px-8 py-3 text-base"
+          className="px-6 py-2 text-sm bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg"
           disabled={updating}
         >
           {updating ? "Updating..." : "Save Changes"}

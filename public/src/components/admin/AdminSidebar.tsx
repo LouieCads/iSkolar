@@ -73,8 +73,8 @@ const menuItems: MenuItem[] = [
     submenus: [
       { id: "general", title: "General" },
       { id: "user-management", title: "User Management" },
-      { id: "personal-information", title: "Scholarship Details" },
-      { id: "academic-data", title: "Academic Details" },
+      { id: "scholarship-details", title: "Scholarship Details" },
+      { id: "academic-details", title: "Academic Details" },
       { id: "scholarship-tags", title: "Token & Payment" },
       { id: "sponsors", title: "KYC Configuration" },
       { id: "document-type", title: "Credentials" },

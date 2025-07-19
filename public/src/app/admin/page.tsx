@@ -6,6 +6,7 @@ import { AdminSidebar } from "../../components/admin/AdminSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import General from "@/components/admin/settings/General";
 import { UserManagement } from "@/components/admin/settings/UserManagement";
+import { ScholarshipDetails } from "@/components/admin/settings/ScholarshipDetails";
 
 export default function Admin(): React.JSX.Element  {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -43,6 +44,7 @@ export default function Admin(): React.JSX.Element  {
           <div className="max-w-7xl mx-auto w-full">
             {activeTab === "general" && <General />}
             {activeTab === "user-management" && <UserManagement />}
+            {activeTab === "scholarship-details" && <ScholarshipDetails />}
           </div>
         </main>
       </div>
