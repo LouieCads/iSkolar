@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Edit, Trash2, Save, Award, Target, Tag } from "lucide-react";
+import { Plus, Edit, Trash2, Save, Award, Target, Tag } from "lucide-react";
 
 // Types for scholarship configuration
 interface ScholarshipType {

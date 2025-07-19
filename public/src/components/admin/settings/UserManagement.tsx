@@ -13,6 +13,7 @@ import {
   X,
   Save,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // UserTable Component
 const UserTable = ({ users, onEdit, onDelete, onToggleSuspend }) => {
@@ -368,6 +369,7 @@ export function UserManagement() {
   const [error, setError] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [notification, setNotification] = useState({ show: false, type: '', message: '' });
 
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
@@ -459,6 +461,12 @@ export function UserManagement() {
       // Sort users by createdAt descending (latest to oldest)
       mapped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setUsers(mapped);
+      setNotification({
+        show: true,
+        type: editingUser ? 'update' : 'add',
+        message: editingUser ? 'User successfully updated!' : 'User successfully added!'
+      });
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
     } catch (err) {
       setError("Failed to save user");
     }
@@ -489,6 +497,12 @@ export function UserManagement() {
       }));
       mapped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setUsers(mapped);
+      setNotification({
+        show: true,
+        type: 'delete',
+        message: 'User successfully deleted!'
+      });
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
     } catch (err) {
       setError("Failed to delete user");
     } finally {
@@ -681,6 +695,49 @@ export function UserManagement() {
             </div>
           </div>
         )}
+
+        {/* Success Notification */}
+        <AnimatePresence>
+          {notification.show && (
+            <motion.div
+              initial={{ opacity: 1, x: 500 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 500 }}
+              transition={{
+                type: "spring",
+                stiffness: 900,
+                damping: 25,
+                duration: 0.2,
+              }}
+              className={`fixed w-[325px] flex justify-end items-center h-[55px] bottom-5 right-5 rounded-[10px] text-[#002828] ${
+                notification.type === 'delete' ? 'bg-red-500' : 'bg-[#26D871]'
+              } rounded-md shadow-xl z-100`}
+            >
+              <div className="flex gap-3 items-center w-[320px] h-[55px] bg-gray-50 rounded-[5px] border-white px-3 py-2">
+                <div>
+                  {notification.type === 'delete' ? (
+                    <Trash2 width={23} height={23} className="text-red-500" />
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="23"
+                      height="23"
+                      fill="#26D871"
+                      className="bi bi-check-square-fill"
+                      viewBox="0 0 16 16"
+                    >
+                      <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm10.03 4.97a.75.75 0 0 1 .011 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.75.75 0 0 1 1.08-.022z" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-[14px]">Success</p>
+                  <p className="text-[12px]">{notification.message}</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
           </>
         )}
       </div>
