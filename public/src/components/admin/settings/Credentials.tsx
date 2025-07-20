@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2, Save, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // --- Notification ---
 function Notification({ show, type, message, onClose }) {
@@ -74,11 +77,10 @@ function DeleteModal({ show, onCancel, onConfirm, label }) {
 }
 
 export function Credentials() {
-  // Reference values
-  const defaultTypes = ["PDF", "JPG", "PNG", "DOCX"];
-  const [docTypes, setDocTypes] = useState<string[]>(defaultTypes);
+  const [docTypes, setDocTypes] = useState<string[]>([]);
   const [maxFileSize, setMaxFileSize] = useState<number>(5); // MB
   const [notification, setNotification] = useState({ show: false, type: '', message: '' });
+  const [loading, setLoading] = useState(true);
 
   // --- Document Types Handlers ---
   const [newType, setNewType] = useState("");
@@ -86,37 +88,80 @@ export function Credentials() {
   const [editValue, setEditValue] = useState("");
   const [deleteIdx, setDeleteIdx] = useState<number | null>(null);
 
-  const addType = () => {
+  // Fetch credentials settings
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/credentials`);
+        setDocTypes(res.data.documentType || []);
+        setMaxFileSize(res.data.fileSize || 5);
+      } catch (err) {
+        setNotification({ show: true, type: 'delete', message: 'Failed to fetch credentials settings' });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  // --- CRUD Actions ---
+  const addType = async () => {
     if (!newType.trim() || docTypes.includes(newType)) return;
-    setDocTypes([...docTypes, newType]);
-    setNewType("");
-    setNotification({ show: true, type: 'add', message: 'Document type added!' });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
-  };
-  const editType = (idx: number, value: string) => {
-    if (!value.trim() || docTypes.includes(value)) return;
-    const updated = [...docTypes];
-    updated[idx] = value;
-    setDocTypes(updated);
-    setEditingIdx(null);
-    setNotification({ show: true, type: 'edit', message: 'Document type updated!' });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
-  };
-  const deleteType = (idx: number) => {
-    setDocTypes(docTypes.filter((_, i) => i !== idx));
-    setNotification({ show: true, type: 'delete', message: 'Document type deleted!' });
+    try {
+      const res = await axios.post(`${API_BASE_URL}/credentials/types`, { type: newType });
+      setDocTypes(res.data.documentType);
+      setNewType("");
+      setNotification({ show: true, type: 'add', message: 'Document type added!' });
+    } catch (err) {
+      setNotification({ show: true, type: 'delete', message: 'Failed to add document type' });
+    }
     setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
   };
 
-  // --- File Size Handler ---
-  const handleFileSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const editType = async (idx: number, value: string) => {
+    if (!value.trim() || docTypes.includes(value)) return;
+    try {
+      const res = await axios.put(`${API_BASE_URL}/credentials/types`, {
+        oldType: docTypes[idx],
+        newType: value,
+      });
+      setDocTypes(res.data.documentType);
+      setEditingIdx(null);
+      setNotification({ show: true, type: 'edit', message: 'Document type updated!' });
+    } catch (err) {
+      setNotification({ show: true, type: 'delete', message: 'Failed to update document type' });
+    }
+    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+  };
+
+  const deleteType = async (idx: number) => {
+    try {
+      const res = await axios.delete(`${API_BASE_URL}/credentials/types`, {
+        data: { type: docTypes[idx] },
+      });
+      setDocTypes(res.data.documentType);
+      setNotification({ show: true, type: 'delete', message: 'Document type deleted!' });
+    } catch (err) {
+      setNotification({ show: true, type: 'delete', message: 'Failed to delete document type' });
+    }
+    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+  };
+
+  const handleFileSizeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
     if (!isNaN(value) && value > 0) {
-      setMaxFileSize(value);
-      setNotification({ show: true, type: 'edit', message: 'Max file size updated!' });
+      try {
+        const res = await axios.put(`${API_BASE_URL}/credentials/file-size`, { fileSize: value });
+        setMaxFileSize(res.data.fileSize);
+        setNotification({ show: true, type: 'edit', message: 'Max file size updated!' });
+      } catch (err) {
+        setNotification({ show: true, type: 'delete', message: 'Failed to update file size' });
+      }
       setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
     }
   };
+
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div className="relative">
