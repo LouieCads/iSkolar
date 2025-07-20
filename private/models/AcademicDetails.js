@@ -4,7 +4,6 @@ const AcademicDetailsSchema = new mongoose.Schema({
   course: {
     type: [String],
     required: true,
-    default: ["BSCS", "BSIT"],
   },
   yearLevel: {
     type: [String],
@@ -14,7 +13,6 @@ const AcademicDetailsSchema = new mongoose.Schema({
   school: {
     type: [String],
     required: true,
-    default: ["University of Makati"],
   },
 });
 

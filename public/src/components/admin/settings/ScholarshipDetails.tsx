@@ -278,7 +278,7 @@ export function ScholarshipDetails() {
     async function fetchData() {
       setLoading(true);
       try {
-        const { data } = await axios.get(`${API_BASE_URL}/platform/scholarship-details`);
+        const { data } = await axios.get(`${API_BASE_URL}/scholarship-details/scholarship-details`);
         setTypes(data.types || []);
         setPurposes(data.purposes || []);
         // setCriteriaTags(data.criteriaTags || []); // For future use
@@ -298,7 +298,7 @@ export function ScholarshipDetails() {
     if (!type.trim() || types.includes(type)) return;
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API_BASE_URL}/platform/scholarship-types`, { type });
+      const { data } = await axios.post(`${API_BASE_URL}/scholarship-details/scholarship-types`, { type });
       setTypes(data.types);
       setNotification({ show: true, type: 'add', message: 'Type added!' });
     } catch (err: any) {
@@ -312,7 +312,7 @@ export function ScholarshipDetails() {
     if (!newType.trim() || types.includes(newType)) return;
     setLoading(true);
     try {
-      const { data } = await axios.put(`${API_BASE_URL}/platform/scholarship-types`, {
+      const { data } = await axios.put(`${API_BASE_URL}/scholarship-details/scholarship-types`, {
         oldType: types[idx],
         newType,
       });
@@ -328,7 +328,7 @@ export function ScholarshipDetails() {
   const deleteType = async (idx: number) => {
     setLoading(true);
     try {
-      const { data } = await axios.delete(`${API_BASE_URL}/platform/scholarship-types`, {
+      const { data } = await axios.delete(`${API_BASE_URL}/scholarship-details/scholarship-types`, {
         data: { type: types[idx] },
       });
       setTypes(data.types);
@@ -346,7 +346,7 @@ export function ScholarshipDetails() {
     if (!purpose.trim() || purposes.includes(purpose)) return;
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API_BASE_URL}/platform/scholarship-purposes`, { purpose });
+      const { data } = await axios.post(`${API_BASE_URL}/scholarship-details/scholarship-purposes`, { purpose });
       setPurposes(data.purposes);
       setNotification({ show: true, type: 'add', message: 'Purpose added!' });
     } catch (err: any) {
@@ -360,7 +360,7 @@ export function ScholarshipDetails() {
     if (!newPurpose.trim() || purposes.includes(newPurpose)) return;
     setLoading(true);
     try {
-      const { data } = await axios.put(`${API_BASE_URL}/platform/scholarship-purposes`, {
+      const { data } = await axios.put(`${API_BASE_URL}/scholarship-details/scholarship-purposes`, {
         oldPurpose: purposes[idx],
         newPurpose,
       });
@@ -376,7 +376,7 @@ export function ScholarshipDetails() {
   const deletePurpose = async (idx: number) => {
     setLoading(true);
     try {
-      const { data } = await axios.delete(`${API_BASE_URL}/platform/scholarship-purposes`, {
+      const { data } = await axios.delete(`${API_BASE_URL}/scholarship-details/scholarship-purposes`, {
         data: { purpose: purposes[idx] },
       });
       setPurposes(data.purposes);

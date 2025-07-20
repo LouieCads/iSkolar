@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2, Save, BookOpen, Layers, School } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // --- Notification ---
 function Notification({ show, type, message, onClose }) {
@@ -81,21 +84,40 @@ const TABS = [
 ];
 
 export function AcademicDetails() {
-  // Reference values
-  const defaultCourses = ["BSCS", "BSECE", "BSBA", "BSIT", "BSA", "BSN", "BSED", "BSEE", "BSME", "BSTM"];
-  const defaultYears = [
-    "1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "Master’s"
-  ];
-  const defaultSchools = [
-    "University of the Philippines", "Ateneo de Manila University", "De La Salle University", "Mapua University", "Far Eastern University"
-  ];
-
   // State
   const [tab, setTab] = useState("courses");
-  const [courses, setCourses] = useState<string[]>(defaultCourses);
-  const [years, setYears] = useState<string[]>(defaultYears);
-  const [schools, setSchools] = useState<string[]>(defaultSchools);
+  const [courses, setCourses] = useState<string[]>([]);
+  const [years, setYears] = useState<string[]>([]);
+  const [schools, setSchools] = useState<string[]>([]);
   const [notification, setNotification] = useState({ show: false, type: '', message: '' });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Fetch initial data
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const { data } = await axios.get(`${API_BASE_URL}/academic-details/academic-details`);
+        setCourses(data.course || []);
+        setYears(data.yearLevel || []);
+        setSchools(data.school || []);
+      } catch {
+        setCourses(["BSCS", "BSECE", "BSBA", "BSIT", "BSA", "BSN", "BSED", "BSEE", "BSME", "BSTM"]);
+        setYears(["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "Master’s"]);
+        setSchools([
+          "University of the Philippines",
+          "Ateneo de Manila University",
+          "De La Salle University",
+          "Mapua University",
+          "Far Eastern University",
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   // --- Course List Handlers ---
   const [newCourse, setNewCourse] = useState("");
@@ -103,26 +125,53 @@ export function AcademicDetails() {
   const [editCourseValue, setEditCourseValue] = useState("");
   const [deleteCourseIdx, setDeleteCourseIdx] = useState<number | null>(null);
 
-  const addCourse = () => {
+  const addCourse = async () => {
     if (!newCourse.trim() || courses.includes(newCourse)) return;
-    setCourses([...courses, newCourse]);
-    setNewCourse("");
-    setNotification({ show: true, type: 'add', message: 'Course added!' });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/academic-details/courses`, { course: newCourse });
+      setCourses(data.course);
+      setNotification({ show: true, type: 'add', message: 'Course added!' });
+      setNewCourse("");
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to add course");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
   };
-  const editCourse = (idx: number, value: string) => {
+  const editCourse = async (idx: number, value: string) => {
     if (!value.trim() || courses.includes(value)) return;
-    const updated = [...courses];
-    updated[idx] = value;
-    setCourses(updated);
-    setEditingCourseIdx(null);
-    setNotification({ show: true, type: 'edit', message: 'Course updated!' });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    setLoading(true);
+    try {
+      const { data } = await axios.put(`${API_BASE_URL}/academic-details/courses`, {
+        oldCourse: courses[idx],
+        newCourse: value,
+      });
+      setCourses(data.course);
+      setNotification({ show: true, type: 'edit', message: 'Course updated!' });
+      setEditingCourseIdx(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to update course");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
   };
-  const deleteCourse = (idx: number) => {
-    setCourses(courses.filter((_, i) => i !== idx));
-    setNotification({ show: true, type: 'delete', message: 'Course deleted!' });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+  const deleteCourse = async (idx: number) => {
+    setLoading(true);
+    try {
+      const { data } = await axios.delete(`${API_BASE_URL}/academic-details/courses`, {
+        data: { course: courses[idx] },
+      });
+      setCourses(data.course);
+      setNotification({ show: true, type: 'delete', message: 'Course deleted!' });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to delete course");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
   };
 
   // --- Year Level Handlers ---
@@ -131,26 +180,53 @@ export function AcademicDetails() {
   const [editYearValue, setEditYearValue] = useState("");
   const [deleteYearIdx, setDeleteYearIdx] = useState<number | null>(null);
 
-  const addYear = () => {
+  const addYear = async () => {
     if (!newYear.trim() || years.includes(newYear)) return;
-    setYears([...years, newYear]);
-    setNewYear("");
-    setNotification({ show: true, type: 'add', message: 'Year level added!' });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/academic-details/year-levels`, { yearLevel: newYear });
+      setYears(data.yearLevel);
+      setNotification({ show: true, type: 'add', message: 'Year level added!' });
+      setNewYear("");
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to add year level");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
   };
-  const editYear = (idx: number, value: string) => {
+  const editYear = async (idx: number, value: string) => {
     if (!value.trim() || years.includes(value)) return;
-    const updated = [...years];
-    updated[idx] = value;
-    setYears(updated);
-    setEditingYearIdx(null);
-    setNotification({ show: true, type: 'edit', message: 'Year level updated!' });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    setLoading(true);
+    try {
+      const { data } = await axios.put(`${API_BASE_URL}/academic-details/year-levels`, {
+        oldYearLevel: years[idx],
+        newYearLevel: value,
+      });
+      setYears(data.yearLevel);
+      setNotification({ show: true, type: 'edit', message: 'Year level updated!' });
+      setEditingYearIdx(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to update year level");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
   };
-  const deleteYear = (idx: number) => {
-    setYears(years.filter((_, i) => i !== idx));
-    setNotification({ show: true, type: 'delete', message: 'Year level deleted!' });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+  const deleteYear = async (idx: number) => {
+    setLoading(true);
+    try {
+      const { data } = await axios.delete(`${API_BASE_URL}/academic-details/year-levels`, {
+        data: { yearLevel: years[idx] },
+      });
+      setYears(data.yearLevel);
+      setNotification({ show: true, type: 'delete', message: 'Year level deleted!' });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to delete year level");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
   };
 
   // --- School/University Handlers ---
@@ -159,26 +235,53 @@ export function AcademicDetails() {
   const [editSchoolValue, setEditSchoolValue] = useState("");
   const [deleteSchoolIdx, setDeleteSchoolIdx] = useState<number | null>(null);
 
-  const addSchool = () => {
+  const addSchool = async () => {
     if (!newSchool.trim() || schools.includes(newSchool)) return;
-    setSchools([...schools, newSchool]);
-    setNewSchool("");
-    setNotification({ show: true, type: 'add', message: 'School added!' });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/academic-details/schools`, { school: newSchool });
+      setSchools(data.school);
+      setNotification({ show: true, type: 'add', message: 'School added!' });
+      setNewSchool("");
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to add school");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
   };
-  const editSchool = (idx: number, value: string) => {
+  const editSchool = async (idx: number, value: string) => {
     if (!value.trim() || schools.includes(value)) return;
-    const updated = [...schools];
-    updated[idx] = value;
-    setSchools(updated);
-    setEditingSchoolIdx(null);
-    setNotification({ show: true, type: 'edit', message: 'School updated!' });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    setLoading(true);
+    try {
+      const { data } = await axios.put(`${API_BASE_URL}/academic-details/schools`, {
+        oldSchool: schools[idx],
+        newSchool: value,
+      });
+      setSchools(data.school);
+      setNotification({ show: true, type: 'edit', message: 'School updated!' });
+      setEditingSchoolIdx(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to update school");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
   };
-  const deleteSchool = (idx: number) => {
-    setSchools(schools.filter((_, i) => i !== idx));
-    setNotification({ show: true, type: 'delete', message: 'School deleted!' });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+  const deleteSchool = async (idx: number) => {
+    setLoading(true);
+    try {
+      const { data } = await axios.delete(`${API_BASE_URL}/academic-details/schools`, {
+        data: { school: schools[idx] },
+      });
+      setSchools(data.school);
+      setNotification({ show: true, type: 'delete', message: 'School deleted!' });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to delete school");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+    }
   };
 
   // --- Rendered Section ---
@@ -202,10 +305,10 @@ export function AcademicDetails() {
           </div>
           <Button
             onClick={addCourse}
-            disabled={!newCourse.trim()}
+            disabled={!newCourse.trim() || loading}
             className="px-2 py-1 bg-green-600 text-white rounded text-xs"
           >
-            <Plus className="w-2 h-2" /> Add Course
+            {loading ? "Adding..." : <Plus className="w-2 h-2" />} Add Course
           </Button>
         </div>
         <div className="space-y-1">
@@ -220,10 +323,10 @@ export function AcademicDetails() {
                   />
                   <Button
                     onClick={() => editCourse(idx, editCourseValue)}
-                    disabled={!editCourseValue.trim()}
+                    disabled={!editCourseValue.trim() || loading}
                     className="px-1.5 py-0.5 bg-green-600 text-white rounded text-xs"
                   >
-                    <Save className="w-2.5 h-2.5" />
+                    {loading ? "Updating..." : <Save className="w-2.5 h-2.5" />}
                   </Button>
                   <Button
                     onClick={() => setEditingCourseIdx(null)}
@@ -281,10 +384,10 @@ export function AcademicDetails() {
           </div>
           <Button
             onClick={addYear}
-            disabled={!newYear.trim()}
+            disabled={!newYear.trim() || loading}
             className="px-2 py-1 bg-purple-600 text-white rounded text-xs"
           >
-            <Plus className="w-2 h-2" /> Add Year
+            {loading ? "Adding..." : <Plus className="w-2 h-2" />} Add Year
           </Button>
         </div>
         <div className="space-y-1">
@@ -299,10 +402,10 @@ export function AcademicDetails() {
                   />
                   <Button
                     onClick={() => editYear(idx, editYearValue)}
-                    disabled={!editYearValue.trim()}
+                    disabled={!editYearValue.trim() || loading}
                     className="px-1.5 py-0.5 bg-green-600 text-white rounded text-xs"
                   >
-                    <Save className="w-2.5 h-2.5" />
+                    {loading ? "Updating..." : <Save className="w-2.5 h-2.5" />}
                   </Button>
                   <Button
                     onClick={() => setEditingYearIdx(null)}
@@ -360,10 +463,10 @@ export function AcademicDetails() {
           </div>
           <Button
             onClick={addSchool}
-            disabled={!newSchool.trim()}
+            disabled={!newSchool.trim() || loading}
             className="px-2 py-1 bg-blue-600 text-white rounded text-xs"
           >
-            <Plus className="w-2 h-2" /> Add School
+            {loading ? "Adding..." : <Plus className="w-2 h-2" />} Add School
           </Button>
         </div>
         <div className="space-y-1">
@@ -378,10 +481,10 @@ export function AcademicDetails() {
                   />
                   <Button
                     onClick={() => editSchool(idx, editSchoolValue)}
-                    disabled={!editSchoolValue.trim()}
+                    disabled={!editSchoolValue.trim() || loading}
                     className="px-1.5 py-0.5 bg-green-600 text-white rounded text-xs"
                   >
-                    <Save className="w-2.5 h-2.5" />
+                    {loading ? "Updating..." : <Save className="w-2.5 h-2.5" />}
                   </Button>
                   <Button
                     onClick={() => setEditingSchoolIdx(null)}
@@ -447,6 +550,9 @@ export function AcademicDetails() {
         ))}
       </div>
       <Notification {...notification} onClose={() => setNotification({ show: false, type: '', message: '' })} />
+      {error && (
+        <div className="fixed bottom-5 right-5 bg-red-100 border border-red-400 text-red-800 px-3 py-2 rounded shadow text-xs z-50">{error}</div>
+      )}
       {section}
     </div>
   );

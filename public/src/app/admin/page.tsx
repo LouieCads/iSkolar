@@ -8,6 +8,7 @@ import General from "@/components/admin/settings/General";
 import { UserManagement } from "@/components/admin/settings/UserManagement";
 import { ScholarshipDetails } from "@/components/admin/settings/ScholarshipDetails";
 import { AcademicDetails } from "@/components/admin/settings/AcademicDetails";
+import { Credentials } from "@/components/admin/settings/Credentials";
 
 export default function Admin(): React.JSX.Element  {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -47,6 +48,7 @@ export default function Admin(): React.JSX.Element  {
             {activeTab === "user-management" && <UserManagement />}
             {activeTab === "scholarship-details" && <ScholarshipDetails />}
             {activeTab === "academic-details" && <AcademicDetails />}
+            {activeTab === "credentials" && <Credentials />}
           </div>
         </main>
       </div>

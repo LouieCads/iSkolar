@@ -5,6 +5,8 @@ const cors = require("cors");
 const authRoutes = require("./routes/auth");
 const platformRoutes = require("./routes/platform");
 const userManagementRoutes = require("./routes/user-management");
+const scholarshipDetailsRoutes = require("./routes/scholarship-details");
+const academicDetailsRoutes = require("./routes/academic-details");
 
 dotenv.config();
 const app = express();
@@ -22,6 +24,8 @@ app.use("/public", express.static("public/public"));
 app.use("/auth", authRoutes);
 app.use("/platform", platformRoutes);
 app.use("/user-management", userManagementRoutes);
+app.use("/scholarship-details", scholarshipDetailsRoutes);
+app.use("/academic-details", academicDetailsRoutes);
 
 // connection
 mongoose

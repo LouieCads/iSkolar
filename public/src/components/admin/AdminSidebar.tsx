@@ -77,7 +77,7 @@ const menuItems: MenuItem[] = [
       { id: "academic-details", title: "Academic Details" },
       { id: "scholarship-tags", title: "Token & Payment" },
       { id: "sponsors", title: "KYC Configuration" },
-      { id: "document-type", title: "Credentials" },
+      { id: "credentials", title: "Credentials" },
       { id: "notification", title: "Notification" },
     ]
   },

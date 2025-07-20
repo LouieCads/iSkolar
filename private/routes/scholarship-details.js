@@ -1,0 +1,21 @@
+const express = require("express");
+const router = express.Router();
+const {
+  getScholarshipDetails,
+  addScholarshipType,
+  updateScholarshipType,
+  deleteScholarshipType,
+  addScholarshipPurpose,
+  updateScholarshipPurpose,
+  deleteScholarshipPurpose,
+} = require("../controllers/scholarship-details");
+
+router.get("/scholarship-details", getScholarshipDetails);
+router.post("/scholarship-types", addScholarshipType);
+router.put("/scholarship-types", updateScholarshipType);
+router.delete("/scholarship-types", deleteScholarshipType);
+router.post("/scholarship-purposes", addScholarshipPurpose);
+router.put("/scholarship-purposes", updateScholarshipPurpose);
+router.delete("/scholarship-purposes", deleteScholarshipPurpose);
+
+module.exports = router;
