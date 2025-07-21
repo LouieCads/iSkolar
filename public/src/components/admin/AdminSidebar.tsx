@@ -75,10 +75,9 @@ const menuItems: MenuItem[] = [
       { id: "user-management", title: "User Management" },
       { id: "scholarship-details", title: "Scholarship Details" },
       { id: "academic-details", title: "Academic Details" },
-      { id: "scholarship-tags", title: "Token & Payment" },
+      { id: "token-payment", title: "Token & Payment" },
       { id: "kyc-kyb-configuration", title: "KYC/KYB Configuration" },
       { id: "credentials", title: "Credentials" },
-      { id: "notification", title: "Notification" },
     ]
   },
 ];

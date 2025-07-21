@@ -5,14 +5,16 @@ const cors = require("cors");
 const authRoutes = require("./routes/auth");
 const platformRoutes = require("./routes/platform");
 const userManagementRoutes = require("./routes/user-management");
-const scholarshipDetailsRoutes = require("./routes/scholarship-details");
 const academicDetailsRoutes = require("./routes/academic-details");
+const scholarshipDetailsRoutes = require("./routes/scholarship-details");
 const credentialsRoutes = require("./routes/credentials");
+const tokenPaymentRoutes = require("./routes/token-payment");
+const kycKybConfigurationRoutes = require("./routes/kyc-kyb-configuration");
 
 dotenv.config();
 const app = express();
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
 app.use(express.json());
@@ -25,9 +27,11 @@ app.use("/public", express.static("public/public"));
 app.use("/auth", authRoutes);
 app.use("/platform", platformRoutes);
 app.use("/user-management", userManagementRoutes);
-app.use("/scholarship-details", scholarshipDetailsRoutes);
 app.use("/academic-details", academicDetailsRoutes);
+app.use("/scholarship-details", scholarshipDetailsRoutes);
 app.use("/credentials", credentialsRoutes);
+app.use("/token-payment", tokenPaymentRoutes);
+app.use("/kyc-kyb-configuration", kycKybConfigurationRoutes);
 
 // connection
 mongoose

@@ -10,6 +10,7 @@ import { ScholarshipDetails } from "@/components/admin/settings/ScholarshipDetai
 import { AcademicDetails } from "@/components/admin/settings/AcademicDetails";
 import { Credentials } from "@/components/admin/settings/Credentials";
 import { KycKybConfiguration } from "@/components/admin/settings/KycKybConfiguration"
+import { TokenAndPayment } from "@/components/admin/settings/TokenAndPayment"
 
 export default function Admin(): React.JSX.Element  {
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -51,6 +52,7 @@ export default function Admin(): React.JSX.Element  {
             {activeTab === "academic-details" && <AcademicDetails />}
             {activeTab === "credentials" && <Credentials />}
             {activeTab === "kyc-kyb-configuration" && <KycKybConfiguration />}
+            {activeTab === "token-payment" && <TokenAndPayment />}
           </div>
         </main>
       </div>

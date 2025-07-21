@@ -1,9 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Save, Settings } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Save,
+  Settings,
+  UserSquare,
+  Briefcase,
+  Wallet,
+  Building2,
+  Factory,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 // --- Notification Component (from Credentials) ---
 function Notification({ show, type, message, onClose }) {
@@ -58,60 +73,88 @@ function Loading() {
   );
 }
 
+// --- Delete Confirmation Modal ---
+function DeleteModal({ show, onCancel, onConfirm, label }) {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full"
+      >
+        <div className="flex flex-col items-center">
+          <Trash2 className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
+          <h3 className="text-lg font-bold text-gray-900 mb-1">Delete?</h3>
+          <p className="text-sm text-gray-600 mb-1 text-center">
+            Are you sure you want to delete{" "}
+            <span className="font-semibold text-red-600">{label}</span>?
+          </p>
+          <p className="text-sm text-gray-600 mb-4 text-center">
+            This action cannot be undone.
+          </p>
+          <div className="flex gap-3 w-full justify-center">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors font-medium cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors font-medium cursor-pointer shadow"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // --- Tab Navigation ---
 const TABS = [
-  { key: "requiredFields", label: "Required Fields per Role" },
-  { key: "idTypes", label: "ID Types" },
-  { key: "natureOfWork", label: "Nature of Work" },
-  { key: "sourceOfIncome", label: "Source of Income" },
-  { key: "organizationType", label: "Organization Type" },
-  { key: "industrySector", label: "Industry Sector" },
+  { key: "idTypes", label: "ID Types", icon: UserSquare },
+  { key: "natureOfWork", label: "Nature of Work", icon: Briefcase },
+  { key: "sourceOfIncome", label: "Source of Income", icon: Wallet },
+  { key: "organizationType", label: "Organization Type", icon: Building2 },
+  { key: "industrySector", label: "Industry Sector", icon: Factory },
 ];
 
 // --- Tab Content Components ---
-function ListTab({ title, items, setItems, placeholder, demoValues, notification, setNotification }) {
+function ListTab({
+  title,
+  items,
+  onAddItem,
+  onEditItem,
+  onDeleteItem,
+  placeholder,
+  notification,
+  setNotification,
+}) {
   const [newItem, setNewItem] = useState("");
   const [editingIdx, setEditingIdx] = useState(null);
   const [editValue, setEditValue] = useState("");
-  const [loading, setLoading] = useState(false);
   const [deleteIdx, setDeleteIdx] = useState(null);
 
-  // Demo: Simulate loading for 500ms on first mount
-  React.useEffect(() => {
-    if (items.length === 0 && demoValues) {
-      setLoading(true);
-      setTimeout(() => {
-        setItems(demoValues);
-        setLoading(false);
-      }, 500);
-    }
-  }, []);
-
-  const addItem = () => {
+  const handleAddItem = () => {
     if (!newItem.trim() || items.includes(newItem)) return;
-    setItems([...items, newItem]);
+    onAddItem(newItem);
     setNewItem("");
-    setNotification({ show: true, type: 'add', message: `${title} added!` });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 2000);
-  };
-  const editItem = (idx, value) => {
-    if (!value.trim() || items.includes(value)) return;
-    const updated = [...items];
-    updated[idx] = value;
-    setItems(updated);
-    setEditingIdx(null);
-    setNotification({ show: true, type: 'edit', message: `${title} updated!` });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 2000);
-  };
-  const deleteItem = idx => {
-    const updated = items.filter((_, i) => i !== idx);
-    setItems(updated);
-    setDeleteIdx(null);
-    setNotification({ show: true, type: 'delete', message: `${title} deleted!` });
-    setTimeout(() => setNotification({ show: false, type: '', message: '' }), 2000);
   };
 
-  if (loading) return <Loading />;
+  const handleEditItem = (idx, value) => {
+    if (!value.trim() || items.includes(value)) return;
+    onEditItem(idx, value);
+    setEditingIdx(null);
+  };
+
+  const handleDeleteItem = (idx) => {
+    onDeleteItem(idx);
+    setDeleteIdx(null);
+  };
 
   return (
     <div className="bg-white rounded-md shadow-sm border border-gray-200 p-4">
@@ -124,13 +167,13 @@ function ListTab({ title, items, setItems, placeholder, demoValues, notification
           <Label className="text-xs font-medium text-gray-700">{placeholder}</Label>
           <Input
             value={newItem}
-            onChange={e => setNewItem(e.target.value)}
+            onChange={(e) => setNewItem(e.target.value)}
             placeholder={placeholder}
             className="mt-1 text-xs"
           />
         </div>
         <Button
-          onClick={addItem}
+          onClick={handleAddItem}
           disabled={!newItem.trim()}
           className="px-2 py-1 bg-green-600 text-white rounded text-xs"
         >
@@ -139,16 +182,19 @@ function ListTab({ title, items, setItems, placeholder, demoValues, notification
       </div>
       <div className="space-y-1">
         {items.map((item, idx) => (
-          <div key={item + idx} className="bg-gray-50 p-2 rounded border border-gray-200 flex items-center justify-between">
+          <div
+            key={item + idx}
+            className="bg-gray-50 p-2 rounded border border-gray-200 flex items-center justify-between"
+          >
             {editingIdx === idx ? (
               <>
                 <Input
                   value={editValue}
-                  onChange={e => setEditValue(e.target.value)}
+                  onChange={(e) => setEditValue(e.target.value)}
                   className="text-xs mr-2"
                 />
                 <Button
-                  onClick={() => editItem(idx, editValue)}
+                  onClick={() => handleEditItem(idx, editValue)}
                   disabled={!editValue.trim()}
                   className="px-1.5 py-0.5 bg-green-600 text-white rounded text-xs"
                 >
@@ -157,14 +203,19 @@ function ListTab({ title, items, setItems, placeholder, demoValues, notification
                 <Button
                   onClick={() => setEditingIdx(null)}
                   className="px-1.5 py-0.5 bg-gray-600 text-white rounded text-xs ml-1"
-                >Cancel</Button>
+                >
+                  Cancel
+                </Button>
               </>
             ) : (
               <>
                 <span className="text-xs font-medium text-gray-900">{item}</span>
                 <div className="flex gap-0.5">
                   <Button
-                    onClick={() => { setEditingIdx(idx); setEditValue(item); }}
+                    onClick={() => {
+                      setEditingIdx(idx);
+                      setEditValue(item);
+                    }}
                     className="p-0.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
                     title="Edit"
                   >
@@ -184,35 +235,12 @@ function ListTab({ title, items, setItems, placeholder, demoValues, notification
         ))}
       </div>
       {/* Delete Modal */}
-      <AnimatePresence>
-        {deleteIdx !== null && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md"
-          >
-            <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full animate-fade-in">
-              <div className="flex flex-col items-center">
-                <Trash2 className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
-                <h3 className="text-lg font-bold text-gray-900 mb-1">Delete?</h3>
-                <p className="text-sm text-gray-600 mb-1 text-center">Are you sure you want to delete <span className="font-semibold text-red-600">{items[deleteIdx]}</span>?</p>
-                <p className="text-sm text-gray-600 mb-4 text-center">This action cannot be undone.</p>
-                <div className="flex gap-3 w-full justify-center">
-                  <button
-                    onClick={() => setDeleteIdx(null)}
-                    className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors font-medium cursor-pointer"
-                  >Cancel</button>
-                  <button
-                    onClick={() => deleteItem(deleteIdx)}
-                    className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors font-medium cursor-pointer shadow"
-                  >Delete</button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <DeleteModal
+        show={deleteIdx !== null}
+        label={deleteIdx !== null ? items[deleteIdx] : ""}
+        onCancel={() => setDeleteIdx(null)}
+        onConfirm={() => handleDeleteItem(deleteIdx)}
+      />
     </div>
   );
 }
@@ -220,46 +248,83 @@ function ListTab({ title, items, setItems, placeholder, demoValues, notification
 // --- Main KYC/KYB Configuration Component ---
 export function KycKybConfiguration() {
   const [activeTab, setActiveTab] = useState(TABS[0].key);
-  const [notification, setNotification] = useState({ show: false, type: '', message: '' });
+  const [notification, setNotification] = useState({
+    show: false,
+    type: "",
+    message: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // Demo initial values
-  const [requiredFields, setRequiredFields] = useState([
-    "Student: Name, Birthday, Email, Address, School ID",
-    "Individual Sponsor: Name, Email, ID Type, Source of Income",
-    "Corporate Sponsor: Company Name, Org Type, Industry Sector",
-    "School: School Name, Verifier Name, Email, ID Type"
-  ]);
-  const [idTypes, setIdTypes] = useState(["UMID", "Passport", "Company ID"]);
-  const [natureOfWork, setNatureOfWork] = useState(["Employed", "Self-Employed", "Student", "Retired"]);
-  const [sourceOfIncome, setSourceOfIncome] = useState(["Salary", "Business", "Scholarship", "Allowance"]);
-  const [organizationType, setOrganizationType] = useState(["Corporation", "NGO", "Cooperative", "Sole Proprietorship"]);
-  const [industrySector, setIndustrySector] = useState(["Education", "Finance", "Healthcare", "Technology"]);
+  const [idTypes, setIdTypes] = useState([]);
+  const [natureOfWork, setNatureOfWork] = useState([]);
+  const [sourceOfIncome, setSourceOfIncome] = useState([]);
+  const [organizationType, setOrganizationType] = useState([]);
+  const [industrySector, setIndustrySector] = useState([]);
 
-  // Tab content mapping
+  // --- Fetch initial data ---
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const { data } = await axios.get(
+          `${API_BASE_URL}/kyc-kyb-configuration/kyc-kyb-configuration`
+        );
+        setIdTypes(data.idTypes || []);
+        setNatureOfWork(data.natureOfWork || []);
+        setSourceOfIncome(data.sourceOfIncome || []);
+        setOrganizationType(data.organizationType || []);
+        setIndustrySector(data.industrySector || []);
+      } catch (err) {
+        setError("Failed to fetch configuration data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // --- Generic CRUD handlers ---
+  const handleApiCall = async (
+    method,
+    endpoint,
+    body,
+    stateUpdater,
+    successMessage
+  ) => {
+    setLoading(true);
+    setError("");
+    try {
+      const { data } = await axios({ method, url: `${API_BASE_URL}/kyc-kyb-configuration${endpoint}`, data: body });
+      if (data) {
+        setIdTypes(data.idTypes || []);
+        setNatureOfWork(data.natureOfWork || []);
+        setSourceOfIncome(data.sourceOfIncome || []);
+        setOrganizationType(data.organizationType || []);
+        setIndustrySector(data.industrySector || []);
+      }
+      setNotification({ show: true, type: "success", message: successMessage });
+    } catch (err) {
+      setError(err?.response?.data?.message || `Operation failed: ${successMessage}`);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
+    }
+  };
+
+  const addItem = (field, item, stateUpdater) => handleApiCall("post", `/${field}`, { item }, stateUpdater, `${field.replace("-", " ")} added!`);
+  const editItem = (field, oldItem, newItem, stateUpdater) => handleApiCall("put", `/${field}`, { oldItem, newItem }, stateUpdater, `${field.replace("-", " ")} updated!`);
+  const deleteItem = (field, item, stateUpdater) => handleApiCall("delete", `/${field}`, { item }, stateUpdater, `${field.replace("-", " ")} deleted!`);
+
   const tabContent = {
-    requiredFields: (
-      <ListTab
-        title="Required Fields per Role"
-        items={requiredFields}
-        setItems={setRequiredFields}
-        placeholder="e.g., Student: Name, Birthday, Email, ..."
-        demoValues={[
-          "Student: Name, Birthday, Email, Address, School ID",
-          "Individual Sponsor: Name, Email, ID Type, Source of Income",
-          "Corporate Sponsor: Company Name, Org Type, Industry Sector",
-          "School: School Name, Verifier Name, Email, ID Type"
-        ]}
-        notification={notification}
-        setNotification={setNotification}
-      />
-    ),
     idTypes: (
       <ListTab
         title="ID Types"
         items={idTypes}
-        setItems={setIdTypes}
-        placeholder="e.g., UMID, Passport, Company ID"
-        demoValues={["UMID", "Passport", "Company ID"]}
+        onAddItem={(item) => addItem("id-types", item, setIdTypes)}
+        onEditItem={(idx, newItem) => editItem("id-types", idTypes[idx], newItem, setIdTypes)}
+        onDeleteItem={(idx) => deleteItem("id-types", idTypes[idx], setIdTypes)}
+        placeholder="e.g., UMID, Passport"
         notification={notification}
         setNotification={setNotification}
       />
@@ -268,9 +333,10 @@ export function KycKybConfiguration() {
       <ListTab
         title="Nature of Work"
         items={natureOfWork}
-        setItems={setNatureOfWork}
-        placeholder="e.g., Employed, Self-Employed, Student"
-        demoValues={["Employed", "Self-Employed", "Student", "Retired"]}
+        onAddItem={(item) => addItem("nature-of-work", item, setNatureOfWork)}
+        onEditItem={(idx, newItem) => editItem("nature-of-work", natureOfWork[idx], newItem, setNatureOfWork)}
+        onDeleteItem={(idx) => deleteItem("nature-of-work", natureOfWork[idx], setNatureOfWork)}
+        placeholder="e.g., Employed, Self-Employed"
         notification={notification}
         setNotification={setNotification}
       />
@@ -279,9 +345,10 @@ export function KycKybConfiguration() {
       <ListTab
         title="Source of Income"
         items={sourceOfIncome}
-        setItems={setSourceOfIncome}
-        placeholder="e.g., Salary, Business, Scholarship"
-        demoValues={["Salary", "Business", "Scholarship", "Allowance"]}
+        onAddItem={(item) => addItem("source-of-income", item, setSourceOfIncome)}
+        onEditItem={(idx, newItem) => editItem("source-of-income", sourceOfIncome[idx], newItem, setSourceOfIncome)}
+        onDeleteItem={(idx) => deleteItem("source-of-income", sourceOfIncome[idx], setSourceOfIncome)}
+        placeholder="e.g., Salary, Business"
         notification={notification}
         setNotification={setNotification}
       />
@@ -290,9 +357,10 @@ export function KycKybConfiguration() {
       <ListTab
         title="Organization Type"
         items={organizationType}
-        setItems={setOrganizationType}
-        placeholder="e.g., Corporation, NGO, Cooperative"
-        demoValues={["Corporation", "NGO", "Cooperative", "Sole Proprietorship"]}
+        onAddItem={(item) => addItem("organization-type", item, setOrganizationType)}
+        onEditItem={(idx, newItem) => editItem("organization-type", organizationType[idx], newItem, setOrganizationType)}
+        onDeleteItem={(idx) => deleteItem("organization-type", organizationType[idx], setOrganizationType)}
+        placeholder="e.g., Corporation, NGO"
         notification={notification}
         setNotification={setNotification}
       />
@@ -301,9 +369,10 @@ export function KycKybConfiguration() {
       <ListTab
         title="Industry Sector"
         items={industrySector}
-        setItems={setIndustrySector}
-        placeholder="e.g., Education, Finance, Healthcare"
-        demoValues={["Education", "Finance", "Healthcare", "Technology"]}
+        onAddItem={(item) => addItem("industry-sector", item, setIndustrySector)}
+        onEditItem={(idx, newItem) => editItem("industry-sector", industrySector[idx], newItem, setIndustrySector)}
+        onDeleteItem={(idx) => deleteItem("industry-sector", industrySector[idx], setIndustrySector)}
+        placeholder="e.g., Technology, Healthcare"
         notification={notification}
         setNotification={setNotification}
       />
@@ -316,27 +385,39 @@ export function KycKybConfiguration() {
         <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
           <Settings className="w-6 h-6 text-blue-700" /> KYC/KYB Configuration
         </h1>
-        <p className="text-xs text-gray-600">Manage KYC/KYB required fields, ID types, and more for all roles</p>
+        <p className="text-xs text-gray-600">
+          Manage KYC/KYB required fields, ID types, and more for all roles
+        </p>
       </div>
-      <Notification {...notification} onClose={() => setNotification({ show: false, type: '', message: '' })} />
+      <Notification
+        {...notification}
+        onClose={() => setNotification({ show: false, type: "", message: "" })}
+      />
+      {error && (
+        <div className="fixed bottom-5 right-5 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg shadow-lg z-50">
+          <p className="font-semibold">Error</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
       {/* Segmented Control Tab Navigation */}
       <div className="flex gap-2 mb-5">
-        {TABS.map(tab => (
+        {TABS.map(({ key, label, icon: Icon }) => (
           <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            key={key}
+            onClick={() => setActiveTab(key)}
             className={`flex items-center gap-1 px-4 py-2 rounded-full text-xs font-medium border transition-colors duration-150 ${
-              activeTab === tab.key
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+              activeTab === key
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
             }`}
           >
-            {tab.label}
+            <Icon className="w-4 h-4" />
+            {label}
           </button>
         ))}
       </div>
       {/* Tab Content */}
-      <div>{tabContent[activeTab]}</div>
+      <div>{loading ? <Loading /> : tabContent[activeTab]}</div>
     </div>
   );
 }
