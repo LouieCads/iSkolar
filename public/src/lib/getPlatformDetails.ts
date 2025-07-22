@@ -2,6 +2,7 @@ import axios from 'axios';
 
 export async function getPlatformDetails(): Promise<{
   name: string;
+  logoUrl?: string;
   facebook?: string;
   twitter?: string;
   instagram?: string;
@@ -12,6 +13,7 @@ export async function getPlatformDetails(): Promise<{
     const { data } = await axios.get(`${API_BASE_URL}/platform/name`);
     return {
       name: data.platform?.name || 'iSkolar',
+      logoUrl: data.platform?.logoUrl,
       facebook: data.platform?.facebook,
       twitter: data.platform?.twitter,
       instagram: data.platform?.instagram,
@@ -20,6 +22,7 @@ export async function getPlatformDetails(): Promise<{
   } catch {
     return {
       name: 'iSkolar',
+      logoUrl: '/iSkolar_logo.png',
       facebook: 'https://facebook.com/iskolarph',
       twitter: 'https://twitter.com/iskolarph',
       instagram: 'https://instagram.com/iskolarph',

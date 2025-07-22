@@ -1,4 +1,5 @@
 const Platform = require("../models/Platform");
+const path = require("path");
 
 exports.updatePlatform = async (req, res) => {
   try {
@@ -71,6 +72,30 @@ exports.getPlatformName = async (req, res) => {
     });
   } catch (error) {
     console.error("Get platform name error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.uploadLogo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    // Save the new logo URL (relative to public/)
+    const logoUrl = `/${req.file.filename}`;
+    let platform = await Platform.findOne();
+    if (!platform) {
+      platform = new Platform({ logoUrl });
+    } else {
+      platform.logoUrl = logoUrl;
+    }
+    await platform.save();
+    res.status(200).json({
+      message: "Logo updated successfully",
+      logoUrl: platform.logoUrl,
+    });
+  } catch (error) {
+    console.error("Logo upload error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

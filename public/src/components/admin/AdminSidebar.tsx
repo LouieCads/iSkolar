@@ -96,7 +96,7 @@ export function AdminSidebar({ activeTab, onTabChange, onLogout }: AdminSidebarP
         <div className="flex items-center justify-between">
           <Link href="/admin" className="flex items-center space-x-2">
             <Image
-              src="/iSkolar_logo.png"
+              src={platform?.logoUrl || "/iSkolar_logo.png"}
               alt="ScholarPass Logo"
               width={33}
               height={35}

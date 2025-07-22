@@ -63,6 +63,26 @@ export const usePlatform = () => {
     }
   };
 
+  const uploadLogo = async (file: File) => {
+    try {
+      setUpdating(true);
+      setError(null);
+      const formData = new FormData();
+      formData.append('logo', file);
+      const { data } = await axios.post(`${API_BASE_URL}/platform/upload-logo`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      // Refetch platform info to get the new logoUrl
+      await fetchPlatform();
+      return data.logoUrl;
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err.message || 'Failed to upload logo');
+      throw err;
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   useEffect(() => {
     fetchPlatform();
   }, []);
@@ -73,6 +93,7 @@ export const usePlatform = () => {
     error, 
     updating,
     updatePlatform,
-    refetch: fetchPlatform
+    refetch: fetchPlatform,
+    uploadLogo
   };
 }; 

@@ -9,7 +9,7 @@ const platformSchema = new mongoose.Schema({
   },
   logoUrl: {
     type: String,
-    default: "/public/iSkolar_logo.png",
+    default: "/iSkolar_logo.png",
     trim: true,
     // validate: {
     //   validator: function (v) {

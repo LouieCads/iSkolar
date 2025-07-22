@@ -50,7 +50,7 @@ const validationSchema = Yup.object({
 export default function General(): React.JSX.Element {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [showSuccessNotification, setShowSuccessNotification] = useState<boolean>(false);
-  const { platform, loading, error, updating, updatePlatform } = usePlatform();
+  const { platform, loading, error, updating, updatePlatform, uploadLogo, refetch } = usePlatform();
 
   const formik = useFormik<FormValues>({
     initialValues: {
@@ -105,6 +105,32 @@ export default function General(): React.JSX.Element {
       reader.readAsDataURL(file);
     } else {
       setLogoPreview(null);
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setShowSuccessNotification(false);
+      // Upload logo if selected
+      if (formik.values.logo) {
+        await uploadLogo(formik.values.logo);
+        await refetch();
+        setLogoPreview(null);
+        formik.setFieldValue("logo", null);
+      }
+      await updatePlatform({
+        name: formik.values.platformName,
+        email: formik.values.email,
+        phoneNumber: formik.values.phoneNumber,
+        facebook: formik.values.facebook,
+        twitter: formik.values.twitter,
+        instagram: formik.values.instagram,
+        linkedin: formik.values.linkedin,
+      });
+      setShowSuccessNotification(true);
+      setTimeout(() => setShowSuccessNotification(false), 3000);
+    } catch (error) {
+      // Error is already handled by the hook
     }
   };
 
@@ -291,6 +317,8 @@ export default function General(): React.JSX.Element {
         <div className="w-28 h-28 rounded-md border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden mt-2">
           {logoPreview ? (
             <img src={logoPreview} alt="Logo Preview" className="object-contain w-full h-full" />
+          ) : platform?.logoUrl ? (
+            <img src={platform.logoUrl} alt="Current Logo" className="object-contain w-full h-full" />
           ) : (
             <span className="text-gray-400 text-xs">No logo selected</span>
           )}
@@ -299,7 +327,7 @@ export default function General(): React.JSX.Element {
       <div className="fixed bottom-4 right-4 z-50">
         <Button 
           type="button"
-          onClick={() => formik.handleSubmit()}
+          onClick={handleSubmit}
           className="px-6 py-2 text-sm bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg"
           disabled={updating}
         >
