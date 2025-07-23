@@ -105,6 +105,11 @@ const studentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  kycStatus: {
+    type: String,
+    enum: ["unverified", "pending", "pre_approved", "approved", "denied"],
+    default: "unverified",
+  },
 });
 
 // Update the updatedAt field before saving

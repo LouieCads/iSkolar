@@ -149,9 +149,9 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
         email: user.email || "",
         password: "",
         role: user.role || "Student",
-        subRole: user.subRole || (user.role === "sponsor" ? "Individual" : ""),
+        subRole: user.subRole ? user.subRole.toLowerCase() : (user.role === "sponsor" ? "individual" : ""),
         status: user.status || "Active",
-        isVerified: user.isVerified || false,
+        isVerified: user.role && user.role.toLowerCase() === "admin" ? true : (user.isVerified || false),
         adminLevel: user.adminLevel || "admin", 
       });
     } else {
@@ -168,8 +168,12 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
   }, [user, isOpen]);
 
   useEffect(() => {
+    // Always set isVerified to true for Admins
+    if (formData.role && formData.role.toLowerCase() === "admin") {
+      setFormData(prev => ({ ...prev, isVerified: true }));
+    }
     if (formData.role === "sponsor" && !formData.subRole) {
-      setFormData(prev => ({ ...prev, subRole: "Individual" }));
+      setFormData(prev => ({ ...prev, subRole: "individual" }));
     }
   }, [formData.role]);
 
@@ -280,8 +284,8 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
                   onChange={handleChange}
                   className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 >
-                  <option value="Individual">Individual</option>
-                  <option value="Corporate">Corporate</option>
+                  <option value="individual">Individual</option>
+                  <option value="corporate">Corporate</option>
                 </select>
               </div>
             )}
@@ -318,20 +322,23 @@ const UserFormModal = ({ isOpen, onClose, user, onSave }) => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Verification Status
-              </label>
-              <select
-                name="isVerified"
-                value={formData.isVerified ? "true" : "false"}
-                onChange={e => setFormData(prev => ({ ...prev, isVerified: e.target.value === "true" }))}
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              >
-                <option value="true">Verified</option>
-                <option value="false">Unverified</option>
-              </select>
-            </div>
+            {/* Only show isVerified select for non-admins */}
+            {formData.role.toLowerCase() !== "admin" && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Verification Status
+                </label>
+                <select
+                  name="isVerified"
+                  value={formData.isVerified ? "true" : "false"}
+                  onChange={e => setFormData(prev => ({ ...prev, isVerified: e.target.value === "true" }))}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="true">Verified</option>
+                  <option value="false">Unverified</option>
+                </select>
+              </div>
+            )}
 
             <div className="flex justify-end space-x-2 pt-3">
               <button
@@ -433,6 +440,7 @@ export function UserManagement() {
         status: userData.status ? userData.status.toLowerCase() : undefined,
         subRole: userData.role.toLowerCase() === "sponsor" ? (userData.subRole ? userData.subRole.toLowerCase() : undefined) : undefined,
         adminLevel: userData.role.toLowerCase() === "admin" ? (userData.adminLevel || "admin") : undefined,
+        isVerified: userData.role.toLowerCase() === "admin" ? true : userData.isVerified,
       };
       if (!editingUser && !payload.password) {
         alert("Password is required for new users.");

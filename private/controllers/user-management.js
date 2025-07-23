@@ -126,7 +126,7 @@ exports.addUser = async (req, res) => {
       role,
       personaId: persona._id,
       personaModel,
-      isVerified: !!isVerified,
+      isVerified: role === "admin" ? true : !!isVerified,
       status: status || "active",
     });
     await user.save();
@@ -183,14 +183,15 @@ exports.updateUser = async (req, res) => {
       user.role = role;
       user.personaId = persona._id;
       user.personaModel = personaModel;
-    } else if (
+    }
+    // Allow sponsor subRole update in both directions
+    if (
       role === "sponsor" &&
       user.personaModel === "Sponsor" &&
       user.personaId &&
       subRole &&
       ["individual", "corporate"].includes(subRole)
     ) {
-      // If sponsor type is updated, update subRole in Sponsor document
       await Sponsor.findByIdAndUpdate(user.personaId, { subRole });
     } else if (
       role === "admin" &&
@@ -201,7 +202,7 @@ exports.updateUser = async (req, res) => {
       // If admin level is updated, update adminLevel in Admin document
       await Admin.findByIdAndUpdate(user.personaId, { adminLevel });
     }
-    if (typeof isVerified === "boolean") user.isVerified = isVerified;
+    if (typeof isVerified === "boolean") user.isVerified = role === "admin" ? true : isVerified;
     if (status && ["active", "suspended", "inactive"].includes(status))
       user.status = status;
     await user.save();
@@ -294,3 +295,5 @@ exports.assignVerification = async (req, res) => {
     res.status(500).json({ error: "Failed to update verification" });
   }
 };
+
+// TODO: In the future, sync isVerified with persona's kycStatus for non-admins
