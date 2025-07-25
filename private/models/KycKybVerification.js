@@ -13,8 +13,8 @@ const kycKybVerificationSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["pending", "pre-approved", "verified", "denied"],
-    default: "pending",
+    enum: ["unverified", "pending", "pre-approved", "verified", "denied"],
+    default: "unverified",
   },
   resubmissionCount: {
     type: Number,
@@ -53,7 +53,7 @@ const kycKybVerificationSchema = new mongoose.Schema({
     mobileNumber: String,
     gender: {
       type: String,
-      enum: ["male", "female", "other"],
+      enum: ["male", "female"],
     },
     age: Number,
     civilStatus: {

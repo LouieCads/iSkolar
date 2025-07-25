@@ -6,6 +6,7 @@ import {
   User,
   ChevronDown,
   LogOut,
+  Settings,
 } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -16,6 +17,31 @@ const studentMenu = [
   { id: "scholarships", label: "Scholarships", icon: FileText, href: "/student/scholarships" },
   { id: "my-applications", label: "My Applications", icon: LayoutDashboard, href: "/student/my-applications" },
   { id: "notifications", label: "Notifications", icon: Bell, href: "/student/notifications" },
+];
+
+// Profile dropdown menu configuration - easily modifiable
+const profileDropdownItems = [
+  {
+    id: "my-profile",
+    label: "My Profile",
+    icon: User,
+    href: "/student/my-profile",
+    type: "link"
+  },
+  {
+    id: "account",
+    label: "Account",
+    icon: Settings,
+    href: "/student/account",
+    type: "link"
+  },
+  {
+    id: "logout",
+    label: "Logout",
+    icon: LogOut,
+    type: "button",
+    action: "logout"
+  }
 ];
 
 export default function StudentNav() {
@@ -42,7 +68,50 @@ export default function StudentNav() {
     console.log("Logging out...");
     // Example: clear auth tokens, redirect to login, etc.
     localStorage.removeItem('token');
-   router.push('/auth');
+    router.push('/auth');
+  };
+
+  const handleDropdownItemClick = (item) => {
+    setIsDropdownOpen(false);
+    
+    if (item.type === "button" && item.action === "logout") {
+      handleLogout();
+    }
+    // Add more button actions here as needed
+  };
+
+  const renderDropdownItem = (item) => {
+    const commonClasses = "flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors";
+    const IconComponent = item.icon;
+
+    if (item.type === "link") {
+      return (
+        <a
+          key={item.id}
+          href={item.href}
+          className={commonClasses}
+          onClick={() => setIsDropdownOpen(false)}
+        >
+          <IconComponent className="w-4 h-4 mr-3" />
+          <span className="font-medium">{item.label}</span>
+        </a>
+      );
+    }
+
+    if (item.type === "button") {
+      return (
+        <button
+          key={item.id}
+          onClick={() => handleDropdownItemClick(item)}
+          className={`${commonClasses} w-full text-left cursor-pointer`}
+        >
+          <IconComponent className="w-4 h-4 mr-3" />
+          <span className="font-medium">{item.label}</span>
+        </button>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -89,24 +158,7 @@ export default function StudentNav() {
 
           {isDropdownOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-              <a
-                href="/student/profile"
-                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-                onClick={() => setIsDropdownOpen(false)}
-              >
-                <User className="w-4 h-4 mr-3" />
-                <span className="font-medium">My Profile</span>
-              </a>
-              <button
-                onClick={() => {
-                  setIsDropdownOpen(false);
-                  handleLogout();
-                }}
-                className="flex cursor-pointer items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-              >
-                <LogOut className="w-4 h-4 mr-3" />
-                <span className="font-medium">Logout</span>
-              </button>
+              {profileDropdownItems.map(renderDropdownItem)}
             </div>
           )}
         </div>
