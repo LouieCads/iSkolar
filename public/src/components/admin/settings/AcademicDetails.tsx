@@ -3,7 +3,7 @@ import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Save, BookOpen, Layers, School } from "lucide-react";
+import { Plus, Edit, Trash2, Save, BookOpen, Layers, School, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -18,11 +18,13 @@ function Notification({ show, type, message, onClose }) {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 500 }}
           transition={{ type: "spring", stiffness: 900, damping: 25, duration: 0.2 }}
-          className={`fixed w-[325px] flex justify-end items-center h-[55px] bottom-5 right-5 rounded-[10px] text-[#002828] ${type === 'delete' ? 'bg-red-500' : 'bg-[#26D871]'} shadow-xl z-100`}
+          className={`fixed w-[325px] flex justify-end items-center h-[55px] bottom-5 right-5 rounded-[10px] text-[#002828] ${
+            type === "delete" ? "bg-red-500" : "bg-[#26D871]"
+          } shadow-xl z-100`}
         >
           <div className="flex gap-3 items-center w-[320px] h-[55px] bg-gray-50 rounded-[5px] border-white px-3 py-2">
             <div>
-              {type === 'delete' ? (
+              {type === "delete" ? (
                 <Trash2 width={23} height={23} className="text-red-500" />
               ) : (
                 <svg
@@ -38,10 +40,10 @@ function Notification({ show, type, message, onClose }) {
               )}
             </div>
             <div>
-              <p className="font-semibold text-[14px]">{type === 'delete' ? 'Deleted' : 'Success'}</p>
+              <p className="font-semibold text-[14px]">{type === "delete" ? "Deleted" : "Success"}</p>
               <p className="text-[12px]">{message}</p>
             </div>
-            <button onClick={onClose} className="ml-auto text-gray-400 hover:text-gray-600">&times;</button>
+            <button onClick={onClose} className="ml-auto text-gray-400 hover:text-gray-600">×</button>
           </div>
         </motion.div>
       )}
@@ -58,17 +60,23 @@ function DeleteModal({ show, onCancel, onConfirm, label }) {
         <div className="flex flex-col items-center">
           <Trash2 className="w-10 h-10 text-red-500 mb-2 animate-bounce" />
           <h3 className="text-lg font-bold text-gray-900 mb-1">Delete?</h3>
-          <p className="text-sm text-gray-600 mb-1 text-center">Are you sure you want to delete <span className="font-semibold text-red-600">{label}</span>?</p>
+          <p className="text-sm text-gray-600 mb-1 text-center">
+            Are you sure you want to delete <span className="font-semibold text-red-600">{label}</span>?
+          </p>
           <p className="text-sm text-gray-600 mb-4 text-center">This action cannot be undone.</p>
           <div className="flex gap-3 w-full justify-center">
             <button
               onClick={onCancel}
               className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors font-medium cursor-pointer"
-            >Cancel</button>
+            >
+              Cancel
+            </button>
             <button
               onClick={onConfirm}
               className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 transition-colors font-medium cursor-pointer shadow"
-            >Delete</button>
+            >
+              Delete
+            </button>
           </div>
         </div>
       </div>
@@ -79,6 +87,7 @@ function DeleteModal({ show, onCancel, onConfirm, label }) {
 // --- Segmented Control ---
 const TABS = [
   { id: "courses", label: "Course List", icon: BookOpen },
+  { id: "semesters", label: "Semesters", icon: Calendar },
   { id: "years", label: "Year Levels", icon: Layers },
   { id: "schools", label: "Schools", icon: School },
 ];
@@ -87,11 +96,36 @@ export function AcademicDetails() {
   // State
   const [tab, setTab] = useState("courses");
   const [courses, setCourses] = useState<string[]>([]);
+  const [semesters, setSemesters] = useState<string[]>([]);
   const [years, setYears] = useState<string[]>([]);
   const [schools, setSchools] = useState<string[]>([]);
-  const [notification, setNotification] = useState({ show: false, type: '', message: '' });
+  const [notification, setNotification] = useState({ show: false, type: "", message: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // --- Course List State ---
+  const [newCourse, setNewCourse] = useState("");
+  const [editingCourseIdx, setEditingCourseIdx] = useState<number | null>(null);
+  const [editCourseValue, setEditCourseValue] = useState("");
+  const [deleteCourseIdx, setDeleteCourseIdx] = useState<number | null>(null);
+
+  // --- Semester State ---
+  const [newSemester, setNewSemester] = useState("");
+  const [editingSemesterIdx, setEditingSemesterIdx] = useState<number | null>(null);
+  const [editSemesterValue, setEditSemesterValue] = useState("");
+  const [deleteSemesterIdx, setDeleteSemesterIdx] = useState<number | null>(null);
+
+  // --- Year Level State ---
+  const [newYear, setNewYear] = useState("");
+  const [editingYearIdx, setEditingYearIdx] = useState<number | null>(null);
+  const [editYearValue, setEditYearValue] = useState("");
+  const [deleteYearIdx, setDeleteYearIdx] = useState<number | null>(null);
+
+  // --- School/University State ---
+  const [newSchool, setNewSchool] = useState("");
+  const [editingSchoolIdx, setEditingSchoolIdx] = useState<number | null>(null);
+  const [editSchoolValue, setEditSchoolValue] = useState("");
+  const [deleteSchoolIdx, setDeleteSchoolIdx] = useState<number | null>(null);
 
   // Fetch initial data
   useEffect(() => {
@@ -100,10 +134,12 @@ export function AcademicDetails() {
       try {
         const { data } = await axios.get(`${API_BASE_URL}/academic-details/academic-details`);
         setCourses(data.course || []);
+        setSemesters(data.semester || []);
         setYears(data.yearLevel || []);
         setSchools(data.school || []);
       } catch {
         setCourses(["BSCS", "BSECE", "BSBA", "BSIT", "BSA", "BSN", "BSED", "BSEE", "BSME", "BSTM"]);
+        setSemesters(["1st Semester", "2nd Semester", "Summer"]);
         setYears(["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year", "Master’s"]);
         setSchools([
           "University of the Philippines",
@@ -120,26 +156,22 @@ export function AcademicDetails() {
   }, []);
 
   // --- Course List Handlers ---
-  const [newCourse, setNewCourse] = useState("");
-  const [editingCourseIdx, setEditingCourseIdx] = useState<number | null>(null);
-  const [editCourseValue, setEditCourseValue] = useState("");
-  const [deleteCourseIdx, setDeleteCourseIdx] = useState<number | null>(null);
-
   const addCourse = async () => {
     if (!newCourse.trim() || courses.includes(newCourse)) return;
     setLoading(true);
     try {
       const { data } = await axios.post(`${API_BASE_URL}/academic-details/courses`, { course: newCourse });
       setCourses(data.course);
-      setNotification({ show: true, type: 'add', message: 'Course added!' });
+      setNotification({ show: true, type: "add", message: "Course added!" });
       setNewCourse("");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to add course");
     } finally {
       setLoading(false);
-      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
     }
   };
+
   const editCourse = async (idx: number, value: string) => {
     if (!value.trim() || courses.includes(value)) return;
     setLoading(true);
@@ -149,15 +181,16 @@ export function AcademicDetails() {
         newCourse: value,
       });
       setCourses(data.course);
-      setNotification({ show: true, type: 'edit', message: 'Course updated!' });
+      setNotification({ show: true, type: "edit", message: "Course updated!" });
       setEditingCourseIdx(null);
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to update course");
     } finally {
       setLoading(false);
-      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
     }
   };
+
   const deleteCourse = async (idx: number) => {
     setLoading(true);
     try {
@@ -165,36 +198,84 @@ export function AcademicDetails() {
         data: { course: courses[idx] },
       });
       setCourses(data.course);
-      setNotification({ show: true, type: 'delete', message: 'Course deleted!' });
+      setNotification({ show: true, type: "delete", message: "Course deleted!" });
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to delete course");
     } finally {
       setLoading(false);
-      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
+    }
+  };
+
+  // --- Semester Handlers ---
+  const addSemester = async () => {
+    if (!newSemester.trim() || semesters.includes(newSemester)) return;
+    setLoading(true);
+    try {
+      const { data } = await axios.post(`${API_BASE_URL}/academic-details/semesters`, { semester: newSemester });
+      setSemesters(data.semester);
+      setNotification({ show: true, type: "add", message: "Semester added!" });
+      setNewSemester("");
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to add semester");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
+    }
+  };
+
+  const editSemester = async (idx: number, value: string) => {
+    if (!value.trim() || semesters.includes(value)) return;
+    setLoading(true);
+    try {
+      const { data } = await axios.put(`${API_BASE_URL}/academic-details/semesters`, {
+        oldSemester: semesters[idx],
+        newSemester: value,
+      });
+      setSemesters(data.semester);
+      setNotification({ show: true, type: "edit", message: "Semester updated!" });
+      setEditingSemesterIdx(null);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to update semester");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
+    }
+  };
+
+  const deleteSemester = async (idx: number) => {
+    setLoading(true);
+    try {
+      const { data } = await axios.delete(`${API_BASE_URL}/academic-details/semesters`, {
+        data: { semester: semesters[idx] },
+      });
+      setSemesters(data.semester);
+      setNotification({ show: true, type: "delete", message: "Semester deleted!" });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to delete semester");
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
     }
   };
 
   // --- Year Level Handlers ---
-  const [newYear, setNewYear] = useState("");
-  const [editingYearIdx, setEditingYearIdx] = useState<number | null>(null);
-  const [editYearValue, setEditYearValue] = useState("");
-  const [deleteYearIdx, setDeleteYearIdx] = useState<number | null>(null);
-
   const addYear = async () => {
     if (!newYear.trim() || years.includes(newYear)) return;
     setLoading(true);
     try {
       const { data } = await axios.post(`${API_BASE_URL}/academic-details/year-levels`, { yearLevel: newYear });
       setYears(data.yearLevel);
-      setNotification({ show: true, type: 'add', message: 'Year level added!' });
+      setNotification({ show: true, type: "add", message: "Year level added!" });
       setNewYear("");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to add year level");
     } finally {
       setLoading(false);
-      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
     }
   };
+
   const editYear = async (idx: number, value: string) => {
     if (!value.trim() || years.includes(value)) return;
     setLoading(true);
@@ -204,15 +285,16 @@ export function AcademicDetails() {
         newYearLevel: value,
       });
       setYears(data.yearLevel);
-      setNotification({ show: true, type: 'edit', message: 'Year level updated!' });
+      setNotification({ show: true, type: "edit", message: "Year level updated!" });
       setEditingYearIdx(null);
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to update year level");
     } finally {
       setLoading(false);
-      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
     }
   };
+
   const deleteYear = async (idx: number) => {
     setLoading(true);
     try {
@@ -220,36 +302,32 @@ export function AcademicDetails() {
         data: { yearLevel: years[idx] },
       });
       setYears(data.yearLevel);
-      setNotification({ show: true, type: 'delete', message: 'Year level deleted!' });
+      setNotification({ show: true, type: "delete", message: "Year level deleted!" });
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to delete year level");
     } finally {
       setLoading(false);
-      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
     }
   };
 
   // --- School/University Handlers ---
-  const [newSchool, setNewSchool] = useState("");
-  const [editingSchoolIdx, setEditingSchoolIdx] = useState<number | null>(null);
-  const [editSchoolValue, setEditSchoolValue] = useState("");
-  const [deleteSchoolIdx, setDeleteSchoolIdx] = useState<number | null>(null);
-
   const addSchool = async () => {
     if (!newSchool.trim() || schools.includes(newSchool)) return;
     setLoading(true);
     try {
       const { data } = await axios.post(`${API_BASE_URL}/academic-details/schools`, { school: newSchool });
       setSchools(data.school);
-      setNotification({ show: true, type: 'add', message: 'School added!' });
+      setNotification({ show: true, type: "add", message: "School added!" });
       setNewSchool("");
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to add school");
     } finally {
       setLoading(false);
-      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
     }
   };
+
   const editSchool = async (idx: number, value: string) => {
     if (!value.trim() || schools.includes(value)) return;
     setLoading(true);
@@ -259,15 +337,16 @@ export function AcademicDetails() {
         newSchool: value,
       });
       setSchools(data.school);
-      setNotification({ show: true, type: 'edit', message: 'School updated!' });
+      setNotification({ show: true, type: "edit", message: "School updated!" });
       setEditingSchoolIdx(null);
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to update school");
     } finally {
       setLoading(false);
-      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
     }
   };
+
   const deleteSchool = async (idx: number) => {
     setLoading(true);
     try {
@@ -275,12 +354,12 @@ export function AcademicDetails() {
         data: { school: schools[idx] },
       });
       setSchools(data.school);
-      setNotification({ show: true, type: 'delete', message: 'School deleted!' });
+      setNotification({ show: true, type: "delete", message: "School deleted!" });
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to delete school");
     } finally {
       setLoading(false);
-      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
     }
   };
 
@@ -298,7 +377,7 @@ export function AcademicDetails() {
             <Label className="text-xs font-medium text-gray-700">Course Name</Label>
             <Input
               value={newCourse}
-              onChange={e => setNewCourse(e.target.value)}
+              onChange={(e) => setNewCourse(e.target.value)}
               placeholder="e.g., BSCS"
               className="mt-1 text-xs"
             />
@@ -318,7 +397,7 @@ export function AcademicDetails() {
                 <>
                   <Input
                     value={editCourseValue}
-                    onChange={e => setEditCourseValue(e.target.value)}
+                    onChange={(e) => setEditCourseValue(e.target.value)}
                     className="text-xs mr-2"
                   />
                   <Button
@@ -331,14 +410,19 @@ export function AcademicDetails() {
                   <Button
                     onClick={() => setEditingCourseIdx(null)}
                     className="px-1.5 py-0.5 bg-gray-600 text-white rounded text-xs ml-1"
-                  >Cancel</Button>
+                  >
+                    Cancel
+                  </Button>
                 </>
               ) : (
                 <>
                   <span className="text-xs font-medium text-gray-900">{course}</span>
                   <div className="flex gap-0.5">
                     <Button
-                      onClick={() => { setEditingCourseIdx(idx); setEditCourseValue(course); }}
+                      onClick={() => {
+                        setEditingCourseIdx(idx);
+                        setEditCourseValue(course);
+                      }}
                       className="p-0.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
                       title="Edit Course"
                     >
@@ -361,7 +445,97 @@ export function AcademicDetails() {
           show={deleteCourseIdx !== null}
           label={deleteCourseIdx !== null ? courses[deleteCourseIdx] : ""}
           onCancel={() => setDeleteCourseIdx(null)}
-          onConfirm={() => { deleteCourse(deleteCourseIdx!); setDeleteCourseIdx(null); }}
+          onConfirm={() => {
+            deleteCourse(deleteCourseIdx!);
+            setDeleteCourseIdx(null);
+          }}
+        />
+      </div>
+    );
+  } else if (tab === "semesters") {
+    section = (
+      <div className="bg-white rounded-md shadow-sm border border-gray-200 p-3">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Calendar className="w-4 h-4 text-orange-600" />
+          <h3 className="text-sm font-semibold text-gray-900">Semesters</h3>
+        </div>
+        <div className="bg-gray-50 p-2 rounded border border-gray-200 flex gap-2 items-end mb-2">
+          <div className="flex-1">
+            <Label className="text-xs font-medium text-gray-700">Semester Name</Label>
+            <Input
+              value={newSemester}
+              onChange={(e) => setNewSemester(e.target.value)}
+              placeholder="e.g., 1st Semester"
+              className="mt-1 text-xs"
+            />
+          </div>
+          <Button
+            onClick={addSemester}
+            disabled={!newSemester.trim() || loading}
+            className="px-2 py-1 bg-orange-600 text-white rounded text-xs"
+          >
+            {loading ? "Adding..." : <Plus className="w-2 h-2" />} Add Semester
+          </Button>
+        </div>
+        <div className="space-y-1">
+          {semesters.map((semester, idx) => (
+            <div key={semester} className="bg-white p-2 rounded border border-gray-200 flex items-center justify-between">
+              {editingSemesterIdx === idx ? (
+                <>
+                  <Input
+                    value={editSemesterValue}
+                    onChange={(e) => setEditSemesterValue(e.target.value)}
+                    className="text-xs mr-2"
+                  />
+                  <Button
+                    onClick={() => editSemester(idx, editSemesterValue)}
+                    disabled={!editSemesterValue.trim() || loading}
+                    className="px-1.5 py-0.5 bg-green-600 text-white rounded text-xs"
+                  >
+                    {loading ? "Updating..." : <Save className="w-2.5 h-2.5" />}
+                  </Button>
+                  <Button
+                    onClick={() => setEditingSemesterIdx(null)}
+                    className="px-1.5 py-0.5 bg-gray-600 text-white rounded text-xs ml-1"
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span className="text-xs font-medium text-gray-900">{semester}</span>
+                  <div className="flex gap-0.5">
+                    <Button
+                      onClick={() => {
+                        setEditingSemesterIdx(idx);
+                        setEditSemesterValue(semester);
+                      }}
+                      className="p-0.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
+                      title="Edit Semester"
+                    >
+                      <Edit className="w-2.5 h-2.5" />
+                    </Button>
+                    <Button
+                      onClick={() => setDeleteSemesterIdx(idx)}
+                      className="p-0.5 bg-red-50 text-red-600 hover:bg-red-100 rounded"
+                      title="Delete Semester"
+                    >
+                      <Trash2 className="w-2.5 h-2.5" />
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+        <DeleteModal
+          show={deleteSemesterIdx !== null}
+          label={deleteSemesterIdx !== null ? semesters[deleteSemesterIdx] : ""}
+          onCancel={() => setDeleteSemesterIdx(null)}
+          onConfirm={() => {
+            deleteSemester(deleteSemesterIdx!);
+            setDeleteSemesterIdx(null);
+          }}
         />
       </div>
     );
@@ -377,7 +551,7 @@ export function AcademicDetails() {
             <Label className="text-xs font-medium text-gray-700">Year Level</Label>
             <Input
               value={newYear}
-              onChange={e => setNewYear(e.target.value)}
+              onChange={(e) => setNewYear(e.target.value)}
               placeholder="e.g., 1st Year"
               className="mt-1 text-xs"
             />
@@ -397,7 +571,7 @@ export function AcademicDetails() {
                 <>
                   <Input
                     value={editYearValue}
-                    onChange={e => setEditYearValue(e.target.value)}
+                    onChange={(e) => setEditYearValue(e.target.value)}
                     className="text-xs mr-2"
                   />
                   <Button
@@ -410,14 +584,19 @@ export function AcademicDetails() {
                   <Button
                     onClick={() => setEditingYearIdx(null)}
                     className="px-1.5 py-0.5 bg-gray-600 text-white rounded text-xs ml-1"
-                  >Cancel</Button>
+                  >
+                    Cancel
+                  </Button>
                 </>
               ) : (
                 <>
                   <span className="text-xs font-medium text-gray-900">{year}</span>
                   <div className="flex gap-0.5">
                     <Button
-                      onClick={() => { setEditingYearIdx(idx); setEditYearValue(year); }}
+                      onClick={() => {
+                        setEditingYearIdx(idx);
+                        setEditYearValue(year);
+                      }}
                       className="p-0.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
                       title="Edit Year"
                     >
@@ -440,7 +619,10 @@ export function AcademicDetails() {
           show={deleteYearIdx !== null}
           label={deleteYearIdx !== null ? years[deleteYearIdx] : ""}
           onCancel={() => setDeleteYearIdx(null)}
-          onConfirm={() => { deleteYear(deleteYearIdx!); setDeleteYearIdx(null); }}
+          onConfirm={() => {
+            deleteYear(deleteYearIdx!);
+            setDeleteYearIdx(null);
+          }}
         />
       </div>
     );
@@ -456,7 +638,7 @@ export function AcademicDetails() {
             <Label className="text-xs font-medium text-gray-700">School Name</Label>
             <Input
               value={newSchool}
-              onChange={e => setNewSchool(e.target.value)}
+              onChange={(e) => setNewSchool(e.target.value)}
               placeholder="e.g., University of the Philippines"
               className="mt-1 text-xs"
             />
@@ -476,7 +658,7 @@ export function AcademicDetails() {
                 <>
                   <Input
                     value={editSchoolValue}
-                    onChange={e => setEditSchoolValue(e.target.value)}
+                    onChange={(e) => setEditSchoolValue(e.target.value)}
                     className="text-xs mr-2"
                   />
                   <Button
@@ -489,14 +671,19 @@ export function AcademicDetails() {
                   <Button
                     onClick={() => setEditingSchoolIdx(null)}
                     className="px-1.5 py-0.5 bg-gray-600 text-white rounded text-xs ml-1"
-                  >Cancel</Button>
+                  >
+                    Cancel
+                  </Button>
                 </>
               ) : (
                 <>
                   <span className="text-xs font-medium text-gray-900">{school}</span>
                   <div className="flex gap-0.5">
                     <Button
-                      onClick={() => { setEditingSchoolIdx(idx); setEditSchoolValue(school); }}
+                      onClick={() => {
+                        setEditingSchoolIdx(idx);
+                        setEditSchoolValue(school);
+                      }}
                       className="p-0.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded"
                       title="Edit School"
                     >
@@ -519,7 +706,10 @@ export function AcademicDetails() {
           show={deleteSchoolIdx !== null}
           label={deleteSchoolIdx !== null ? schools[deleteSchoolIdx] : ""}
           onCancel={() => setDeleteSchoolIdx(null)}
-          onConfirm={() => { deleteSchool(deleteSchoolIdx!); setDeleteSchoolIdx(null); }}
+          onConfirm={() => {
+            deleteSchool(deleteSchoolIdx!);
+            setDeleteSchoolIdx(null);
+          }}
         />
       </div>
     );
@@ -531,7 +721,7 @@ export function AcademicDetails() {
         <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
           <Layers className="w-5 h-5 text-blue-700" /> Academic Details
         </h1>
-        <p className="text-xs text-gray-600">Manage course list, year levels, and universities/schools</p>
+        <p className="text-xs text-gray-600">Manage course list, semesters, year levels, and universities/schools</p>
       </div>
       {/* Segmented Control */}
       <div className="flex gap-2 mb-5">
@@ -540,18 +730,18 @@ export function AcademicDetails() {
             key={id}
             onClick={() => setTab(id)}
             className={`flex items-center gap-1 px-4 py-2 rounded-full text-xs font-medium border transition-colors duration-150 ${
-              tab === id
-                ? 'bg-blue-600 text-white border-blue-600'
-                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+              tab === id ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
             }`}
           >
             <Icon className="w-4 h-4" /> {label}
           </button>
         ))}
       </div>
-      <Notification {...notification} onClose={() => setNotification({ show: false, type: '', message: '' })} />
+      <Notification {...notification} onClose={() => setNotification({ show: false, type: "", message: "" })} />
       {error && (
-        <div className="fixed bottom-5 right-5 bg-red-100 border border-red-400 text-red-800 px-3 py-2 rounded shadow text-xs z-50">{error}</div>
+        <div className="fixed bottom-5 right-5 bg-red-100 border border-red-400 text-red-800 px-3 py-2 rounded shadow text-xs z-50">
+          {error}
+        </div>
       )}
       {section}
     </div>

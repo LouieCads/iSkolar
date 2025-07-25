@@ -9,6 +9,7 @@ exports.getAcademicDetails = async (req, res) => {
     }
     res.json({
       course: details.course,
+      semester: details.semester,
       yearLevel: details.yearLevel,
       school: details.school,
     });
@@ -68,6 +69,60 @@ exports.deleteCourse = async (req, res) => {
     res.json({ course: details.course });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete course" });
+  }
+};
+
+// --- SEMESTER ---
+exports.addSemester = async (req, res) => {
+  try {
+    const { semester } = req.body;
+    if (!semester || typeof semester !== "string") {
+      return res.status(400).json({ message: "Semester is required" });
+    } 
+    let details = await AcademicDetails.findOne();
+    if (!details) details = await AcademicDetails.create({});
+    if (details.semester.includes(semester)) {
+      return res.status(409).json({ message: "Semester already exists" });
+    }
+    details.semester.push(semester);
+    await details.save();
+    res.json({ semester: details.semester });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to add semester" });
+  }
+};
+
+exports.updateSemester = async (req, res) => {
+  try {
+    const { oldSemester, newSemester } = req.body;
+    if (!oldSemester || !newSemester) {
+      return res
+        .status(400)
+        .json({ message: "Both oldSemester and newSemester are required" });
+    }
+    let details = await AcademicDetails.findOne();
+    if (!details) return res.status(404).json({ message: "Details not found" });
+    const idx = details.semester.indexOf(oldSemester);
+    if (idx === -1)
+      return res.status(404).json({ message: "Semester not found" });
+    details.semester[idx] = newSemester;
+    await details.save();
+    res.json({ semester: details.semester });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update semester" });
+  }
+};
+
+exports.deleteSemester = async (req, res) => {
+  try {
+    const { semester } = req.body;
+    let details = await AcademicDetails.findOne();
+    if (!details) return res.status(404).json({ message: "Details not found" });
+    details.semester = details.semester.filter((s) => s !== semester);
+    await details.save();
+    res.json({ semester: details.semester });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete semester" });
   }
 };
 

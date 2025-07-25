@@ -120,7 +120,7 @@ export default function Auth({ defaultView = "login" }: AuthProps) {
           } else {
             if (user.role === 'student') router.push('/student');
             else if (user.role === 'sponsor') router.push('/sponsor');
-            else if (user.role === 'school') router.push('/university');
+            else if (user.role === 'school') router.push('/school');
             else if (user.role === 'admin') router.push('/admin');
             else router.push('/auth/welcome');
           }

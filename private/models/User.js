@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 
+const PERSONA_TYPES = ["student", "sponsor", "school", "admin"];
+
 const userSchema = new mongoose.Schema({
   email: {
     type: String,
@@ -12,16 +14,22 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["student", "sponsor", "school", "admin"],
+    enum: PERSONA_TYPES,
   },
-  // Reference to specific persona model
+  // Reference to specific persona model (Student, Sponsor, School, Admin)
   personaId: {
     type: mongoose.Schema.Types.ObjectId,
     refPath: "personaModel",
   },
   personaModel: {
     type: String,
-    enum: ["Student", "Sponsor", "School", "Admin"],
+    enum: PERSONA_TYPES.map(
+      (type) => type.charAt(0).toUpperCase() + type.slice(1)
+    ), 
+  },
+  kycId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "KycKybVerification",
   },
   hasSelectedRole: {
     type: Boolean,
@@ -57,17 +65,17 @@ async function deletePersona(model, id) {
   if (!model || !id) return;
   try {
     const mongoose = require("mongoose");
-    switch (model) {
-      case "Student":
+    switch (model.toLowerCase()) {
+      case "student":
         await mongoose.model("Student").findByIdAndDelete(id);
         break;
-      case "Sponsor":
+      case "sponsor":
         await mongoose.model("Sponsor").findByIdAndDelete(id);
         break;
-      case "School":
+      case "school":
         await mongoose.model("School").findByIdAndDelete(id);
         break;
-      case "Admin":
+      case "admin":
         await mongoose.model("Admin").findByIdAndDelete(id);
         break;
       default:
@@ -78,10 +86,15 @@ async function deletePersona(model, id) {
   }
 }
 
-// Cascade delete persona after user is deleted
+// Cascade delete persona and KYC after user is deleted
 userSchema.post("findOneAndDelete", async function (doc) {
-  if (doc && doc.personaModel && doc.personaId) {
-    await deletePersona(doc.personaModel, doc.personaId);
+  if (doc) {
+    if (doc.personaModel && doc.personaId) {
+      await deletePersona(doc.personaModel, doc.personaId);
+    }
+    if (doc.kycId) {
+      await mongoose.model("KycKybVerification").findByIdAndDelete(doc.kycId);
+    }
   }
 });
 

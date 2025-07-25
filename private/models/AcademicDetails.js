@@ -5,6 +5,11 @@ const AcademicDetailsSchema = new mongoose.Schema({
     type: [String],
     required: true,
   },
+  semester: {
+    type: [String],
+    required: true,
+    default: ["1st Semester", "2nd Semester", "Trimester"],
+  },
   yearLevel: {
     type: [String],
     required: true,

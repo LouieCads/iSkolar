@@ -5,6 +5,9 @@ const {
   addCourse,
   updateCourse,
   deleteCourse,
+  addSemester,
+  updateSemester,
+  deleteSemester,
   addYearLevel,
   updateYearLevel,
   deleteYearLevel,
@@ -20,6 +23,11 @@ router.get("/academic-details", getAcademicDetails);
 router.post("/courses", addCourse);
 router.put("/courses", updateCourse);
 router.delete("/courses", deleteCourse);
+
+// Semester endpoints
+router.post("/semesters", addSemester);
+router.put("/semesters", updateSemester);
+router.delete("/semesters", deleteSemester);
 
 // Year level endpoints
 router.post("/year-levels", addYearLevel);

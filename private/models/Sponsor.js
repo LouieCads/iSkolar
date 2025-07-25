@@ -1,127 +1,17 @@
+// Sponsor.js
 const mongoose = require("mongoose");
 
 const sponsorSchema = new mongoose.Schema({
-  // Sponsor Type
   subRole: {
     type: String,
     enum: ["individual", "corporate"],
+    required: true,
   },
-
-  // Personal Information (for Individual Sponsors)
-  firstName: {
-    type: String,
-    trim: true,
-  },
-  middleName: {
-    type: String,
-    trim: true,
-  },
-  lastName: {
-    type: String,
-    trim: true,
-  },
-  dateOfBirth: {
-    type: Date,
-  },
-  gender: {
-    type: String,
-    enum: ["male", "female", "other"],
-  },
-  nationality: {
-    type: String,
-    default: "Filipino",
-  },
-
-  // Corporate Information (for Corporate Sponsors)
-  companyName: {
-    type: String,
-    trim: true,
-  },
-  businessRegistrationNumber: {
-    type: String,
-  },
-  industrySector: {
-    type: String,
-  },
-  organizationType: {
-    type: String,
-    enum: [
-      "corporation",
-      "partnership",
-      "sole_proprietorship",
-      "non_profit",
-      "government",
-    ],
-  },
-
-  // Contact Information
-  phoneNumber: {
-    type: String,
-  },
-  address: {
-    street: { type: String },
-    city: { type: String },
-    province: { type: String },
-    zipCode: { type: String },
-  },
-
-  // Financial Information
-  sourceOfIncome: {
-    type: String,
-  },
-  natureOfWork: {
-    type: String,
-  },
-  annualIncome: {
-    type: Number,
-  },
-
-  // KYC/KYB Status
-  verificationSubmittedAt: {
-    type: Date,
-  },
-  verificationApprovedAt: {
-    type: Date,
-  },
-  verificationDeniedAt: {
-    type: Date,
-  },
-  verificationDenialReason: {
-    type: String,
-  },
-  verificationSubmissionCount: {
-    type: Number,
-    default: 0,
-  },
-
-  // Documents
-  documents: [
-    {
-      type: {
-        type: String,
-        enum: [
-          "id_card",
-          "birth_certificate",
-          "business_permit",
-          "tax_certificate",
-          "financial_statement",
-        ],
-      },
-      fileName: { type: String },
-      fileUrl: { type: String },
-      uploadedAt: { type: Date, default: Date.now },
-      isVerified: { type: Boolean, default: false },
-    },
-  ],
-
-  // Wallet Information
   walletBalance: {
     phpc: { type: Number, default: 0 },
     usdt: { type: Number, default: 0 },
     usdc: { type: Number, default: 0 },
   },
-
-  // Scholarship Programs
   scholarshipPrograms: [
     {
       title: { type: String },
@@ -153,8 +43,6 @@ const sponsorSchema = new mongoose.Schema({
       createdAt: { type: Date, default: Date.now },
     },
   ],
-
-  // System fields
   createdAt: {
     type: Date,
     default: Date.now,
@@ -163,14 +51,8 @@ const sponsorSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  kycStatus: {
-    type: String,
-    enum: ["unverified", "pending", "approved", "denied"],
-    default: "unverified",
-  },
 });
 
-// Update the updatedAt field before saving
 sponsorSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
   next();
