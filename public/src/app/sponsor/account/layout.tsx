@@ -13,7 +13,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarProvider // Add this import
+  SidebarProvider 
 } from "@/components/ui/sidebar";
 import { usePlatform } from "@/hooks/use-platform";
 
@@ -28,12 +28,12 @@ export default function AccountLayout({
   const navItems = [
     {
       name: 'My Account',
-      path: '/student/account/my-account',
+      path: '/sponsor/account/my-account',
       icon: UserCircle
     },
     {
       name: 'Verification',
-      path: '/student/account/verification',
+      path: '/sponsor/account/verification',
       icon: ShieldCheck
     },
   ];

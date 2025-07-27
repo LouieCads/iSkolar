@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import KycVerificationModal from '@/components/student/KycVerificationModal';
+import KycKybVerificationModal from '@/components/sponsor/KycKybVerificationModal';
 
 export default function Verification() {
   const [kycStatus, setKycStatus] = useState('unverified');
@@ -117,12 +117,10 @@ export default function Verification() {
         </div>
       )}
 
-      <KycVerificationModal 
+      <KycKybVerificationModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
-      
-      {/* ...rest of existing code... */}
     </div>
   );
 }
