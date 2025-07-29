@@ -1,16 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, User, MapPin, Briefcase, FileText, Shield, X, AlertCircle, Building } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/useAuth'; // Add this import
+import { useKycKybConfiguration } from '@/hooks/useKycKybConfiguration';
 
 export default function KycKybVerificationModal({ isOpen = true, onClose = () => {} }) {
+  const { user } = useAuth(); // Get user context
+  const kycKybConfig = useKycKybConfiguration();
   const [currentStep, setCurrentStep] = useState(1);
-  const [subrole, setSubrole] = useState('individual');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [subrole, setSubrole] = useState('');
   const [formData, setFormData] = useState({
     firstName: '', middleName: '', lastName: '', email: '', mobileNumber: '', telephoneNumber: '',
     gender: '', age: '', civilStatus: '', placeOfBirth: '', dateOfBirth: '', nationality: '',
@@ -27,6 +33,38 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
   });
   const [notification, setNotification] = useState({ show: false, type: '', message: '' });
 
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/auth/profile', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch user profile');
+        
+        const data = await response.json();
+        if (data.user?.persona?.subRole) {
+          setSubrole(data.user.persona.subRole);
+        }
+      } catch (err) {
+        setError('Failed to load user profile');
+        setNotification({
+          show: true,
+          type: 'error',
+          message: 'Failed to load user profile'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  // Define steps based on subrole
   const steps = subrole === 'individual' ? [
     { title: 'Personal Info', icon: User },
     { title: 'Address', icon: MapPin },
@@ -104,18 +142,40 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.consent) {
       setNotification({
         show: true,
         type: 'error',
         message: 'Consent required',
       });
-      setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
       return;
     }
-    console.log('Form submitted:', formData);
-    onClose();
+
+    try {
+      const response = await fetch('/kyc-kyb-verification/submit', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          verificationType: subrole === 'individual' ? 'KYC' : 'KYB',
+        }),
+      });
+
+      if (!response.ok) throw new Error('Verification submission failed');
+
+      onClose();
+      // Show success notification or redirect
+    } catch (err) {
+      setNotification({
+        show: true,
+        type: 'error',
+        message: 'Failed to submit verification'
+      });
+    }
   };
 
   // Step rendering functions (unchanged from previous)
@@ -257,25 +317,66 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
           <Label htmlFor="natureOfWork" className="text-sm font-medium text-gray-700">Nature of Work *</Label>
-          <Input id="natureOfWork" name="natureOfWork" value={formData.natureOfWork} onChange={handleInputChange} placeholder="Enter nature of work" required />
+          <Select name="natureOfWork" value={formData.natureOfWork} onValueChange={(value) => handleSelectChange('natureOfWork', value)} required>
+            <SelectTrigger id="natureOfWork">
+              <SelectValue placeholder="Select nature of work" />
+            </SelectTrigger>
+            <SelectContent>
+              {kycKybConfig.isLoading ? (
+                <SelectItem value="loading" disabled>Loading options...</SelectItem>
+              ) : kycKybConfig.error ? (
+                <SelectItem value="error" disabled>Error loading options</SelectItem>
+              ) : kycKybConfig.natureOfWork.length === 0 ? (
+                <SelectItem value="none" disabled>No options available</SelectItem>
+              ) : (
+                kycKybConfig.natureOfWork.map((type) => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label htmlFor="employmentType" className="text-sm font-medium text-gray-700">Employment Type *</Label>
-          <Select name="employmentType" value={formData.employmentType} onValueChange={(value) => handleSelectChange('employmentType', value)} required>
+          <Select name="employmentType" value={formData.natureOfWork} onValueChange={(value) => handleSelectChange('employmentType', value)} required>
             <SelectTrigger id="employmentType">
               <SelectValue placeholder="Select employment type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="full-time">Full-Time</SelectItem>
-              <SelectItem value="part-time">Part-Time</SelectItem>
-              <SelectItem value="self-employed">Self-Employed</SelectItem>
-              <SelectItem value="contract">Contract</SelectItem>
+              {kycKybConfig.isLoading ? (
+                <SelectItem value="loading" disabled>Loading options...</SelectItem>
+              ) : kycKybConfig.error ? (
+                <SelectItem value="error" disabled>Error loading options</SelectItem>
+              ) : kycKybConfig.natureOfWork.length === 0 ? (
+                <SelectItem value="none" disabled>No options available</SelectItem>
+              ) : (
+                kycKybConfig.natureOfWork.map((type) => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label htmlFor="sourceOfIncome" className="text-sm font-medium text-gray-700">Source of Income *</Label>
-          <Input id="sourceOfIncome" name="sourceOfIncome" value={formData.sourceOfIncome} onChange={handleInputChange} placeholder="Enter source of income" required />
+          <Select name="sourceOfIncome" value={formData.sourceOfIncome} onValueChange={(value) => handleSelectChange('sourceOfIncome', value)} required>
+            <SelectTrigger id="sourceOfIncome">
+              <SelectValue placeholder="Select source of income" />
+            </SelectTrigger>
+            <SelectContent>
+              {kycKybConfig.isLoading ? (
+                <SelectItem value="loading" disabled>Loading options...</SelectItem>
+              ) : kycKybConfig.error ? (
+                <SelectItem value="error" disabled>Error loading options</SelectItem>
+              ) : kycKybConfig.sourceOfIncome.length === 0 ? (
+                <SelectItem value="none" disabled>No options available</SelectItem>
+              ) : (
+                kycKybConfig.sourceOfIncome.map((type) => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>
@@ -312,10 +413,17 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
                   <SelectValue placeholder="Select ID type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="passport">Passport</SelectItem>
-                  <SelectItem value="driverLicense">Driver's License</SelectItem>
-                  <SelectItem value="nationalId">National ID</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {kycKybConfig.isLoading ? (
+                    <SelectItem value="loading" disabled>Loading ID types...</SelectItem>
+                  ) : kycKybConfig.error ? (
+                    <SelectItem value="error" disabled>Error loading ID types</SelectItem>
+                  ) : kycKybConfig.idTypes.length === 0 ? (
+                    <SelectItem value="none" disabled>No ID types available</SelectItem>
+                  ) : (
+                    kycKybConfig.idTypes.map((type) => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -379,10 +487,17 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
               <SelectValue placeholder="Select organization type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="corporation">Corporation</SelectItem>
-              <SelectItem value="partnership">Partnership</SelectItem>
-              <SelectItem value="non-profit">Non-Profit</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
+              {kycKybConfig.isLoading ? (
+                <SelectItem value="loading" disabled>Loading options...</SelectItem>
+              ) : kycKybConfig.error ? (
+                <SelectItem value="error" disabled>Error loading options</SelectItem>
+              ) : kycKybConfig.organizationType.length === 0 ? (
+                <SelectItem value="none" disabled>No options available</SelectItem>
+              ) : (
+                kycKybConfig.organizationType.map((type) => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -390,7 +505,24 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
           <Label htmlFor="industrySector" className="text-sm font-medium text-gray-700">Industry Sector *</Label>
-          <Input id="industrySector" name="industrySector" value={formData.industrySector} onChange={handleInputChange} placeholder="Enter industry sector" required />
+          <Select name="industrySector" value={formData.industrySector} onValueChange={(value) => handleSelectChange('industrySector', value)} required>
+            <SelectTrigger id="industrySector">
+              <SelectValue placeholder="Select industry sector" />
+            </SelectTrigger>
+            <SelectContent>
+              {kycKybConfig.isLoading ? (
+                <SelectItem value="loading" disabled>Loading options...</SelectItem>
+              ) : kycKybConfig.error ? (
+                <SelectItem value="error" disabled>Error loading options</SelectItem>
+              ) : kycKybConfig.industrySector.length === 0 ? (
+                <SelectItem value="none" disabled>No options available</SelectItem>
+              ) : (
+                kycKybConfig.industrySector.map((type) => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label htmlFor="registrationNumber" className="text-sm font-medium text-gray-700">Registration Number *</Label>
@@ -454,10 +586,17 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
               <SelectValue placeholder="Select ID type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="passport">Passport</SelectItem>
-              <SelectItem value="driverLicense">Driver's License</SelectItem>
-              <SelectItem value="nationalId">National ID</SelectItem>
-              <SelectItem value="other">Other</SelectItem>
+              {kycKybConfig.isLoading ? (
+                <SelectItem value="loading" disabled>Loading ID types...</SelectItem>
+              ) : kycKybConfig.error ? (
+                <SelectItem value="error" disabled>Error loading ID types</SelectItem>
+              ) : kycKybConfig.idTypes.length === 0 ? (
+                <SelectItem value="none" disabled>No ID types available</SelectItem>
+              ) : (
+                kycKybConfig.idTypes.map((type) => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -603,30 +742,47 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div className="bg-white p-4 rounded-xl">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!isOpen) return null;
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div className="bg-white p-4 rounded-xl">
+          <p className="text-red-500">{error}</p>
+          <button 
+            onClick={onClose}
+            className="mt-4 px-4 py-2 bg-gray-200 rounded-md"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-purple-700 px-4 py-3 text-white flex justify-between items-center">
-          <h2 className="text-lg font-semibold">KYC/KYB Verification</h2>
+          <h2 className="text-lg font-semibold">
+            {subrole === 'individual' ? 'KYC Verification' : 'KYB Verification'}
+          </h2>
           <button onClick={onClose} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all">
             <X className="w-4 h-4" />
           </button>
         </div>
-        {/* Temporary toggle for testing subrole */}
-        <div className="px-4 py-2 bg-gray-100">
-          <Label htmlFor="subrole" className="text-sm font-medium text-gray-700">Sponsor Type (Testing)</Label>
-          <Select value={subrole} onValueChange={(value) => { setSubrole(value); setCurrentStep(1); setFormData({ ...formData, consent: false }); }}>
-            <SelectTrigger id="subrole">
-              <SelectValue placeholder="Select sponsor type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="individual">Individual</SelectItem>
-              <SelectItem value="corporate">Corporate</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+
+        {/* Progress Steps */}
         <div className="px-4 py-3 bg-gray-50">
           <div className="flex justify-center items-center">
             {steps.map((step, index) => {
@@ -647,6 +803,8 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
             })}
           </div>
         </div>
+
+        {/* Form Content */}
         <div className="px-4 py-4 overflow-y-auto max-h-[60vh]">
           {subrole === 'individual' ? (
             <>
@@ -665,6 +823,8 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
             </>
           )}
         </div>
+
+        {/* Navigation Buttons */}
         <div className="px-4 py-3 bg-gray-50 border-t flex justify-between items-center min-h-[60px]">
           <button
             onClick={() => setCurrentStep((curr) => curr - 1)}
@@ -695,6 +855,8 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
           </button>
         </div>
       </div>
+
+      {/* Notification */}
       <AnimatePresence>
         {notification.show && (
           <motion.div
