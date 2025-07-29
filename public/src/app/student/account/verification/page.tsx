@@ -2,8 +2,10 @@
 import React, { useEffect, useState } from 'react';
 import KycVerificationModal from '@/components/student/KycVerificationModal';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 export default function Verification() {
-  const [kycStatus, setKycStatus] = useState('unverified');
+  const [kycStatus, setKycStatus] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [statusDetails, setStatusDetails] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -11,8 +13,22 @@ export default function Verification() {
   useEffect(() => {
     const fetchKycStatus = async () => {
       try {
-        // Replace with your actual API endpoint
-        const response = await fetch('/api/kyc/status');
+        // Get token from localStorage, cookies, or your auth context
+        const token = localStorage.getItem('token'); // Adjust based on your auth implementation
+        
+        const response = await fetch(`${API_BASE_URL}/kyc-kyb-verification/status`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.status === 401) {
+          console.error('Unauthorized - please login');
+          // Redirect to login or handle auth error
+          return;
+        }
+        
         const data = await response.json();
         setKycStatus(data.status);
         setStatusDetails(data);
@@ -26,6 +42,7 @@ export default function Verification() {
     fetchKycStatus();
   }, []);
 
+  // ... rest of your component code remains the same
   const getStatusBadge = () => {
     const statusColors = {
       unverified: 'bg-gray-100 text-gray-600',
@@ -121,8 +138,6 @@ export default function Verification() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
-      
-      {/* ...rest of existing code... */}
     </div>
   );
 }

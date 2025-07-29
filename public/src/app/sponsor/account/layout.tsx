@@ -44,7 +44,7 @@ export default function AccountLayout({
         <Sidebar className="border-r border-gray-200 bg-white">
           <SidebarHeader className="p-4 pl-10 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <Link href="/student" className="flex items-center space-x-2">
+              <Link href="/sponsor" className="flex items-center space-x-2">
                 <Image
                   src={platform?.logoUrl || "/iSkolar_logo.png"}
                   alt="iSkolar Logo"

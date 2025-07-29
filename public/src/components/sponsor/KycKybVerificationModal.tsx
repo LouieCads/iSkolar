@@ -727,13 +727,6 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
           </motion.div>
         )}
       </AnimatePresence>
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn { animation: fadeIn 0.4s ease-out; }
-      `}</style>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from "next/image";
+import type { Metadata } from "next";
 import { UserCircle, ShieldCheck } from "lucide-react";
 import {
   Sidebar,
