@@ -117,7 +117,8 @@ function DeleteModal({ show, onCancel, onConfirm, label }) {
 // --- Tab Navigation ---
 const TABS = [
   { key: "idTypes", label: "ID Types", icon: UserSquare },
-  { key: "natureOfWork", label: "Nature of Work", icon: Briefcase },
+  { key: "employmentType", label: "Employment Type", icon: Briefcase },
+  { key: "natureOfWork", label: "Nature of Work", icon: Building2 },
   { key: "sourceOfIncome", label: "Source of Income", icon: Wallet },
   { key: "organizationType", label: "Organization Type", icon: Building2 },
   { key: "industrySector", label: "Industry Sector", icon: Factory },
@@ -257,6 +258,7 @@ export function KycKybConfiguration() {
   const [error, setError] = useState("");
 
   const [idTypes, setIdTypes] = useState([]);
+  const [employmentType, setEmploymentType] = useState([]);
   const [natureOfWork, setNatureOfWork] = useState([]);
   const [sourceOfIncome, setSourceOfIncome] = useState([]);
   const [organizationType, setOrganizationType] = useState([]);
@@ -271,6 +273,7 @@ export function KycKybConfiguration() {
           `${API_BASE_URL}/kyc-kyb-configuration/kyc-kyb-configuration`
         );
         setIdTypes(data.idTypes || []);
+        setEmploymentType(data.employmentType || []);
         setNatureOfWork(data.natureOfWork || []);
         setSourceOfIncome(data.sourceOfIncome || []);
         setOrganizationType(data.organizationType || []);
@@ -298,6 +301,7 @@ export function KycKybConfiguration() {
       const { data } = await axios({ method, url: `${API_BASE_URL}/kyc-kyb-configuration${endpoint}`, data: body });
       if (data) {
         setIdTypes(data.idTypes || []);
+        setEmploymentType(data.employmentType || []);
         setNatureOfWork(data.natureOfWork || []);
         setSourceOfIncome(data.sourceOfIncome || []);
         setOrganizationType(data.organizationType || []);
@@ -325,6 +329,18 @@ export function KycKybConfiguration() {
         onEditItem={(idx, newItem) => editItem("id-types", idTypes[idx], newItem, setIdTypes)}
         onDeleteItem={(idx) => deleteItem("id-types", idTypes[idx], setIdTypes)}
         placeholder="e.g., UMID, Passport"
+        notification={notification}
+        setNotification={setNotification}
+      />
+    ),
+    employmentType: (
+      <ListTab
+        title="Employment Type"
+        items={employmentType}
+        onAddItem={(item) => addItem("employment-type", item, setEmploymentType)}
+        onEditItem={(idx, newItem) => editItem("employment-type", employmentType[idx], newItem, setEmploymentType)}
+        onDeleteItem={(idx) => deleteItem("employment-type", employmentType[idx], setEmploymentType)}
+        placeholder="e.g., Full-time, Part-time"
         notification={notification}
         setNotification={setNotification}
       />

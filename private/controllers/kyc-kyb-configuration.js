@@ -88,6 +88,13 @@ exports.updateNatureOfWork = (req, res) =>
 exports.deleteNatureOfWork = (req, res) =>
   deleteItem(res, "natureOfWork", req.body.item);
 
+exports.addEmploymentType = (req, res) =>
+  addItem(res, "employmentType", req.body.item);
+exports.updateEmploymentType = (req, res) =>
+  updateItem(res, "employmentType", req.body.oldItem, req.body.newItem);
+exports.deleteEmploymentType = (req, res) =>
+  deleteItem(res, "employmentType", req.body.item);
+
 exports.addSourceOfIncome = (req, res) =>
   addItem(res, "sourceOfIncome", req.body.item);
 exports.updateSourceOfIncome = (req, res) =>

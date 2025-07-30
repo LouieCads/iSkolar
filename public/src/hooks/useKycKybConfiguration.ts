@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 
 interface KycKybConfiguration {
   idTypes: string[];
+  employmentType: string[];
   natureOfWork: string[];
   sourceOfIncome: string[];
   organizationType: string[];
@@ -15,6 +16,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 export const useKycKybConfiguration = () => {
   const [config, setConfig] = useState<KycKybConfiguration>({
     idTypes: [],
+    employmentType: [],
     natureOfWork: [],
     sourceOfIncome: [],
     organizationType: [],
@@ -32,6 +34,7 @@ export const useKycKybConfiguration = () => {
         const data = await response.json();
         setConfig({
           idTypes: data.idTypes || [],
+          employmentType: data.employmentType || [],
           natureOfWork: data.natureOfWork || [],
           sourceOfIncome: data.sourceOfIncome || [],
           organizationType: data.organizationType || [],

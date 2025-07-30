@@ -17,6 +17,9 @@ const {
   addIndustrySector,
   updateIndustrySector,
   deleteIndustrySector,
+  addEmploymentType,
+  updateEmploymentType,
+  deleteEmploymentType,
 } = require("../controllers/kyc-kyb-configuration");
 
 // --- Get all configuration ---
@@ -31,6 +34,11 @@ router.delete("/id-types", deleteIdType);
 router.post("/nature-of-work", addNatureOfWork);
 router.put("/nature-of-work", updateNatureOfWork);
 router.delete("/nature-of-work", deleteNatureOfWork);
+
+// --- Employment Type ---
+router.post("/employment-type", addEmploymentType);
+router.put("/employment-type", updateEmploymentType);
+router.delete("/employment-type", deleteEmploymentType);
 
 // --- Source of Income ---
 router.post("/source-of-income", addSourceOfIncome);

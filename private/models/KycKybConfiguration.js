@@ -5,9 +5,19 @@ const KycKybConfigurationSchema = new mongoose.Schema({
     type: [String],
     default: ["UMID", "Passport", "Company ID"],
   },
+  employmentType: {
+    type: [String],
+    default: ["Full-time", "Part-time", "Contractual", "Freelance", "Intern"],
+  },
   natureOfWork: {
     type: [String],
-    default: ["Employed", "Self-Employed", "Student", "Retired"],
+    default: [
+      "Teaching",
+      "Programming",
+      "Accounting",
+      "Construction",
+      "Customer Service",
+    ],
   },
   sourceOfIncome: {
     type: [String],
