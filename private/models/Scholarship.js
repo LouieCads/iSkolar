@@ -75,6 +75,10 @@ const scholarshipSchema = new mongoose.Schema({
     ref: "School",
     required: true,
   },
+  selectedSchool: {
+    type: String,
+    required: true, 
+  },
   selectionMode: {
     type: String,
     enum: ["auto", "manual"],

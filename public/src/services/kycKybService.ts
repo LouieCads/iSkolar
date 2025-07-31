@@ -2,6 +2,15 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+// Add authorization header to all requests
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Types
 export interface KycKybStatus {
   status: 'unverified' | 'pending' | 'pre-approved' | 'verified' | 'denied';
@@ -31,16 +40,26 @@ export const kycKybService = {
   async submitIndividualSponsorKyb(formData: any) {
     const response = await axios.post(
       `${API_URL}/kyc-kyb-verification/individual-sponsor/submit`,
-      formData
-    );
+      formData,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+  );
     return response.data;
   },
 
-  // Submit Corporate Sponsor KYB
+  // Submit Corporate Sponsor KYB 
   async submitCorporateSponsorKyb(formData: any) {
     const response = await axios.post(
       `${API_URL}/kyc-kyb-verification/corporate-sponsor/submit`,
-      formData
+      formData,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
     );
     return response.data;
   },
@@ -66,8 +85,7 @@ export const kycKybService = {
   // Delete document
   async deleteDocument(documentId: string) {
     const response = await axios.delete(
-      `${API_URL}/kyc-kyb-verification/document/${documentId}`
-    );
+      `${API_URL}/kyc-kyb-verification/document/${documentId}`);
     return response.data;
   }
 };

@@ -66,7 +66,6 @@ const kycKybVerificationSchema = new mongoose.Schema({
     schoolEmail: String,
     yearLevel: {
       type: String,
-      enum: ["1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"],
     },
     course: String,
     semestersPerYear: Number,
@@ -121,7 +120,6 @@ const kycKybVerificationSchema = new mongoose.Schema({
     natureOfWork: String,
     employmentType: {
       type: String,
-      enum: ["full-time", "part-time", "self-employed", "unemployed"],
     },
     sourceOfIncome: String,
     idDetails: {
@@ -135,13 +133,6 @@ const kycKybVerificationSchema = new mongoose.Schema({
     corporateName: String,
     organizationType: {
       type: String,
-      enum: [
-        "corporation",
-        "partnership",
-        "sole_proprietorship",
-        "non_profit",
-        "government",
-      ],
     },
     industrySector: String,
     registrationNumber: String,
@@ -164,7 +155,6 @@ const kycKybVerificationSchema = new mongoose.Schema({
     schoolName: String,
     schoolType: {
       type: String,
-      enum: ["university", "college", "institute", "LGU"],
     },
     campusAddress: {
       country: String,

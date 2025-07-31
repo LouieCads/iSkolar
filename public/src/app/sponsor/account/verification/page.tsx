@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import KycKybVerificationModal from '@/components/sponsor/KycKybVerificationModal';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
 export default function Verification() {
   const [kycStatus, setKycStatus] = useState('unverified');
   const [isLoading, setIsLoading] = useState(true);
@@ -11,8 +13,22 @@ export default function Verification() {
   useEffect(() => {
     const fetchKycStatus = async () => {
       try {
-        // Replace with your actual API endpoint
-        const response = await fetch('/api/kyc/status');
+        // Get token from localStorage, cookies, or your auth context
+        const token = localStorage.getItem('token'); // Adjust based on your auth implementation
+        
+        const response = await fetch(`${API_BASE_URL}/kyc-kyb-verification/status`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.status === 401) {
+          console.error('Unauthorized - please login');
+          // Redirect to login or handle auth error
+          return;
+        }
+        
         const data = await response.json();
         setKycStatus(data.status);
         setStatusDetails(data);
@@ -66,7 +82,7 @@ export default function Verification() {
           </p>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-amber-500 hover:bg-amber-600 text-white text-bold text-sm py-1.5 px-3 rounded transition-colors duration-200 whitespace-nowrap ml-3 flex items-center"
+            className="bg-amber-500 hover:bg-amber-600 cursor-pointer text-white text-bold text-sm py-1.5 px-3 rounded transition-colors duration-200 whitespace-nowrap ml-3 flex items-center"
             disabled={kycStatus === 'pending' || kycStatus === 'verified'}
           >
             {kycStatus === 'verified' ? 'Verified ✓' : 'Get Verified Now'}

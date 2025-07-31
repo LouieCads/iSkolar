@@ -104,8 +104,30 @@ exports.submitStudentKyc = async (req, res) => {
 // Submit Individual Sponsor KYB
 exports.submitIndividualSponsorKyb = async (req, res) => {
   try {
+    console.log('=== Individual Sponsor KYB Submission ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     const userId = req.user.id;
     const sponsorData = req.body;
+
+    // Validate required fields - declarationsAndConsent should be boolean
+    if (typeof sponsorData.declarationsAndConsent !== 'boolean' || !sponsorData.declarationsAndConsent) {
+      return res.status(400).json({ message: "Declarations and consent are required" });
+    }
+
+    if (!sponsorData.individualSponsor) {
+      return res.status(400).json({ message: "Individual sponsor data is required" });
+    }
+
+    // Validate required individual sponsor fields
+    const { individualSponsor } = sponsorData;
+    if (!individualSponsor.fullName?.firstName || !individualSponsor.fullName?.lastName) {
+      return res.status(400).json({ message: "First name and last name are required" });
+    }
+
+    if (!individualSponsor.email || !individualSponsor.mobileNumber) {
+      return res.status(400).json({ message: "Email and mobile number are required" });
+    }
 
     const existingKyb = await KycKybVerification.findOne({ userId });
 
@@ -114,9 +136,7 @@ exports.submitIndividualSponsorKyb = async (req, res) => {
     }
 
     if (existingKyb && existingKyb.status === "pending") {
-      return res
-        .status(400)
-        .json({ message: "Verification is already pending" });
+      return res.status(400).json({ message: "Verification is already pending" });
     }
 
     if (
@@ -134,7 +154,7 @@ exports.submitIndividualSponsorKyb = async (req, res) => {
       userId,
       personaType: "Sponsor",
       status: "pending",
-      declarationsAndConsent: sponsorData.declarationsAndConsent,
+      declarationsAndConsent: sponsorData.declarationsAndConsent, // Boolean
       individualSponsor: sponsorData.individualSponsor,
       documents: sponsorData.documents || [],
       submittedAt: new Date(),
@@ -144,6 +164,8 @@ exports.submitIndividualSponsorKyb = async (req, res) => {
       Object.assign(existingKyb, kybData);
       existingKyb.resubmissionCount = (existingKyb.resubmissionCount || 0) + 1;
       await existingKyb.save();
+      
+      console.log('Individual Sponsor KYB updated successfully');
       res.status(200).json({
         message: "Individual Sponsor KYB resubmitted successfully",
         verification: existingKyb,
@@ -151,26 +173,49 @@ exports.submitIndividualSponsorKyb = async (req, res) => {
     } else {
       const newKyb = new KycKybVerification(kybData);
       await newKyb.save();
+      
+      console.log('Individual Sponsor KYB created successfully');
       res.status(201).json({
         message: "Individual Sponsor KYB submitted successfully",
         verification: newKyb,
       });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error submitting Individual Sponsor KYB",
-        error: error.message,
-      });
+    console.error('Individual Sponsor KYB Error:', error);
+    res.status(500).json({
+      message: "Error submitting Individual Sponsor KYB",
+      error: error.message,
+    });
   }
 };
 
 // Submit Corporate Sponsor KYB
 exports.submitCorporateSponsorKyb = async (req, res) => {
   try {
+    console.log('=== Corporate Sponsor KYB Submission ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     const userId = req.user.id;
     const corporateData = req.body;
+
+    // Validate required fields - declarationsAndConsent should be boolean
+    if (typeof corporateData.declarationsAndConsent !== 'boolean' || !corporateData.declarationsAndConsent) {
+      return res.status(400).json({ message: "Declarations and consent are required" });
+    }
+
+    if (!corporateData.corporateSponsor) {
+      return res.status(400).json({ message: "Corporate sponsor data is required" });
+    }
+
+    // Validate required corporate sponsor fields
+    const { corporateSponsor } = corporateData;
+    if (!corporateSponsor.corporateName) {
+      return res.status(400).json({ message: "Corporate name is required" });
+    }
+
+    if (!corporateSponsor.authorizedRepresentative?.fullName) {
+      return res.status(400).json({ message: "Authorized representative information is required" });
+    }
 
     const existingKyb = await KycKybVerification.findOne({ userId });
 
@@ -179,9 +224,7 @@ exports.submitCorporateSponsorKyb = async (req, res) => {
     }
 
     if (existingKyb && existingKyb.status === "pending") {
-      return res
-        .status(400)
-        .json({ message: "Verification is already pending" });
+      return res.status(400).json({ message: "Verification is already pending" });
     }
 
     if (
@@ -199,7 +242,7 @@ exports.submitCorporateSponsorKyb = async (req, res) => {
       userId,
       personaType: "Sponsor",
       status: "pending",
-      declarationsAndConsent: corporateData.declarationsAndConsent,
+      declarationsAndConsent: corporateData.declarationsAndConsent, // Boolean
       corporateSponsor: corporateData.corporateSponsor,
       documents: corporateData.documents || [],
       submittedAt: new Date(),
@@ -209,6 +252,8 @@ exports.submitCorporateSponsorKyb = async (req, res) => {
       Object.assign(existingKyb, kybData);
       existingKyb.resubmissionCount = (existingKyb.resubmissionCount || 0) + 1;
       await existingKyb.save();
+      
+      console.log('Corporate Sponsor KYB updated successfully');
       res.status(200).json({
         message: "Corporate Sponsor KYB resubmitted successfully",
         verification: existingKyb,
@@ -216,18 +261,19 @@ exports.submitCorporateSponsorKyb = async (req, res) => {
     } else {
       const newKyb = new KycKybVerification(kybData);
       await newKyb.save();
+      
+      console.log('Corporate Sponsor KYB created successfully');
       res.status(201).json({
         message: "Corporate Sponsor KYB submitted successfully",
         verification: newKyb,
       });
     }
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error submitting Corporate Sponsor KYB",
-        error: error.message,
-      });
+    console.error('Corporate Sponsor KYB Error:', error);
+    res.status(500).json({
+      message: "Error submitting Corporate Sponsor KYB",
+      error: error.message,
+    });
   }
 };
 

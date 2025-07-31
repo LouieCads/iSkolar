@@ -83,7 +83,7 @@ export default function Verification() {
           </p>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="bg-amber-500 hover:bg-amber-600 text-white text-bold text-sm py-1.5 px-3 rounded transition-colors duration-200 whitespace-nowrap ml-3 flex items-center"
+            className="bg-amber-500 hover:bg-amber-600 cursor-pointer text-white text-bold text-sm py-1.5 px-3 rounded transition-colors duration-200 whitespace-nowrap ml-3 flex items-center"
             disabled={kycStatus === 'pending' || kycStatus === 'verified'}
           >
             {kycStatus === 'verified' ? 'Verified ✓' : 'Get Verified Now'}

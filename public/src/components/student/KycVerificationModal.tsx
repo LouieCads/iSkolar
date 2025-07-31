@@ -11,169 +11,215 @@ import { useAcademicDetails } from '@/hooks/useAcademicDetails';
 import { useKycStatus } from '@/hooks/useKycStatus';
 import { kycService } from '@/services/kycService';
 
-const steps = [
-	{ title: 'Student Info', icon: User },
-	{ title: 'Address', icon: MapPin },
-	{ title: 'Education', icon: GraduationCap },
-	{ title: 'Documents', icon: FileText },
-	{ title: 'Declaration', icon: Shield },
+const STEPS = [
+	{ title: 'Student Info', icon: User, gradient: 'from-indigo-500 to-purple-600' },
+	{ title: 'Address', icon: MapPin, gradient: 'from-teal-500 to-cyan-600' },
+	{ title: 'Education', icon: GraduationCap, gradient: 'from-violet-500 to-fuchsia-600' },
+	{ title: 'Documents', icon: FileText, gradient: 'from-amber-500 to-orange-600' },
+	{ title: 'Declaration', icon: Shield, gradient: 'from-rose-500 to-pink-600' },
 ];
 
-const LoadingSpinner = () => (
+const INITIAL_FORM_DATA = {
+	firstName: '', middleName: '', lastName: '', email: '', mobileNumber: '',
+	gender: '', age: '', civilStatus: '', nationality: '', studentId: '',
+	schoolName: '', schoolEmail: '', yearLevel: '', course: '', semestersPerYear: '',
+	dateOfBirth: '', placeOfBirth: '', country: '', province: '', city: '',
+	barangay: '', street: '', zipCode: '', elementarySchool: '', elementaryYear: '',
+	juniorHighSchool: '', juniorHighYear: '', seniorHighSchool: '', seniorHighYear: '',
+	college: '', expectedGraduation: '', certificateOfRegistration: null,
+	reportOfGrades: null, consent: false,
+};
+
+const REQUIRED_FIELDS = {
+	1: ['firstName', 'lastName', 'email', 'mobileNumber', 'gender', 'age', 'civilStatus', 'nationality', 'studentId', 'schoolName', 'schoolEmail', 'yearLevel', 'course', 'semestersPerYear', 'dateOfBirth', 'placeOfBirth'],
+	2: ['country', 'province', 'city', 'barangay', 'street', 'zipCode'],
+	3: ['elementarySchool', 'elementaryYear', 'juniorHighSchool', 'juniorHighYear', 'seniorHighSchool', 'seniorHighYear', 'college', 'expectedGraduation'],
+	4: ['certificateOfRegistration', 'reportOfGrades'],
+	5: ['consent'],
+};
+
+const LoadingSpinner = ({ message = "Loading academic details..." }) => (
 	<div className="flex items-center justify-center p-4">
 		<Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
-		<span className="ml-2 text-sm text-gray-600">Loading academic details...</span>
+		<span className="ml-2 text-sm text-gray-600">{message}</span>
 	</div>
+);
+
+const StepHeader = ({ step, icon: Icon, gradient }) => (
+	<div className="text-center mb-4">
+		<div className={`w-10 h-10 bg-gradient-to-r ${gradient} rounded-full flex items-center justify-center mx-auto mb-2`}>
+			<Icon className="w-5 h-5 text-white" />
+		</div>
+		<h3 className="text-lg font-semibold text-gray-800">{step}</h3>
+	</div>
+);
+
+interface FormFieldProps {
+  label: string;
+  id: string;
+  type?: string;
+  required?: boolean;
+  children?: React.ReactNode;
+  [key: string]: any; // For additional props
+}
+
+const FormField = ({ label, id, type = "text", required = false, children, ...props }: FormFieldProps) => (
+	<div>
+		<Label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+			{label} {required && '*'}
+		</Label>
+		{children || <Input id={id} type={type} required={required} {...props} />}
+	</div>
+);
+
+const SelectField = ({ label, id, value, onValueChange, options, loading, error, required = false }) => (
+	<FormField label={label} id={id} required={required}>
+		<Select name={id} value={value} onValueChange={onValueChange} required={required}>
+			<SelectTrigger id={id} className="w-full">
+				<SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+			</SelectTrigger>
+			<SelectContent>
+				{loading ? (
+					<SelectItem value="loading" disabled>Loading {label.toLowerCase()}...</SelectItem>
+				) : error ? (
+					<SelectItem value="error" disabled>Error loading {label.toLowerCase()}</SelectItem>
+				) : options.length === 0 ? (
+					<SelectItem value="none" disabled>No {label.toLowerCase()} available</SelectItem>
+				) : (
+					options.map((option) => (
+						<SelectItem key={option} value={option}>{option}</SelectItem>
+					))
+				)}
+			</SelectContent>
+		</Select>
+	</FormField>
+);
+
+const EducationSection = ({ title, schoolField, yearField, formData, onChange }) => (
+	<div className="border rounded-md p-3">
+		<h4 className="text-sm font-semibold text-gray-800 mb-2">{title}</h4>
+		<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+			<FormField
+				label="School Name"
+				id={schoolField}
+				name={schoolField}
+				value={formData[schoolField]}
+				onChange={onChange}
+				placeholder="Enter school name"
+				required
+			/>
+			<FormField
+				label="Year Graduated"
+				id={yearField}
+				name={yearField}
+				type="number"
+				value={formData[yearField]}
+				onChange={onChange}
+				placeholder="Enter year"
+				required
+			/>
+		</div>
+	</div>
+);
+
+const FileUpload = ({ label, id, formData, onChange, required = false }) => (
+	<div className="border rounded-md p-3">
+		<Label htmlFor={id} className="text-sm font-medium text-gray-800">
+			{label} {required && '*'}
+		</Label>
+		<input
+			id={id}
+			type="file"
+			name={id}
+			onChange={onChange}
+			accept=".pdf,.jpg,.jpeg,.png"
+			className="w-full px-2.5 py-1.5 text-sm rounded-md border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
+			required={required}
+		/>
+		{formData[id] && (
+			<p className="text-xs text-gray-600 mt-1">
+				Uploaded: {formData[id].name}
+			</p>
+		)}
+	</div>
+);
+
+const NotificationToast = ({ notification, onClose }) => (
+	<AnimatePresence>
+		{notification.show && (
+			<motion.div
+				initial={{ opacity: 1, x: 500 }}
+				animate={{ opacity: 1, x: 0 }}
+				exit={{ opacity: 0, x: 500 }}
+				transition={{ type: 'spring', stiffness: 900, damping: 25, duration: 0.2 }}
+				className={`fixed w-[325px] flex justify-end items-center h-[55px] bottom-5 right-5 rounded-[10px] ${
+					notification.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'
+				} rounded-md shadow-xl z-50`}
+			>
+				<div className="flex gap-3 items-center w-[320px] h-[55px] bg-gray-50 rounded-[5px] border-white px-3 py-2">
+					{notification.type === 'success' ? (
+						<CheckCircle width={23} height={23} className="text-emerald-500" />
+					) : (
+						<AlertCircle width={23} height={23} className="text-red-500" />
+					)}
+					<div>
+						<p className={`font-semibold text-[14px] text-gray-900`}>
+							{notification.type === 'success' ? 'Success' : 'Error'}
+						</p>
+						<p className="text-[12px] text-gray-700">{notification.message}</p>
+					</div>
+					<button onClick={onClose} className="ml-auto text-gray-400 hover:text-gray-600">
+						&times;
+					</button>
+				</div>
+			</motion.div>
+		)}
+	</AnimatePresence>
 );
 
 export default function KycVerificationModal({ isOpen = true, onClose = () => {} }) {
 	const [currentStep, setCurrentStep] = useState(1);
-	const [formData, setFormData] = useState({
-		firstName: '',
-		middleName: '',
-		lastName: '',
-		email: '',
-		mobileNumber: '',
-		gender: '',
-		age: '',
-		civilStatus: '',
-		nationality: '',
-		studentId: '',
-		schoolName: '',
-		schoolEmail: '',
-		yearLevel: '',
-		course: '',
-		semestersPerYear: '',
-		dateOfBirth: '',
-		placeOfBirth: '',
-		country: '',
-		province: '',
-		city: '',
-		barangay: '',
-		street: '',
-		zipCode: '',
-		elementarySchool: '',
-		elementaryYear: '',
-		juniorHighSchool: '',
-		juniorHighYear: '',
-		seniorHighSchool: '',
-		seniorHighYear: '',
-		college: '',
-		expectedGraduation: '',
-		certificateOfRegistration: null,
-		reportOfGrades: null,
-		consent: false,
-	});
+	const [formData, setFormData] = useState(INITIAL_FORM_DATA);
 	const [notification, setNotification] = useState({ show: false, type: '', message: '' });
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
 	const academicDetails = useAcademicDetails();
 	const { status: kycStatus, loading: kycLoading, refetch: refetchKycStatus } = useKycStatus();
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+
+	const showNotification = (type, message) => {
+		setNotification({ show: true, type, message });
+		if (type === 'error') {
+			setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+		}
+	};
 
 	const handleInputChange = (e) => {
 		const { name, value, type, checked } = e.target;
-		setFormData((prev) => ({
+		setFormData(prev => ({
 			...prev,
 			[name]: type === 'checkbox' ? checked : value,
 		}));
 	};
 
 	const handleSelectChange = (name, value) => {
-		setFormData((prev) => ({
-			...prev,
-			[name]: value,
-		}));
+		setFormData(prev => ({ ...prev, [name]: value }));
 	};
 
 	const handleFileChange = (e) => {
 		const { name, files } = e.target;
-		setFormData((prev) => ({
-			...prev,
-			[name]: files[0],
-		}));
-	};
-
-	// Add file upload handling
-	const handleFileUpload = async (file: File, type: string) => {
-		try {
-			setUploadProgress((prev) => ({ ...prev, [type]: 0 }));
-			const response = await kycService.uploadDocument(file, type);
-
-			setFormData((prev) => ({
-				...prev,
-				[type]: response.document,
-			}));
-
-			setUploadProgress((prev) => ({ ...prev, [type]: 100 }));
-
-			setNotification({
-				show: true,
-				type: 'success',
-				message: 'Document uploaded successfully',
-			});
-		} catch (error: any) {
-			setNotification({
-				show: true,
-				type: 'error',
-				message: error.message || 'Error uploading document',
-			});
-		} finally {
-			setTimeout(() => {
-				setUploadProgress((prev) => {
-					const newProgress = { ...prev };
-					delete newProgress[type];
-					return newProgress;
-				});
-			}, 1000);
-		}
+		setFormData(prev => ({ ...prev, [name]: files[0] }));
 	};
 
 	const validateStep = () => {
-		const requiredFields = {
-			1: [
-				'firstName',
-				'lastName',
-				'email',
-				'mobileNumber',
-				'gender',
-				'age',
-				'civilStatus',
-				'nationality',
-				'studentId',
-				'schoolName',
-				'schoolEmail',
-				'yearLevel',
-				'course',
-				'semestersPerYear',
-				'dateOfBirth',
-				'placeOfBirth',
-			],
-			2: ['country', 'province', 'city', 'barangay', 'street', 'zipCode'],
-			3: [
-				'elementarySchool',
-				'elementaryYear',
-				'juniorHighSchool',
-				'juniorHighYear',
-				'seniorHighSchool',
-				'seniorHighYear',
-				'college',
-				'expectedGraduation',
-			],
-			4: ['certificateOfRegistration', 'reportOfGrades'],
-			5: ['consent'],
-		};
-
-		const missingFields = requiredFields[currentStep].filter((field) => !formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === ''));
+		const missingFields = REQUIRED_FIELDS[currentStep].filter(
+			field => !formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')
+		);
 
 		if (missingFields.length > 0) {
-			setNotification({
-				show: true,
-				type: 'error',
-				message: 'Missing required fields',
-			});
-			setTimeout(() => setNotification({ show: false, type: '', message: '' }), 3000);
+			showNotification('error', 'Missing required fields');
 			return false;
 		}
+
 		setNotification({ show: false, type: '', message: '' });
 		return true;
 	};
@@ -183,26 +229,20 @@ export default function KycVerificationModal({ isOpen = true, onClose = () => {}
 			if (currentStep === 5) {
 				handleSubmit();
 			} else {
-				setCurrentStep((curr) => curr + 1);
+				setCurrentStep(curr => curr + 1);
 			}
 		}
 	};
 
-	// Modified submit handler
 	const handleSubmit = async () => {
 		if (!formData.consent) {
-			setNotification({
-				show: true,
-				type: 'error',
-				message: 'Consent required',
-			});
+			showNotification('error', 'Consent required');
 			return;
 		}
 
 		try {
 			setIsSubmitting(true);
 
-			// Transform form data to match backend structure
 			const studentData = {
 				declarationsAndConsent: formData.consent,
 				student: {
@@ -258,387 +298,78 @@ export default function KycVerificationModal({ isOpen = true, onClose = () => {}
 			const response = await kycService.submitStudentKyc(studentData);
 			await refetchKycStatus();
 			
-			setNotification({
-				show: true,
-				type: 'success',
-				message: response.message || 'KYC submitted successfully',
-			});
-
+			showNotification('success', response.message || 'KYC submitted successfully');
 			setTimeout(() => {
-				onClose();
-			}, 2000);
+      onClose();
+      window.location.reload();
+    }, 2000);
 
-		} catch (error: any) {
+		} catch (error) {
 			console.error('KYC submission error:', error);
-			setNotification({
-				show: true,
-				type: 'error',
-				message: error.response?.data?.message || 
-						 (error.response?.status === 401 ? 'Please log in again' : 'Error submitting KYC'),
-			});
-
-			// If unauthorized, you might want to handle the session expiry
-			if (error.response?.status === 401) {
-				// Optionally redirect to login or refresh token
-				// window.location.href = '/login';
-			}
+			const message = error.response?.data?.message || 
+				(error.response?.status === 401 ? 'Please log in again' : 'Error submitting KYC');
+			showNotification('error', message);
 		} finally {
 			setIsSubmitting(false);
 		}
 	};
 
 	const renderStudentInfo = () => {
-		if (academicDetails.isLoading) {
-			return <LoadingSpinner />;
-		}
-
+		if (academicDetails.isLoading) return <LoadingSpinner />;
 		if (academicDetails.error) {
 			return (
 				<div className="text-center p-4">
-					<p className="text-sm text-red-600">
-						Error loading academic details. Please try again later.
-					</p>
+					<p className="text-sm text-red-600">Error loading academic details. Please try again later.</p>
 				</div>
 			);
 		}
 
 		return (
 			<div className="space-y-4 animate-fadeIn">
-				<div className="text-center mb-4">
-					<div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-2">
-						<User className="w-5 h-5 text-white" />
-					</div>
-					<h3 className="text-lg font-semibold text-gray-800">Student Info</h3>
-				</div>
+				<StepHeader step="Student Info" icon={User} gradient="from-indigo-500 to-purple-600" />
+				
+				{/* Name Fields */}
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-					<div>
-						<Label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-							First Name *
-						</Label>
-						<Input 
-							id="firstName" 
-							name="firstName" 
-							value={formData.firstName} 
-							onChange={handleInputChange} 
-							placeholder="Enter first name" 
-							required 
-						/>
-					</div>
-					<div>
-						<Label htmlFor="middleName" className="block text-sm font-medium text-gray-700 mb-1">
-							Middle Name
-						</Label>
-						<Input 
-							id="middleName" 
-							name="middleName" 
-							value={formData.middleName} 
-							onChange={handleInputChange} 
-							placeholder="Enter middle name" 
-						/>
-					</div>
-					<div>
-						<Label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-							Last Name *
-						</Label>
-						<Input 
-							id="lastName" 
-							name="lastName" 
-							value={formData.lastName} 
-							onChange={handleInputChange} 
-							placeholder="Enter last name" 
-							required 
-						/>
-					</div>
+					<FormField label="First Name" id="firstName" name="firstName" value={formData.firstName} onChange={handleInputChange} placeholder="Enter first name" required />
+					<FormField label="Middle Name" id="middleName" name="middleName" value={formData.middleName} onChange={handleInputChange} placeholder="Enter middle name" />
+					<FormField label="Last Name" id="lastName" name="lastName" value={formData.lastName} onChange={handleInputChange} placeholder="Enter last name" required />
 				</div>
+
+				{/* Contact Fields */}
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-					<div>
-						<Label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-							Email *
-						</Label>
-						<Input 
-							id="email" 
-							name="email" 
-							type="email" 
-							value={formData.email} 
-							onChange={handleInputChange} 
-							placeholder="Enter email" 
-							required 
-						/>
-					</div>
-					<div>
-						<Label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700 mb-1">
-							Mobile Number *
-						</Label>
-						<Input 
-							id="mobileNumber" 
-							name="mobileNumber" 
-							type="tel" 
-							value={formData.mobileNumber} 
-							onChange={handleInputChange} 
-							placeholder="Enter mobile number" 
-							required 
-						/>
-					</div>
+					<FormField label="Email" id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="Enter email" required />
+					<FormField label="Mobile Number" id="mobileNumber" name="mobileNumber" type="tel" value={formData.mobileNumber} onChange={handleInputChange} placeholder="Enter mobile number" required />
 				</div>
+
+				{/* Personal Info */}
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-					<div>
-						<Label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
-							Gender *
-						</Label>
-						<Select 
-							name="gender" 
-							value={formData.gender} 
-							onValueChange={(value) => handleSelectChange('gender', value)} 
-							required
-						>
-							<SelectTrigger id="gender" className="w-full">
-								<SelectValue placeholder="Select gender" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="male">Male</SelectItem>
-								<SelectItem value="female">Female</SelectItem>
-							</SelectContent>
-						</Select>
-					</div>
-					<div>
-						<Label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
-							Age *
-						</Label>
-						<Input 
-							id="age" 
-							name="age" 
-							type="number" 
-							value={formData.age} 
-							onChange={handleInputChange} 
-							placeholder="Enter age" 
-							required 
-						/>
-					</div>
-					<div>
-						<Label htmlFor="civilStatus" className="block text-sm font-medium text-gray-700 mb-1">
-							Civil Status *
-						</Label>
-						<Select 
-							name="civilStatus" 
-							value={formData.civilStatus} 
-							onValueChange={(value) => handleSelectChange('civilStatus', value)} 
-							required
-						>
-							<SelectTrigger id="civilStatus" className="w-full">
-								<SelectValue placeholder="Select status" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="single">Single</SelectItem>
-								<SelectItem value="married">Married</SelectItem>
-								<SelectItem value="divorced">Divorced</SelectItem>
-								<SelectItem value="widowed">Widowed</SelectItem>
-							</SelectContent>
-						</Select>
-					</div>
+					<SelectField label="Gender" id="gender" value={formData.gender} onValueChange={(value) => handleSelectChange('gender', value)} options={['male', 'female']} loading={false} error={false} required />
+					<FormField label="Age" id="age" name="age" type="number" value={formData.age} onChange={handleInputChange} placeholder="Enter age" required />
+					<SelectField label="Civil Status" id="civilStatus" value={formData.civilStatus} onValueChange={(value) => handleSelectChange('civilStatus', value)} options={['single', 'married', 'divorced', 'widowed']} loading={false} error={false} required />
 				</div>
+
+				{/* Additional Info */}
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-					<div>
-						<Label htmlFor="nationality" className="block text-sm font-medium text-gray-700 mb-1">
-							Nationality *
-						</Label>
-						<Input 
-							id="nationality" 
-							name="nationality" 
-							value={formData.nationality} 
-							onChange={handleInputChange} 
-							placeholder="Enter nationality" 
-							required 
-						/>
-					</div>
-					<div>
-						<Label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-1">
-							Student ID *
-						</Label>
-						<Input 
-							id="studentId" 
-							name="studentId" 
-							value={formData.studentId} 
-							onChange={handleInputChange} 
-							placeholder="Enter student ID" 
-							required 
-						/>
-					</div>
+					<FormField label="Nationality" id="nationality" name="nationality" value={formData.nationality} onChange={handleInputChange} placeholder="Enter nationality" required />
+					<FormField label="Student ID" id="studentId" name="studentId" value={formData.studentId} onChange={handleInputChange} placeholder="Enter student ID" required />
 				</div>
+
+				{/* Academic Info */}
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-					<div>
-						<Label htmlFor="schoolName" className="block text-sm font-medium text-gray-700 mb-1">
-							School Name *
-						</Label>
-						<Select
-							name="schoolName"
-							value={formData.schoolName}
-							onValueChange={(value) => handleSelectChange('schoolName', value)}
-							required
-						>
-							<SelectTrigger id="schoolName" className="w-full">
-								<SelectValue placeholder="Select school" />
-							</SelectTrigger>
-							<SelectContent>
-								{academicDetails.isLoading ? (
-									<SelectItem value="loading" disabled>
-										Loading schools...
-									</SelectItem>
-								) : academicDetails.error ? (
-									<SelectItem value="error" disabled>
-										Error loading schools
-									</SelectItem>
-								) : academicDetails.school.length === 0 ? (
-									<SelectItem value="none" disabled>
-										No schools available
-									</SelectItem>
-								) : (
-									academicDetails.school.map((school) => (
-										<SelectItem key={school} value={school}>
-											{school}
-										</SelectItem>
-									))
-								)}
-							</SelectContent>
-						</Select>
-					</div>
-					<div>
-						<Label htmlFor="schoolEmail" className="block text-sm font-medium text-gray-700 mb-1">
-							School Email *
-						</Label>
-						<Input
-							id="schoolEmail"
-							name="schoolEmail"
-							type="email"
-							value={formData.schoolEmail}
-							onChange={handleInputChange}
-							placeholder="Enter school email"
-							required
-						/>
-					</div>
+					<SelectField label="School Name" id="schoolName" value={formData.schoolName} onValueChange={(value) => handleSelectChange('schoolName', value)} options={academicDetails.school} loading={academicDetails.isLoading} error={academicDetails.error} required />
+					<FormField label="School Email" id="schoolEmail" name="schoolEmail" type="email" value={formData.schoolEmail} onChange={handleInputChange} placeholder="Enter school email" required />
 				</div>
+
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-					<div>
-						<Label htmlFor="yearLevel" className="text-sm font-medium text-gray-700">
-							Year Level *
-						</Label>
-						<Select
-							name="yearLevel"
-							value={formData.yearLevel}
-							onValueChange={(value) => handleSelectChange('yearLevel', value)}
-							required
-						>
-							<SelectTrigger id="yearLevel">
-								<SelectValue placeholder="Select year level" />
-							</SelectTrigger>
-							<SelectContent>
-								{academicDetails.isLoading ? (
-									<SelectItem value="loading" disabled>
-										Loading year levels...
-									</SelectItem>
-								) : academicDetails.error ? (
-									<SelectItem value="error" disabled>
-										Error loading year levels
-									</SelectItem>
-								) : academicDetails.yearLevel.length === 0 ? (
-									<SelectItem value="none" disabled>
-										No year levels available
-									</SelectItem>
-								) : (
-									academicDetails.yearLevel.map((level) => (
-										<SelectItem key={level} value={level}>
-											{level}
-										</SelectItem>
-									))
-								)}
-							</SelectContent>
-						</Select>
-					</div>
-					<div>
-						<Label htmlFor="course" className="text-sm font-medium text-gray-700">
-							Course *
-						</Label>
-						<Select
-							name="course"
-							value={formData.course}
-							onValueChange={(value) => handleSelectChange('course', value)}
-							required
-						>
-							<SelectTrigger id="course">
-								<SelectValue placeholder="Select course" />
-							</SelectTrigger>
-							<SelectContent>
-								{academicDetails.isLoading ? (
-									<SelectItem value="loading" disabled>
-										Loading courses...
-									</SelectItem>
-								) : academicDetails.error ? (
-									<SelectItem value="error" disabled>
-										Error loading courses
-									</SelectItem>
-								) : academicDetails.course.length === 0 ? (
-									<SelectItem value="none" disabled>
-										No courses available
-									</SelectItem>
-								) : (
-									academicDetails.course.map((course) => (
-										<SelectItem key={course} value={course}>
-											{course}
-										</SelectItem>
-									))
-								)}
-							</SelectContent>
-						</Select>
-					</div>
-					<div>
-						<Label htmlFor="semestersPerYear" className="text-sm font-medium text-gray-700">
-							Semesters/Year *
-						</Label>
-						<Select
-							name="semestersPerYear"
-							value={formData.semestersPerYear}
-							onValueChange={(value) => handleSelectChange('semestersPerYear', value)}
-							required
-						>
-							<SelectTrigger id="semestersPerYear">
-								<SelectValue placeholder="Select semesters" />
-							</SelectTrigger>
-							<SelectContent>
-								{academicDetails.isLoading ? (
-									<SelectItem value="loading" disabled>
-										Loading semesters...
-									</SelectItem>
-								) : academicDetails.error ? (
-									<SelectItem value="error" disabled>
-										Error loading semesters
-									</SelectItem>
-								) : academicDetails.semester.length === 0 ? (
-									<SelectItem value="none" disabled>
-										No semesters available
-									</SelectItem>
-								) : (
-									academicDetails.semester.map((sem) => (
-										<SelectItem key={sem} value={sem}>
-											{sem}
-										</SelectItem>
-									))
-								)}
-							</SelectContent>
-						</Select>
-					</div>
+					<SelectField label="Year Level" id="yearLevel" value={formData.yearLevel} onValueChange={(value) => handleSelectChange('yearLevel', value)} options={academicDetails.yearLevel} loading={academicDetails.isLoading} error={academicDetails.error} required />
+					<SelectField label="Course" id="course" value={formData.course} onValueChange={(value) => handleSelectChange('course', value)} options={academicDetails.course} loading={academicDetails.isLoading} error={academicDetails.error} required />
+					<SelectField label="Semesters/Year" id="semestersPerYear" value={formData.semestersPerYear} onValueChange={(value) => handleSelectChange('semestersPerYear', value)} options={academicDetails.semester} loading={academicDetails.isLoading} error={academicDetails.error} required />
 				</div>
+
+				{/* Birth Info */}
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-					<div>
-						<Label htmlFor="dateOfBirth" className="text-sm font-medium text-gray-700">
-							Date of Birth *
-						</Label>
-						<Input id="dateOfBirth" name="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={handleInputChange} required />
-					</div>
-					<div>
-						<Label htmlFor="placeOfBirth" className="text-sm font-medium text-gray-700">
-							Place of Birth *
-						</Label>
-						<Input id="placeOfBirth" name="placeOfBirth" value={formData.placeOfBirth} onChange={handleInputChange} placeholder="Enter place of birth" required />
-					</div>
+					<FormField label="Date of Birth" id="dateOfBirth" name="dateOfBirth" type="date" value={formData.dateOfBirth} onChange={handleInputChange} required />
+					<FormField label="Place of Birth" id="placeOfBirth" name="placeOfBirth" value={formData.placeOfBirth} onChange={handleInputChange} placeholder="Enter place of birth" required />
 				</div>
 			</div>
 		);
@@ -646,132 +377,39 @@ export default function KycVerificationModal({ isOpen = true, onClose = () => {}
 
 	const renderAddress = () => (
 		<div className="space-y-4 animate-fadeIn">
-			<div className="text-center mb-4">
-				<div className="w-10 h-10 bg-gradient-to-r from-teal-500 to-cyan-600 rounded-full flex items-center justify-center mx-auto mb-2">
-					<MapPin className="w-5 h-5 text-white" />
-				</div>
-				<h3 className="text-lg font-semibold text-gray-800">Address</h3>
-			</div>
+			<StepHeader step="Address" icon={MapPin} gradient="from-teal-500 to-cyan-600" />
+			
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-				<div>
-					<Label htmlFor="country" className="text-sm font-medium text-gray-700">
-						Country *
-					</Label>
-					<Input id="country" name="country" value={formData.country} onChange={handleInputChange} placeholder="Enter country" required />
-				</div>
-				<div>
-					<Label htmlFor="province" className="text-sm font-medium text-gray-700">
-						Province *
-					</Label>
-					<Input id="province" name="province" value={formData.province} onChange={handleInputChange} placeholder="Enter province" required />
-				</div>
+				<FormField label="Country" id="country" name="country" value={formData.country} onChange={handleInputChange} placeholder="Enter country" required />
+				<FormField label="Province" id="province" name="province" value={formData.province} onChange={handleInputChange} placeholder="Enter province" required />
 			</div>
+			
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-				<div>
-					<Label htmlFor="city" className="text-sm font-medium text-gray-700">
-						City *
-					</Label>
-					<Input id="city" name="city" value={formData.city} onChange={handleInputChange} placeholder="Enter city" required />
-				</div>
-				<div>
-					<Label htmlFor="barangay" className="text-sm font-medium text-gray-700">
-						Barangay *
-					</Label>
-					<Input id="barangay" name="barangay" value={formData.barangay} onChange={handleInputChange} placeholder="Enter barangay" required />
-				</div>
+				<FormField label="City" id="city" name="city" value={formData.city} onChange={handleInputChange} placeholder="Enter city" required />
+				<FormField label="Barangay" id="barangay" name="barangay" value={formData.barangay} onChange={handleInputChange} placeholder="Enter barangay" required />
 			</div>
+			
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-				<div>
-					<Label htmlFor="street" className="text-sm font-medium text-gray-700">
-						Street *
-					</Label>
-					<Input id="street" name="street" value={formData.street} onChange={handleInputChange} placeholder="Enter street" required />
-				</div>
-				<div>
-					<Label htmlFor="zipCode" className="text-sm font-medium text-gray-700">
-						Zip Code *
-					</Label>
-					<Input id="zipCode" name="zipCode" value={formData.zipCode} onChange={handleInputChange} placeholder="Enter zip code" required />
-				</div>
+				<FormField label="Street" id="street" name="street" value={formData.street} onChange={handleInputChange} placeholder="Enter street" required />
+				<FormField label="Zip Code" id="zipCode" name="zipCode" value={formData.zipCode} onChange={handleInputChange} placeholder="Enter zip code" required />
 			</div>
 		</div>
 	);
 
 	const renderEducationalBackground = () => (
 		<div className="space-y-4 animate-fadeIn">
-			<div className="text-center mb-4">
-				<div className="w-10 h-10 bg-gradient-to-r from-violet-500 to-fuchsia-600 rounded-full flex items-center justify-center mx-auto mb-2">
-					<GraduationCap className="w-5 h-5 text-white" />
-				</div>
-				<h3 className="text-lg font-semibold text-gray-800">Educational Background</h3>
-			</div>
+			<StepHeader step="Educational Background" icon={GraduationCap} gradient="from-violet-500 to-fuchsia-600" />
+			
 			<div className="space-y-4">
-				<div className="border rounded-md p-3">
-					<h4 className="text-sm font-semibold text-gray-800 mb-2">Elementary</h4>
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-						<div>
-							<Label htmlFor="elementarySchool" className="text-sm font-medium text-gray-700">
-								School Name *
-							</Label>
-							<Input id="elementarySchool" name="elementarySchool" value={formData.elementarySchool} onChange={handleInputChange} placeholder="Enter school name" required />
-						</div>
-						<div>
-							<Label htmlFor="elementaryYear" className="text-sm font-medium text-gray-700">
-								Year Graduated *
-							</Label>
-							<Input id="elementaryYear" name="elementaryYear" type="number" value={formData.elementaryYear} onChange={handleInputChange} placeholder="Enter year" required />
-						</div>
-					</div>
-				</div>
-				<div className="border rounded-md p-3">
-					<h4 className="text-sm font-semibold text-gray-800 mb-2">Junior High</h4>
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-						<div>
-							<Label htmlFor="juniorHighSchool" className="text-sm font-medium text-gray-700">
-								School Name *
-							</Label>
-							<Input id="juniorHighSchool" name="juniorHighSchool" value={formData.juniorHighSchool} onChange={handleInputChange} placeholder="Enter school name" required />
-						</div>
-						<div>
-							<Label htmlFor="juniorHighYear" className="text-sm font-medium text-gray-700">
-								Year Graduated *
-							</Label>
-							<Input id="juniorHighYear" name="juniorHighYear" type="number" value={formData.juniorHighYear} onChange={handleInputChange} placeholder="Enter year" required />
-						</div>
-					</div>
-				</div>
-				<div className="border rounded-md p-3">
-					<h4 className="text-sm font-semibold text-gray-800 mb-2">Senior High</h4>
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-						<div>
-							<Label htmlFor="seniorHighSchool" className="text-sm font-medium text-gray-700">
-								School Name *
-							</Label>
-							<Input id="seniorHighSchool" name="seniorHighSchool" value={formData.seniorHighSchool} onChange={handleInputChange} placeholder="Enter school name" required />
-						</div>
-						<div>
-							<Label htmlFor="seniorHighYear" className="text-sm font-medium text-gray-700">
-								Year Graduated *
-							</Label>
-							<Input id="seniorHighYear" name="seniorHighYear" type="number" value={formData.seniorHighYear} onChange={handleInputChange} placeholder="Enter year" required />
-						</div>
-					</div>
-				</div>
+				<EducationSection title="Elementary" schoolField="elementarySchool" yearField="elementaryYear" formData={formData} onChange={handleInputChange} />
+				<EducationSection title="Junior High" schoolField="juniorHighSchool" yearField="juniorHighYear" formData={formData} onChange={handleInputChange} />
+				<EducationSection title="Senior High" schoolField="seniorHighSchool" yearField="seniorHighYear" formData={formData} onChange={handleInputChange} />
+				
 				<div className="border rounded-md p-3">
 					<h4 className="text-sm font-semibold text-gray-800 mb-2">College</h4>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-						<div>
-							<Label htmlFor="college" className="text-sm font-medium text-gray-700">
-								University Name *
-							</Label>
-							<Input id="college" name="college" value={formData.college} onChange={handleInputChange} placeholder="Enter university name" required />
-						</div>
-						<div>
-							<Label htmlFor="expectedGraduation" className="text-sm font-medium text-gray-700">
-								Expected Graduation *
-							</Label>
-							<Input id="expectedGraduation" name="expectedGraduation" type="number" value={formData.expectedGraduation} onChange={handleInputChange} placeholder="Enter year" required />
-						</div>
+						<FormField label="University Name" id="college" name="college" value={formData.college} onChange={handleInputChange} placeholder="Enter university name" required />
+						<FormField label="Expected Graduation" id="expectedGraduation" name="expectedGraduation" type="number" value={formData.expectedGraduation} onChange={handleInputChange} placeholder="Enter year" required />
 					</div>
 				</div>
 			</div>
@@ -780,55 +418,19 @@ export default function KycVerificationModal({ isOpen = true, onClose = () => {}
 
 	const renderDocuments = () => (
 		<div className="space-y-4 animate-fadeIn">
-			<div className="text-center mb-4">
-				<div className="w-10 h-10 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-2">
-					<FileText className="w-5 h-5 text-white" />
-				</div>
-				<h3 className="text-lg font-semibold text-gray-800">Documents</h3>
-			</div>
+			<StepHeader step="Documents" icon={FileText} gradient="from-amber-500 to-orange-600" />
+			
 			<div className="space-y-4">
-				<div className="border rounded-md p-3">
-					<Label htmlFor="certificateOfRegistration" className="text-sm font-medium text-gray-800">
-						Certificate of Registration / Student ID *
-					</Label>
-					<input
-						id="certificateOfRegistration"
-						type="file"
-						name="certificateOfRegistration"
-						onChange={handleFileChange}
-						accept=".pdf,.jpg,.jpeg,.png"
-						className="w-full px-2.5 py-1.5 text-sm rounded-md border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
-						required
-					/>
-					{formData.certificateOfRegistration && <p className="text-xs text-gray-600 mt-1">Uploaded: {formData.certificateOfRegistration.name}</p>}
-				</div>
-				<div className="border rounded-md p-3">
-					<Label htmlFor="reportOfGrades" className="text-sm font-medium text-gray-800">
-						Latest Report of Grades *
-					</Label>
-					<input
-						id="reportOfGrades"
-						type="file"
-						name="reportOfGrades"
-						onChange={handleFileChange}
-						accept=".pdf,.jpg,.jpeg,.png"
-						className="w-full px-2.5 py-1.5 text-sm rounded-md border border-gray-200 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
-						required
-					/>
-					{formData.reportOfGrades && <p className="text-xs text-gray-600 mt-1">Uploaded: {formData.reportOfGrades.name}</p>}
-				</div>
+				<FileUpload label="Certificate of Registration / Student ID" id="certificateOfRegistration" formData={formData} onChange={handleFileChange} required />
+				<FileUpload label="Latest Report of Grades" id="reportOfGrades" formData={formData} onChange={handleFileChange} required />
 			</div>
 		</div>
 	);
 
 	const renderDeclarationConsent = () => (
 		<div className="space-y-4 animate-fadeIn">
-			<div className="text-center mb-4">
-				<div className="w-10 h-10 bg-gradient-to-r from-rose-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-2">
-					<Shield className="w-5 h-5 text-white" />
-				</div>
-				<h3 className="text-lg font-semibold text-gray-800">Declaration & Consent</h3>
-			</div>
+			<StepHeader step="Declaration & Consent" icon={Shield} gradient="from-rose-500 to-pink-600" />
+			
 			<div className="p-3 bg-rose-50 rounded-md">
 				<p className="text-xs text-gray-700 mb-3">
 					I declare that all information provided is true and accurate. I understand that false information may lead to application rejection. I consent to the collection, processing, and storage of my personal data for KYC verification per applicable laws.
@@ -852,111 +454,99 @@ export default function KycVerificationModal({ isOpen = true, onClose = () => {}
 
 	if (!isOpen) return null;
 
-	// Add status check in render
-	if (kycLoading) {
-		return <LoadingSpinner />;
-	}
+	if (kycLoading) return <LoadingSpinner message="Loading KYC status..." />;
 
-	if (kycStatus?.status === 'pending') {
-		return (
-			<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-				<div className="bg-white rounded-xl p-6 max-w-md text-center">
-					<div className="mb-4">
-						<Loader2 className="w-12 h-12 animate-spin text-indigo-600 mx-auto" />
-					</div>
-					<h3 className="text-lg font-semibold mb-2">KYC Verification Pending</h3>
-					<p className="text-gray-600 mb-4">Your KYC verification is currently under review.</p>
-					<button
-						onClick={onClose}
-						className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-					>
-						Close
-					</button>
-				</div>
-			</div>
-		);
-	}
+	const stepComponents = [
+		renderStudentInfo,
+		renderAddress,
+		renderEducationalBackground,
+		renderDocuments,
+		renderDeclarationConsent
+	];
 
 	return (
 		<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
 			<div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+				{/* Header */}
 				<div className="bg-gradient-to-r from-indigo-600 to-purple-700 px-4 py-3 text-white flex justify-between items-center">
 					<h2 className="text-lg font-semibold">KYC Verification</h2>
 					<button onClick={onClose} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all">
 						<X className="w-4 h-4" />
 					</button>
 				</div>
+
+				{/* Progress Steps */}
 				<div className="px-4 py-3 bg-gray-50">
 					<div className="flex justify-center items-center">
-						{steps.map((step, index) => {
+						{STEPS.map((step, index) => {
 							const StepIcon = step.icon;
 							const isCompleted = currentStep > index + 1;
 							const isCurrent = currentStep === index + 1;
+							
 							return (
 								<div key={step.title} className="flex items-center">
 									<div className="flex flex-col items-center mx-2">
-										<div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : isCurrent ? 'bg-indigo-500 border-indigo-500 text-white animate-pulse' : 'bg-gray-200 border-gray-300 text-gray-600'}`}>
+										<div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
+											isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : 
+											isCurrent ? 'bg-indigo-500 border-indigo-500 text-white animate-pulse' : 
+											'bg-gray-200 border-gray-300 text-gray-600'
+										}`}>
 											{isCompleted ? <CheckCircle className="w-4 h-4" /> : <StepIcon className="w-4 h-4" />}
 										</div>
-										<p className={`text-xs font-medium text-center ${isCurrent ? 'text-indigo-600' : isCompleted ? 'text-emerald-600' : 'text-gray-500'}`}>{step.title}</p>
+										<p className={`text-xs font-medium text-center ${
+											isCurrent ? 'text-indigo-600' : 
+											isCompleted ? 'text-emerald-600' : 
+											'text-gray-500'
+										}`}>
+											{step.title}
+										</p>
 									</div>
-									{index < steps.length - 1 && <div className={`w-8 h-1 rounded-full ${isCompleted || isCurrent ? 'bg-emerald-500' : 'bg-gray-200'}`} />}
+									{index < STEPS.length - 1 && (
+										<div className={`w-8 h-1 rounded-full ${
+											isCompleted || isCurrent ? 'bg-emerald-500' : 'bg-gray-200'
+										}`} />
+									)}
 								</div>
 							);
 						})}
 					</div>
 				</div>
+
+				{/* Form Content */}
 				<div className="px-4 py-4 overflow-y-auto max-h-[60vh]">
-					{currentStep === 1 && renderStudentInfo()}
-					{currentStep === 2 && renderAddress()}
-					{currentStep === 3 && renderEducationalBackground()}
-					{currentStep === 4 && renderDocuments()}
-					{currentStep === 5 && renderDeclarationConsent()}
+					{stepComponents[currentStep - 1]()}
 				</div>
+
+				{/* Footer */}
 				<div className="px-4 py-3 bg-gray-50 border-t flex justify-between items-center">
-					<button onClick={() => setCurrentStep((curr) => curr - 1)} disabled={currentStep === 1} className={`px-3 py-1.5 text-sm rounded-md ${currentStep === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 border hover:bg-gray-50'}`}>
+					<button 
+						onClick={() => setCurrentStep(curr => curr - 1)} 
+						disabled={currentStep === 1} 
+						className={`px-3 py-1.5 text-sm rounded-md ${
+							currentStep === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 
+							'bg-white text-gray-700 border cursor-pointer hover:bg-gray-50'
+						}`}
+					>
 						Previous
 					</button>
-					<p className="text-xs text-gray-500">
-						Step {currentStep} of {steps.length}
-					</p>
-					<button onClick={handleNext} disabled={currentStep === 5 && !formData.consent} className={`px-5 py-1.5 text-sm rounded-md transition-all ${currentStep === 5 && !formData.consent ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700'}`}>
+					<p className="text-xs text-gray-500">Step {currentStep} of {STEPS.length}</p>
+					<button 
+						onClick={handleNext} 
+						disabled={currentStep === 5 && !formData.consent} 
+						className={`px-5 py-1.5 text-sm rounded-md transition-all ${
+							currentStep === 5 && !formData.consent ? 'bg-gray-300 cursor-pointer text-gray-500 cursor-not-allowed' : 
+							'bg-gradient-to-r cursor-pointer from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700'
+						}`}
+					>
 						{currentStep === 5 ? 'Complete' : 'Continue'}
 					</button>
 				</div>
 			</div>
-			<AnimatePresence>
-				{notification.show && (
-					<motion.div
-						initial={{ opacity: 1, x: 500 }}
-						animate={{ opacity: 1, x: 0 }}
-						exit={{ opacity: 0, x: 500 }}
-						transition={{
-							type: 'spring',
-							stiffness: 900,
-							damping: 25,
-							duration: 0.2,
-						}}
-						className="fixed w-[325px] flex justify-end items-center h-[55px] bottom-5 right-5 rounded-[10px] bg-red-500 rounded-md shadow-xl z-50"
-					>
-						<div className="flex gap-3 items-center w-[320px] h-[55px] bg-gray-50 rounded-[5px] border-white px-3 py-2">
-							<div>
-								<AlertCircle width={23} height={23} className="text-red-500" />
-							</div>
-							<div>
-								<p className="font-semibold text-[14px] text-gray-900">Error</p>
-								<p className="text-[12px] text-gray-700">{notification.message}</p>
-							</div>
-							<button
-								onClick={() => setNotification({ show: false, type: '', message: '' })}
-								className="ml-auto text-gray-400 hover:text-gray-600"
-							>
-								&times;
-							</button>
-						</div>
-					</motion.div>
-				)}
-			</AnimatePresence>
+
+			<NotificationToast 
+				notification={notification}
+				onClose={() => setNotification({ show: false, type: '', message: '' })}
+			/>
 		</div>
 	);
 }

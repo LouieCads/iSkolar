@@ -4,6 +4,7 @@ const AcademicDetailsSchema = new mongoose.Schema({
   course: {
     type: [String],
     required: true,
+    default: ["Bachelor of Science in Information Technology", "Bachelor of Science in Computer Science"],
   },
   semester: {
     type: [String],
@@ -18,6 +19,7 @@ const AcademicDetailsSchema = new mongoose.Schema({
   school: {
     type: [String],
     required: true,
+    default: ["University of Makati"],
   },
 });
 
