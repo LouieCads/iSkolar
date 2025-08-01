@@ -20,6 +20,9 @@ const {
   addEmploymentType,
   updateEmploymentType,
   deleteEmploymentType,
+  addSchoolType,
+  updateSchoolType,
+  deleteSchoolType,
 } = require("../controllers/kyc-kyb-configuration");
 
 // --- Get all configuration ---
@@ -54,5 +57,10 @@ router.delete("/organization-type", deleteOrganizationType);
 router.post("/industry-sector", addIndustrySector);
 router.put("/industry-sector", updateIndustrySector);
 router.delete("/industry-sector", deleteIndustrySector);
+
+// --- School Type ---
+router.post("/school-type", addSchoolType);
+router.put("/school-type", updateSchoolType);
+router.delete("/school-type", deleteSchoolType);
 
 module.exports = router;

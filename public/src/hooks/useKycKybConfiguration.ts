@@ -7,6 +7,7 @@ interface KycKybConfiguration {
   sourceOfIncome: string[];
   organizationType: string[];
   industrySector: string[];
+  schoolType: string[]; // Optional for future use
   isLoading: boolean;
   error: string | null;
 }
@@ -21,6 +22,7 @@ export const useKycKybConfiguration = () => {
     sourceOfIncome: [],
     organizationType: [],
     industrySector: [],
+    schoolType: [],
     isLoading: true,
     error: null,
   });
@@ -39,6 +41,7 @@ export const useKycKybConfiguration = () => {
           sourceOfIncome: data.sourceOfIncome || [],
           organizationType: data.organizationType || [],
           industrySector: data.industrySector || [],
+          schoolType: data.schoolType || [], 
           isLoading: false,
           error: null,
         });

@@ -14,6 +14,7 @@ import {
   Wallet,
   Building2,
   Factory,
+  School,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -122,6 +123,7 @@ const TABS = [
   { key: "sourceOfIncome", label: "Source of Income", icon: Wallet },
   { key: "organizationType", label: "Organization Type", icon: Building2 },
   { key: "industrySector", label: "Industry Sector", icon: Factory },
+  { key: "schoolType", label: "School Type", icon: School }, 
 ];
 
 // --- Tab Content Components ---
@@ -263,6 +265,7 @@ export function KycKybConfiguration() {
   const [sourceOfIncome, setSourceOfIncome] = useState([]);
   const [organizationType, setOrganizationType] = useState([]);
   const [industrySector, setIndustrySector] = useState([]);
+  const [schoolType, setSchoolType] = useState([]);
 
   // --- Fetch initial data ---
   useEffect(() => {
@@ -278,6 +281,7 @@ export function KycKybConfiguration() {
         setSourceOfIncome(data.sourceOfIncome || []);
         setOrganizationType(data.organizationType || []);
         setIndustrySector(data.industrySector || []);
+        setSchoolType(data.schoolType || []); 
       } catch (err) {
         setError("Failed to fetch configuration data.");
       } finally {
@@ -389,6 +393,18 @@ export function KycKybConfiguration() {
         onEditItem={(idx, newItem) => editItem("industry-sector", industrySector[idx], newItem, setIndustrySector)}
         onDeleteItem={(idx) => deleteItem("industry-sector", industrySector[idx], setIndustrySector)}
         placeholder="e.g., Technology, Healthcare"
+        notification={notification}
+        setNotification={setNotification}
+      />
+    ),
+    schoolType: (
+      <ListTab
+        title="School Type"
+        items={schoolType}
+        onAddItem={(item) => addItem("school-type", item, setSchoolType)}
+        onEditItem={(idx, newItem) => editItem("school-type", schoolType[idx], newItem, setSchoolType)}
+        onDeleteItem={(idx) => deleteItem("school-type", schoolType[idx], setSchoolType)}
+        placeholder="e.g., Public, Private, Vocational"
         notification={notification}
         setNotification={setNotification}
       />

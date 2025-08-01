@@ -115,3 +115,9 @@ exports.updateIndustrySector = (req, res) =>
   updateItem(res, "industrySector", req.body.oldItem, req.body.newItem);
 exports.deleteIndustrySector = (req, res) =>
   deleteItem(res, "industrySector", req.body.item);
+
+exports.addSchoolType = (req, res) => addItem(res, "schoolType", req.body.item);
+exports.updateSchoolType = (req, res) =>
+  updateItem(res, "schoolType", req.body.oldItem, req.body.newItem);
+exports.deleteSchoolType = (req, res) =>
+  deleteItem(res, "schoolType", req.body.item);

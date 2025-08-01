@@ -44,18 +44,6 @@ const REQUIRED_FIELDS = {
   5: ['consent'],
 };
 
-const SCHOOL_TYPES = [
-  'Public Elementary School',
-  'Public High School',
-  'Public University/College',
-  'Private Elementary School',
-  'Private High School',
-  'Private University/College',
-  'Technical/Vocational School',
-  'Graduate School',
-  'Seminary/Religious School'
-];
-
 interface LoadingSpinnerProps {
   message?: string;
 }
@@ -356,6 +344,23 @@ export default function SchoolKybVerificationModal({ isOpen = true, onClose = ()
     <div className="space-y-4 animate-fadeIn">
       <StepHeader step="School Information" icon={Building2} gradient="from-indigo-500 to-purple-600" />
       
+      {/* Show loading state while fetching configuration */}
+      {kycKybConfig.isLoading && (
+        <LoadingSpinner message="Loading school configuration..." />
+      )}
+      
+      {/* Show error state if configuration failed to load */}
+      {kycKybConfig.error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="flex items-center">
+            <AlertCircle className="w-4 h-4 text-red-500 mr-2" />
+            <p className="text-sm text-red-700">
+              Error loading configuration: {kycKybConfig.error}
+            </p>
+          </div>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <FormField 
           label="School Name" 
@@ -371,8 +376,9 @@ export default function SchoolKybVerificationModal({ isOpen = true, onClose = ()
           id="schoolType" 
           value={formData.schoolType} 
           onChange={handleInputChange} 
-          options={SCHOOL_TYPES} 
+          options={kycKybConfig.schoolType} 
           required 
+          disabled={kycKybConfig.isLoading || !!kycKybConfig.error}
         />
       </div>
 
@@ -488,7 +494,7 @@ export default function SchoolKybVerificationModal({ isOpen = true, onClose = ()
         <div className="p-3 bg-red-50 border border-red-200 rounded-md">
           <div className="flex items-center">
             <AlertCircle className="w-4 h-4 text-red-500 mr-2" />
-            <p className="text-sm text-红-700">
+            <p className="text-sm text-red-700">
               Error loading configuration: {kycKybConfig.error}
             </p>
           </div>
