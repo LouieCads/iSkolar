@@ -640,7 +640,7 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
           <p className="text-red-500 mb-4">{error}</p>
           <button 
             onClick={onClose} 
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            className="px-4 py-2 bg-gray-100 cursor-pointer text-gray-700 rounded-md hover:bg-gray-200"
           >
             Close
           </button>
@@ -661,7 +661,7 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
           </h2>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all"
+            className="w-7 h-7 rounded-full bg-white/20 cursor-pointer hover:bg-white/30 flex items-center justify-center transition-all"
           >
             <X className="w-4 h-4" />
           </button>

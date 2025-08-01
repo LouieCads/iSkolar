@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-// import SchoolVerificationModal from '@/components/school/SchoolVerificationModal';
+import SchoolKybVerificationModal from '@/components/school/KybVerificationModal';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -61,7 +61,7 @@ export default function VerificationPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto pl-10 pt-12">
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-8 mb-8 border border-blue-100">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-2xl font-bold text-blue-900">School Verification</h1>
@@ -77,7 +77,7 @@ export default function VerificationPage() {
             className="bg-amber-500 hover:bg-amber-600 cursor-pointer text-white text-bold text-sm py-1.5 px-3 rounded transition-colors duration-200 whitespace-nowrap ml-3 flex items-center"
             disabled={kycStatus === 'pending' || kycStatus === 'verified'}
           >
-            {kycStatus === 'verified' ? 'Verified ✓' : 'Verify School Now'}
+            {kycStatus === 'verified' ? 'Verified ✓' : 'Verify Now'}
             {kycStatus !== 'verified' && (
               <svg 
                 className="w-4 h-4 ml-1" 
@@ -125,10 +125,10 @@ export default function VerificationPage() {
         </div>
       )}
 
-      {/* <SchoolVerificationModal 
+      <SchoolKybVerificationModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-      /> */}
+      />
     </div>
   );
 }

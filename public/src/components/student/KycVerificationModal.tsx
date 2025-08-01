@@ -470,7 +470,7 @@ export default function KycVerificationModal({ isOpen = true, onClose = () => {}
 				{/* Header */}
 				<div className="bg-gradient-to-r from-indigo-600 to-purple-700 px-4 py-3 text-white flex justify-between items-center">
 					<h2 className="text-lg font-semibold">KYC Verification</h2>
-					<button onClick={onClose} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all">
+					<button onClick={onClose} className="w-7 h-7 rounded-full cursor-pointer bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all">
 						<X className="w-4 h-4" />
 					</button>
 				</div>

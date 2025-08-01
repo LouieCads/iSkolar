@@ -117,7 +117,7 @@ export default function SchoolLayout({
           </SidebarContent>
         </Sidebar>
 
-        <main className="flex-1 p-8">
+        <main className="flex-1">
           {children}
         </main>
       </div>

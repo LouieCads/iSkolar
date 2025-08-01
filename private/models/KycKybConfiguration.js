@@ -31,6 +31,10 @@ const KycKybConfigurationSchema = new mongoose.Schema({
     type: [String],
     default: ["Education", "Finance", "Healthcare", "Technology"],
   },
+  schoolType: { // no controllers
+    type: [String],
+    default: ["Public", "Private", "International", "State University", "LGU"],
+  },
 });
 
 module.exports = mongoose.model(
