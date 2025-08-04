@@ -76,7 +76,7 @@ const FormField = ({
   uploadProgress?: number;
 }) => (
   <div>
-    <Label htmlFor={field.name} className="text-sm font-medium text-gray-700">
+    <Label htmlFor={field.name} className="text-sm font-medium text-gray-700 block mb-2">
       {field.label} {field.required && '*'}
     </Label>
     {field.type === 'select' && options ? (
@@ -101,20 +101,23 @@ const FormField = ({
         </SelectContent>
       </Select>
     ) : field.type === 'file' ? (
-      <div className="border rounded-md p-3">
+      <div className="border rounded-md p-3 bg-gray-50">
         <input
           id={field.name}
           type="file"
           name={field.name}
           onChange={onFileChange}
           accept=".pdf,.jpg,.jpeg,.png"
-          className="w-full px-2.5 py-1.5 text-sm rounded-md border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
+          className="w-full px-2.5 py-1.5 text-sm rounded-md border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all bg-white"
           required={field.required}
         />
         {value && value instanceof File && (
-          <p className="text-xs text-gray-600 mt-1">
-            Uploaded: {value.name}
-          </p>
+          <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+            <p className="text-xs text-green-700 flex items-center">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Uploaded: {value.name}
+            </p>
+          </div>
         )}
         <FileUploadProgress progress={uploadProgress || 0} />
       </div>
@@ -276,11 +279,11 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
       icon: FileText,
       gradient: 'from-amber-500 to-orange-600',
       fields: [
-        { name: 'proofOfIncome', label: 'Proof of Income', type: 'file', required: true },
         { name: 'governmentIdType', label: 'Government ID Type', type: 'select', required: true, options: kycKybConfig.idTypes },
         { name: 'idNumber', label: 'ID Number', type: 'text', required: true },
         { name: 'governmentIdFront', label: 'Government ID (Front)', type: 'file', required: true },
         { name: 'governmentIdBack', label: 'Government ID (Back)', type: 'file', required: true },
+        { name: 'proofOfIncome', label: 'Proof of Income', type: 'file', required: true },
       ],
     },
     {
@@ -343,8 +346,6 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
         { name: 'repNationality', label: 'Nationality', type: 'text', required: true },
         { name: 'repGovernmentIdType', label: 'Government ID Type', type: 'select', required: true, options: kycKybConfig.idTypes },
         { name: 'repIdNumber', label: 'ID Number', type: 'text', required: true },
-        { name: 'repGovernmentIdFront', label: 'Government ID (Front)', type: 'file', required: true },
-        { name: 'repGovernmentIdBack', label: 'Government ID (Back)', type: 'file', required: true },
       ],
     },
     {
@@ -352,6 +353,8 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
       icon: FileText,
       gradient: 'from-amber-500 to-orange-600',
       fields: [
+        { name: 'repGovernmentIdFront', label: 'Representative Government ID (Front)', type: 'file', required: true },
+        { name: 'repGovernmentIdBack', label: 'Representative Government ID (Back)', type: 'file', required: true },
         { name: 'companyLogo', label: 'Company Logo', type: 'file', required: true },
         { name: 'certificateOfBusinessRegistration', label: 'Certificate of Business Registration', type: 'file', required: true },
         { name: 'articlesOfIncorporation', label: 'Articles of Incorporation', type: 'file', required: true },
@@ -736,7 +739,18 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
 						}`}
 						style={{ minWidth: '100px', visibility: 'visible' }}
 					>
-						{currentStep === steps.length ? 'Complete' : 'Next'}
+						{isSubmitting ? (
+              <div className='flex items-center justify-center'>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Submitting...
+              </div>
+            ) : currentStep === 5 ? (
+              <>
+                Submit
+              </>
+            ) : (
+              'Continue'
+            )}
 					</button>
 				</div>
 			</div>

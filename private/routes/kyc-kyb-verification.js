@@ -14,6 +14,8 @@ const {
   getAllVerifications,
   updateVerificationStatus,
   preApproveStudent,
+  denyStudentAtSchool,
+  getSchoolKycQueue,
   uploadDocument,
   deleteDocument,
   getVerificationHistory,
@@ -94,6 +96,8 @@ router.post("/resubmit", authMiddleware, resubmitVerification);
 
 // School verifier routes (for pre-approval)
 router.post("/pre-approve/:verificationId", authMiddleware, preApproveStudent);
+router.post("/school-deny/:verificationId", authMiddleware, denyStudentAtSchool); // NEW
+router.get("/school/queue", authMiddleware, getSchoolKycQueue); // NEW
 
 // Admin routes
 router.get("/all", authMiddleware, getAllVerifications);

@@ -13,7 +13,7 @@ const kycKybVerificationSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["unverified", "pending", "pre-approved", "verified", "denied"],
+    enum: ["unverified", "pending", "pre_approved", "verified", "denied"],
     default: "unverified",
   },
   resubmissionCount: {
@@ -156,14 +156,6 @@ const kycKybVerificationSchema = new mongoose.Schema({
     schoolType: {
       type: String,
     },
-    campusAddress: {
-      country: String,
-      province: String,
-      city: String,
-      barangay: String,
-      street: String,
-      zipCode: String,
-    },
     officialEmail: String,
     contactNumbers: [String],
     website: String,
@@ -172,6 +164,14 @@ const kycKybVerificationSchema = new mongoose.Schema({
       businessPermit: String,
       tin: String,
       schoolIdNumber: String,
+    },
+    campusAddress: {
+      country: String,
+      province: String,
+      city: String,
+      barangay: String,
+      street: String,
+      zipCode: String,
     },
     authorizedRepresentative: {
       fullName: String,

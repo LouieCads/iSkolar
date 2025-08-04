@@ -123,25 +123,28 @@ const EducationSection = ({ title, schoolField, yearField, formData, onChange })
 );
 
 const FileUpload = ({ label, id, formData, onChange, required = false }) => (
-	<div className="border rounded-md p-3">
-		<Label htmlFor={id} className="text-sm font-medium text-gray-800">
-			{label} {required && '*'}
-		</Label>
-		<input
-			id={id}
-			type="file"
-			name={id}
-			onChange={onChange}
-			accept=".pdf,.jpg,.jpeg,.png"
-			className="w-full px-2.5 py-1.5 text-sm rounded-md border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
-			required={required}
-		/>
-		{formData[id] && (
-			<p className="text-xs text-gray-600 mt-1">
-				Uploaded: {formData[id].name}
-			</p>
-		)}
-	</div>
+  <div className="border rounded-md p-3 bg-gray-50">
+    <Label htmlFor={id} className="text-sm font-medium text-gray-800 block mb-2">
+      {label} {required && '*'}
+    </Label>
+    <input
+      id={id}
+      type="file"
+      name={id}
+      onChange={onChange}
+      accept=".pdf,.jpg,.jpeg,.png"
+      className="w-full px-2.5 py-1.5 text-sm rounded-md border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all bg-white"
+      required={required}
+    />
+    {formData[id] && (
+      <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+        <p className="text-xs text-green-700 flex items-center">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Uploaded: {formData[id].name}
+        </p>
+      </div>
+    )}
+  </div>
 );
 
 const NotificationToast = ({ notification, onClose }) => (
@@ -538,7 +541,18 @@ export default function KycVerificationModal({ isOpen = true, onClose = () => {}
 							'bg-gradient-to-r cursor-pointer from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700'
 						}`}
 					>
-						{currentStep === 5 ? 'Complete' : 'Continue'}
+						{isSubmitting ? (
+							<div className='flex items-center justify-center'>
+								<Loader2 className="w-4 h-4 animate-spin mr-2" />
+								Submitting...
+							</div>
+						) : currentStep === 5 ? (
+							<>
+								Submit
+							</>
+						) : (
+							'Continue'
+						)}
 					</button>
 				</div>
 			</div>
