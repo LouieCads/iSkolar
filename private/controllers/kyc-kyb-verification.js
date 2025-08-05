@@ -90,7 +90,7 @@ exports.submitStudentKyc = async (req, res) => {
       student: studentData.student,
       documents: studentData.documents || [],
       submittedAt: new Date(),
-      schoolName: studentData.schoolName, 
+      schoolName: studentData.schoolName,
     };
 
     let verification;
