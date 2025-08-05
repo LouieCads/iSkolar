@@ -52,7 +52,7 @@ const menuItems: MenuItem[] = [
     icon: LayoutDashboard,
   },
   {
-    id: "kyc-status",
+    id: "kyc-kyb-status",
     title: "KYC/KYB Status",
     icon: Shield,
   },
