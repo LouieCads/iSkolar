@@ -143,7 +143,7 @@ export const kybService = {
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
-        throw new Error('Please log in again');
+        throw new Error('Please log in');
       }
       throw new Error(error.response?.data?.message || 'Error fetching KYB status');
     }
@@ -164,7 +164,7 @@ export const kybService = {
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
-        throw new Error('Please log in again');
+        throw new Error('Please log in');
       }
       throw new Error(error.response?.data?.message || 'Error submitting School KYB');
     }
@@ -185,7 +185,7 @@ export const kybService = {
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
-        throw new Error('Please log in again');
+        throw new Error('Please log in');
       }
       throw new Error(error.response?.data?.message || 'Error submitting Individual Sponsor KYB');
     }
@@ -206,7 +206,7 @@ export const kybService = {
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
-        throw new Error('Please log in again');
+        throw new Error('Please log in');
       }
       throw new Error(error.response?.data?.message || 'Error submitting Corporate Sponsor KYB');
     }
@@ -231,7 +231,7 @@ export const kybService = {
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
-        throw new Error('Please log in again');
+        throw new Error('Please log in');
       }
       throw new Error(error.response?.data?.message || 'Error uploading document');
     }
@@ -246,7 +246,7 @@ export const kybService = {
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
-        throw new Error('Please log in again');
+        throw new Error('Please log in');
       }
       throw new Error(error.response?.data?.message || 'Error deleting document');
     }
@@ -259,7 +259,7 @@ export const kybService = {
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
-        throw new Error('Please log in again');
+        throw new Error('Please log in');
       }
       throw new Error(error.response?.data?.message || 'Error fetching verification history');
     }
@@ -280,7 +280,7 @@ export const kybService = {
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
-        throw new Error('Please log in again');
+        throw new Error('Please log in');
       }
       throw new Error(error.response?.data?.message || 'Error resubmitting verification');
     }
