@@ -1,13 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import StudentNav from "@/components/student/StudentNav";
+import { redirect } from 'next/navigation';
 
-export default function Student(): React.JSX.Element  {
-  return (
-    <>
-      <StudentNav />
-      <div></div>
-    </>
-  );
-};
+export default function Student() {
+  redirect('/student/feed');
+}

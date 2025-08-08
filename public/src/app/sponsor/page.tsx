@@ -1,13 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import SponsorNav from "@/components/sponsor/SponsorNav";
+import { redirect } from 'next/navigation';
 
-export default function Sponsor(): React.JSX.Element {
-  return (
-    <>
-      <SponsorNav />
-      <div></div>
-    </>
-  );
-};
+export default function SchoolPage() {
+  redirect('/sponsor/feed');
+}

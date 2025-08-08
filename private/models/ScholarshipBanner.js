@@ -1,6 +1,17 @@
 const mongoose = require("mongoose");
 
 const scholarshipSchema = new mongoose.Schema({
+  bannerUrl: {
+    type: String,
+    // default: "/iSkolar_logo.png",
+    trim: true,
+    // validate: {
+    //   validator: function (v) {
+    //     return /^https?:\/\/.+\.(png|jpg|jpeg|gif|svg)$/i.test(v); // Basic URL + image extension validation
+    //   },
+    //   message: (props) => `${props.value} is not a valid image URL!`,
+    // },
+  },
   // Basic Information
   title: {
     type: String,
@@ -77,7 +88,7 @@ const scholarshipSchema = new mongoose.Schema({
   },
   selectedSchool: {
     type: String,
-    required: true, 
+    required: true,
   },
   selectionMode: {
     type: String,
