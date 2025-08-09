@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 interface ScholarshipDetails {
   types: string[];
   purposes: string[];
+  criteriaTags: string[];
+  documents: string[];
   isLoading: boolean;
   error: string | null;
 }
@@ -13,6 +15,8 @@ export const useScholarshipDetails = () => {
   const [details, setDetails] = useState<ScholarshipDetails>({
     types: [],
     purposes: [],
+    criteriaTags: [],
+    documents: [],
     isLoading: true,
     error: null,
   });
@@ -27,6 +31,8 @@ export const useScholarshipDetails = () => {
         setDetails({
           types: data.types || [],
           purposes: data.purposes || [],
+          criteriaTags: data.criteriaTags || [],
+          documents: data.documents || [],
           isLoading: false,
           error: null,
         });

@@ -133,26 +133,6 @@ export default function CreateScholarshipPage() {
     }
   }, [scholarshipDetails.error]);
 
-  // Mock data for criteria tags
-  const criteriaOptions = [
-    "3rd Year",
-    "GPA >= 3.5",
-    "Engineering",
-    "Financial Need",
-    "Leadership",
-    "Community Service",
-  ];
-
-  // Mock data for required documents
-  const documentOptions = [
-    "ID Card",
-    "Birth Certificate",
-    "Academic Records",
-    "Certificates",
-    "Awards",
-    "Essay",
-  ];
-
   const schoolOptions = [
     "University of the Philippines",
     "Ateneo de Manila University",
@@ -170,11 +150,6 @@ export default function CreateScholarshipPage() {
     if (name === "totalScholars" || name === "amountPerScholar") {
       // Allow empty string for placeholder, otherwise convert to number
       const numValue = value === "" ? "" : parseFloat(value);
-      // // Prevent negative numbers
-      // if (numValue < 0 || (name === "amountPerScholar" && numValue <= 0)) {
-      //   showNotification('error', `${name === "totalScholars" ? "Total Scholars" : "Amount Per Scholar"} cannot be negative`);
-      //   return;
-      // }
       
       setFormData((prev) => ({
         ...prev,
@@ -204,6 +179,12 @@ export default function CreateScholarshipPage() {
         showNotification('error', 'Please upload an image file');
         return;
       }
+      
+      // Clean up previous preview URL to prevent memory leaks
+      if (formData.bannerImagePreview) {
+        URL.revokeObjectURL(formData.bannerImagePreview);
+      }
+      
       const previewUrl = URL.createObjectURL(file);
       setFormData((prev) => ({
         ...prev,
@@ -289,6 +270,7 @@ export default function CreateScholarshipPage() {
 
     console.log("Creating scholarship:", formData);
 
+    // Clean up the preview URL when form is submitted
     if (formData.bannerImagePreview) {
       URL.revokeObjectURL(formData.bannerImagePreview);
     }
@@ -321,12 +303,38 @@ export default function CreateScholarshipPage() {
     setIsDescriptionModalOpen(false);
   };
 
+  const handleRemoveImage = () => {
+    // Clean up the preview URL
+    if (formData.bannerImagePreview) {
+      URL.revokeObjectURL(formData.bannerImagePreview);
+    }
+    
+    setFormData((prev) => ({ 
+      ...prev, 
+      bannerImage: null, 
+      bannerImagePreview: "" 
+    }));
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const truncateDescription = (description: string, maxWidth: number) => {
     const charWidth = 8;
     const maxChars = Math.floor(maxWidth / charWidth);
     if (description.length <= maxChars) return description;
     return description.slice(0, maxChars - 3) + "...";
   };
+
+  // Clean up preview URL on component unmount
+  useEffect(() => {
+    return () => {
+      if (formData.bannerImagePreview) {
+        URL.revokeObjectURL(formData.bannerImagePreview);
+      }
+    };
+  }, []);
 
   // Loading state for scholarship types and purposes
   if (scholarshipDetails.isLoading) {
@@ -421,11 +429,8 @@ export default function CreateScholarshipPage() {
                       />
                       <button
                         type="button"
-                        onClick={() => {
-                          setFormData((prev) => ({ ...prev, bannerImage: null, bannerImagePreview: "" }));
-                          if (fileInputRef.current) fileInputRef.current.value = "";
-                        }}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -614,11 +619,12 @@ export default function CreateScholarshipPage() {
                 onChange={(e) => addCriteriaTag(e.target.value)}
                 value=""
                 className="flex-1 px-2 py-2 text-xs cursor-pointer font-semibold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all"
+                disabled={scholarshipDetails.isLoading}
               >
                 <option value="" className="text-gray-400" disabled>
                   Select criteria
                 </option>
-                {criteriaOptions.map((option) => (
+                {scholarshipDetails.criteriaTags.map((option) => (
                   <option key={option} value={option}>
                     {option}
                   </option>
@@ -654,11 +660,12 @@ export default function CreateScholarshipPage() {
                 onChange={(e) => addRequiredDocument(e.target.value)}
                 value=""
                 className="flex-1 px-2 py-2 text-xs cursor-pointer font-semibold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all"
+                disabled={scholarshipDetails.isLoading}
               >
                 <option value="" className="text-gray-400" disabled>
                   Select documents
                 </option>
-                {documentOptions.map((doc) => (
+                {scholarshipDetails.documents.map((doc) => (
                   <option key={doc} value={doc}>
                     {doc}
                   </option>
@@ -710,6 +717,8 @@ export default function CreateScholarshipPage() {
             scholarship={{
               ...formData,
               description: truncateDescription(formData.description, 384),
+              // Pass the preview image URL to the banner component
+              imageUrl: formData.bannerImagePreview || null,
             }}
             isPreview={true}
           />

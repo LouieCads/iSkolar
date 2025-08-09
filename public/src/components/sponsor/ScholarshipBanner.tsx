@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Users, DollarSign, Award, GraduationCap, Clock } from "lucide-react";
+import { Calendar, MapPin, Users, DollarSign, X } from "lucide-react";
 import Image from "next/image";
 
 export default function ScholarshipBanner({ scholarship, isPreview = false }) {
@@ -68,12 +68,18 @@ export default function ScholarshipBanner({ scholarship, isPreview = false }) {
     status: scholarship?.status || "active",
   };
 
-  // Image source
-  const imageUrl =
-    scholarship?.imageUrl || scholarship?.bannerImage || scholarship?.image ||
-    `https://via.placeholder.com/96x96.png?text=${encodeURIComponent(
-      (bannerData.selectedSchool || "School").split(" ")[0].slice(0, 2)
-    )}`;
+  // Check if there's an uploaded image
+  const hasUploadedImage = scholarship?.imageUrl || scholarship?.bannerImagePreview || scholarship?.bannerImage || scholarship?.image;
+  
+  const getImageSource = () => {
+    if (scholarship?.imageUrl) return scholarship.imageUrl;
+    if (scholarship?.bannerImagePreview) return scholarship.bannerImagePreview;
+    if (scholarship?.bannerImage) return scholarship.bannerImage;
+    if (scholarship?.image) return scholarship.image;
+    return null;
+  };
+
+  const imageSource = getImageSource();
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-w-lg mx-auto">
@@ -84,13 +90,24 @@ export default function ScholarshipBanner({ scholarship, isPreview = false }) {
           <div className="flex items-center h-full gap-3 min-w-0">
             {/* Square image */}
             <div className="w-32 h-32 flex-shrink-0 rounded-md overflow-hidden bg-white/10 relative">
-              <Image
-                src="/bg.jpg"
-                alt={`${bannerData.selectedSchool} banner`}
-                fill
-                style={{ objectFit: "cover" }}
-                className="rounded-md"
-              />
+              {hasUploadedImage ? (
+                <img
+                  src={imageSource}
+                  alt={`${bannerData.selectedSchool} banner`}
+                  className="w-full h-full object-cover rounded-md"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-white/20 rounded-md">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold flex align-center justify-center text-white mb-1">
+                      <X/>
+                    </div>
+                    <div className="text-xs text-white/70">
+                      Upload Image
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Title and school stacked */}
@@ -206,38 +223,6 @@ export default function ScholarshipBanner({ scholarship, isPreview = false }) {
             </div>
           </div>
         )}
-
-        {/* Footer Info */}
-        {/* <div className="border-t border-gray-100 pt-3 mt-4">
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            
-            <div className="flex items-center">
-              <Award className="w-3 h-3 mr-1" />
-              <span>{getSelectionModeText(bannerData.selectionMode)}</span>
-            </div>
-          </div>
-
-          {!isPreview && (
-            <div className="flex items-center justify-between mt-2">
-              <span
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  bannerData.status === "active"
-                    ? "bg-green-100 text-green-800"
-                    : bannerData.status === "closed"
-                    ? "bg-red-100 text-red-800"
-                    : bannerData.status === "archived"
-                    ? "bg-gray-100 text-gray-800"
-                    : "bg-yellow-100 text-yellow-800"
-                }`}
-              >
-                {bannerData.status.charAt(0).toUpperCase() + bannerData.status.slice(1)}
-              </span>
-              <span className="text-xs text-gray-400">
-                Total: {formatAmount(bannerData.totalAmount)}
-              </span>
-            </div>
-          )}
-        </div> */}
       </div>
 
       {/* Action Button for non-preview */}
