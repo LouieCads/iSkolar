@@ -11,10 +11,14 @@ const ScholarshipDetailsSchema = new mongoose.Schema({
     required: true,
     default: ["Tuition", "Allowance"],
   },
-  // criteriaTags: {
-  //   type: [String],
-  //   default: [],
-  // },
+  criteriaTags: {
+    type: [String],
+    default: ["Academic Excellence", "Financial Need", "Community Service"],
+  },
+  documents: {
+    type: [String],
+    default: ["Transcript of Records", "Certificate of Enrollment", "Valid ID"],
+  },
 });
 
 module.exports = mongoose.model("ScholarshipDetails", ScholarshipDetailsSchema);

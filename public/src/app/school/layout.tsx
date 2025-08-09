@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from "next/image";
+import { useState } from 'react';
 import {
   LayoutDashboard,
   Shield,
@@ -10,7 +11,11 @@ import {
   Repeat,
   FileBadge,
   Settings,
-  LogOut
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  UserCircle,
+  ShieldCheck
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,6 +37,7 @@ export default function SchoolLayout({
 }) {
   const pathname = usePathname();
   const { platform, loading } = usePlatform();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const navItems = [
     {
@@ -58,17 +64,32 @@ export default function SchoolLayout({
       name: 'Transactions',
       path: '/school/transactions',
       icon: Repeat
+    }
+  ];
+
+  const settingsItems = [
+    {
+      name: 'My Profile',
+      path: '/school/settings/profile',
+      icon: UserCircle
     },
     {
-      name: 'Settings',
-      path: '/school/settings',
+      name: 'Account',
+      path: '/school/settings/account',
       icon: Settings
     },
+    {
+      name: 'Verification',
+      path: '/school/settings/verification',
+      icon: ShieldCheck
+    }
   ];
+
+  const isSettingsActive = pathname.startsWith('/school/settings');
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen w-full">
         <Sidebar className="border-r border-gray-200 bg-white">
           <SidebarHeader className="p-4 pl-10 border-b border-gray-200">
             <div className="flex items-center justify-between">
@@ -80,7 +101,7 @@ export default function SchoolLayout({
                   height={35}
                 />
                 <span className="text-xl font-bold text-blue-900">
-                  iSkolar
+                  {loading ? 'Loading...' : platform?.name || 'iSkolar'}
                 </span>
               </Link>
             </div>
@@ -111,13 +132,60 @@ export default function SchoolLayout({
                       </SidebarMenuItem>
                     );
                   })}
+                  
+                  {/* Settings Dropdown */}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => setSettingsOpen(!settingsOpen)}
+                      className={`w-full flex items-center justify-between cursor-pointer space-x-3 px-4 py-2.5 rounded-lg text-base font-normal transition-all duration-200 ${
+                        isSettingsActive
+                          ? "bg-blue-50 text-blue-700"
+                          : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Settings className="h-5 w-5" />
+                        <span>Settings</span>
+                      </div>
+                      {settingsOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </SidebarMenuButton>
+                    
+                    {/* Settings Submenu */}
+                    {settingsOpen && (
+                      <div className="ml-6 mt-2 space-y-1">
+                        {settingsItems.map((item) => {
+                          const Icon = item.icon;
+                          const isActive = pathname === item.path;
+                          
+                          return (
+                            <Link key={item.path} href={item.path}>
+                              <SidebarMenuButton
+                                className={`w-full flex items-center cursor-pointer space-x-3 px-4 py-2 rounded-lg text-sm font-normal transition-all duration-200 ${
+                                  isActive
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+                                }`}
+                              >
+                                <Icon className="h-4 w-4" />
+                                <span>{item.name}</span>
+                              </SidebarMenuButton>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
         </Sidebar>
 
-        <main className="flex-1">
+        <main className="flex-1 w-full p-5 bg-gray-100">
           {children}
         </main>
       </div>
