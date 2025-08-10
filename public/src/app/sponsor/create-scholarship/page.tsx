@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Plus, Info, X, Image as ImageIcon, Edit2, AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import { Plus, Info, X, Image as ImageIcon, Edit2, AlertCircle, Loader2, CheckCircle, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import ScholarshipBanner from "@/components/sponsor/ScholarshipBanner";
 import { useScholarshipDetails } from '@/hooks/useScholarshipDetails';
 
@@ -15,7 +24,7 @@ interface FormData {
   amountPerScholar: number | string; // Allow both number and string
   selectedSchool: string;
   selectionMode: "auto" | "manual";
-  applicationDeadline: string;
+  applicationDeadline: Date | undefined; // Changed to Date | undefined
   criteriaTags: string[];
   requiredDocuments: string[];
   bannerImage?: File | null;
@@ -78,7 +87,7 @@ export default function CreateScholarshipPage() {
     amountPerScholar: "", // Changed from 0 to empty string
     selectedSchool: "",
     selectionMode: "auto",
-    applicationDeadline: "",
+    applicationDeadline: undefined, // Changed to undefined
     criteriaTags: [],
     requiredDocuments: [],
     bannerImage: null,
@@ -168,6 +177,19 @@ export default function CreateScholarshipPage() {
     }
   };
 
+  // Handle date change for the DatePicker
+  const handleDateChange = (date: Date | undefined) => {
+    setFormData((prev) => ({
+      ...prev,
+      applicationDeadline: date,
+    }));
+    
+    // Clear date field error when user selects a date
+    if (errors.applicationDeadline && date) {
+      setErrors((prev) => ({ ...prev, applicationDeadline: undefined }));
+    }
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -249,11 +271,14 @@ export default function CreateScholarshipPage() {
       newErrors.amountPerScholar = "Amount must be greater than 0";
     }
 
-    const selectedDate = new Date(formData.applicationDeadline);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (formData.applicationDeadline && selectedDate <= today) {
-      newErrors.applicationDeadline = "Deadline must be in the future";
+    // Updated date validation for Date object
+    if (formData.applicationDeadline) {
+      const selectedDate = new Date(formData.applicationDeadline);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate <= today) {
+        newErrors.applicationDeadline = "Deadline must be in the future";
+      }
     }
 
     setErrors(newErrors);
@@ -284,7 +309,7 @@ export default function CreateScholarshipPage() {
       amountPerScholar: "", // Reset to empty string
       selectedSchool: "",
       selectionMode: "auto",
-      applicationDeadline: "",
+      applicationDeadline: undefined, // Reset to undefined
       criteriaTags: [],
       requiredDocuments: [],
       bannerImage: null,
@@ -430,7 +455,7 @@ export default function CreateScholarshipPage() {
                       <button
                         type="button"
                         onClick={handleRemoveImage}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        className="absolute top-2 cursor-pointer right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -579,35 +604,38 @@ export default function CreateScholarshipPage() {
                 </select>
               </div>
 
-              <div className="relative">
-                <input
-                  type="date"
-                  name="applicationDeadline"
-                  value={formData.applicationDeadline}
-                  onChange={handleInputChange}
-                  placeholder="Application Deadline"
-                  min={new Date().toISOString().split("T")[0]}
-                  className={`w-full px-2 py-2 text-xs cursor-pointer font-semibold border rounded-lg focus:ring-2 focus:ring-blue-500 transition-all ${
-                    errors.applicationDeadline ? "border-red-300" : "border-gray-300"
-                  } ${formData.applicationDeadline ? 'text-transparent' : ''}`}
-                  style={{ colorScheme: 'light' }}
-                />
-                {!formData.applicationDeadline && (
-                  <div className="absolute inset-0 flex items-center px-2 pointer-events-none">
-                    <span className="text-xs font-semibold text-gray-500">Application Deadline</span>
-                  </div>
-                )}
-                {formData.applicationDeadline && (
-                  <div className="absolute inset-0 flex items-center px-2 pointer-events-none">
-                    <span className="text-xs font-semibold text-gray-900">
-                      {new Date(formData.applicationDeadline).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </span>
-                  </div>
-                )}
+              {/* Replaced HTML date input with shadcn DatePicker */}
+              <div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full px-2 py-2 text-xs font-semibold border rounded-lg focus:ring-2 focus:ring-blue-500 transition-all justify-start text-left font-normal h-auto",
+                        !formData.applicationDeadline && "text-gray-500",
+                        errors.applicationDeadline ? "border-red-300" : "border-gray-300"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-3 w-3" />
+                      {formData.applicationDeadline ? (
+                        format(formData.applicationDeadline, "MMMM d, yyyy")
+                      ) : (
+                        <span>Application Deadline</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={formData.applicationDeadline}
+                      onSelect={handleDateChange}
+                      disabled={(date) =>
+                        date < new Date() || date < new Date("1900-01-01")
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
@@ -719,6 +747,8 @@ export default function CreateScholarshipPage() {
               description: truncateDescription(formData.description, 384),
               // Pass the preview image URL to the banner component
               imageUrl: formData.bannerImagePreview || null,
+              // Convert Date object to string for the preview component
+              applicationDeadline: formData.applicationDeadline ? format(formData.applicationDeadline, "yyyy-MM-dd") : "",
             }}
             isPreview={true}
           />

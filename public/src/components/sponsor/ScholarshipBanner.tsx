@@ -82,7 +82,7 @@ export default function ScholarshipBanner({ scholarship, isPreview = false }) {
   const imageSource = getImageSource();
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-w-lg mx-auto">
+    <div className="bg-white rounded-xl min-h-[10rem] shadow-lg border border-gray-200 overflow-hidden max-w-lg mx-auto">
       {/* Header */}
       <div className="bg-gradient-to-r h-[8rem] rounded-md from-blue-600 to-blue-700 text-white">
         <div className="flex items-start h-full pr-5 justify-between">
@@ -155,74 +155,81 @@ export default function ScholarshipBanner({ scholarship, isPreview = false }) {
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="bg-green-50 p-3 rounded-lg">
             <div className="flex items-center mb-1">
-              <DollarSign className="w-4 h-4 text-green-600 mr-1" />
-              <span className="text-xs text-green-600 font-medium">Amount</span>
+              <DollarSign className="w-3 h-3 text-green-600 mr-1" />
+              <span className="text-[11px] text-green-600 font-medium">Amount</span>
             </div>
-            <p className="text-green-800 font-bold text-sm">
+            <p className="text-green-800 font-bold text-xs">
               {formatAmount(bannerData.amountPerScholar)}
             </p>
-            <p className="text-green-600 text-xs">per scholar</p>
+            <p className="text-green-600 text-[11px]">per scholar</p>
           </div>
 
           <div className="bg-blue-50 p-3 rounded-lg">
             <div className="flex items-center mb-1">
-              <Users className="w-4 h-4 text-blue-600 mr-1" />
-              <span className="text-xs text-blue-600 font-medium">Slots</span>
+              <Users className="w-3 h-3 text-blue-600 mr-1" />
+              <span className="text-[11px] text-blue-600 font-medium">Slots</span>
             </div>
-            <p className="text-blue-800 font-bold text-sm">
+            <p className="text-blue-800 font-bold text-xs">
               {bannerData.totalScholars}
             </p>
-            <p className="text-blue-600 text-xs">available</p>
+            <p className="text-blue-600 text-[11px]">available</p>
           </div>
         </div>
 
-        {/* Criteria Tags */}
-        {bannerData.criteriaTags.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-              Criteria
-            </h4>
-            <div className="flex flex-wrap gap-1">
-              {bannerData.criteriaTags.slice(0, 3).map((tag, index) => (
-                <span
-                  key={index}
-                  className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
-                >
-                  {tag}
-                </span>
-              ))}
-              {bannerData.criteriaTags.length > 3 && (
-                <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-full">
-                  +{bannerData.criteriaTags.length - 3} more
-                </span>
-              )}
-            </div>
+        {/* Fixed Grid Layout for Criteria and Documents */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          {/* Criteria Tags - Left Column */}
+          <div className="min-h-[60px]">
+            {bannerData.criteriaTags.length > 0 && (
+              <>
+                <h4 className="text-[10.5px] font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                  Criteria
+                </h4>
+                <div className="flex flex-wrap gap-1">
+                  {bannerData.criteriaTags.slice(0, 3).map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-1.5 py-0.5 bg-gray-100 text-gray-700 text-[10.5px] rounded-full leading-tight"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  {bannerData.criteriaTags.length > 3 && (
+                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-full leading-tight">
+                      +{bannerData.criteriaTags.length - 3} more
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
           </div>
-        )}
 
-        {/* Required Documents */}
-        {bannerData.requiredDocuments.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wide">
-              Required Documents
-            </h4>
-            <div className="flex flex-wrap gap-1">
-              {bannerData.requiredDocuments.slice(0, 2).map((doc, index) => (
-                <span
-                  key={index}
-                  className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
-                >
-                  {doc.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                </span>
-              ))}
-              {bannerData.requiredDocuments.length > 2 && (
-                <span className="px-2 py-1 bg-blue-50 text-blue-500 text-xs rounded-full">
-                  +{bannerData.requiredDocuments.length - 2} more
-                </span>
-              )}
-            </div>
+          {/* Required Documents - Right Column */}
+          <div className="min-h-[60px]">
+            {bannerData.requiredDocuments.length > 0 && (
+              <>
+                <h4 className="text-[10.5px] font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                  Required Documents
+                </h4>
+                <div className="flex flex-wrap gap-1">
+                  {bannerData.requiredDocuments.slice(0, 2).map((doc, index) => (
+                    <span
+                      key={index}
+                      className="px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10.5px] rounded-full leading-tight"
+                    >
+                      {doc.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </span>
+                  ))}
+                  {bannerData.requiredDocuments.length > 2 && (
+                    <span className="px-1.5 py-0.5 bg-blue-50 text-blue-500 text-[10px] rounded-full leading-tight">
+                      +{bannerData.requiredDocuments.length - 2} more
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Action Button for non-preview */}

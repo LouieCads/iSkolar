@@ -57,9 +57,9 @@ export default function SponsorLayout({
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex  flex-col">
       {/* Top Navigation */}
-      <header className="w-full bg-white border-b border-gray-200">
+      <header className="w-full sticky top-0 z-50 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-30 py-3 flex items-center justify-between">
           {/* Logo + Search */}
           <div className="flex items-center gap-4">
@@ -109,7 +109,7 @@ export default function SponsorLayout({
             onClick={() => setIsDropdownOpen((prev) => !prev)}
           >
             <Image
-              src="/default-avatar.png"
+              src="/iSkolar_logo.png"
               alt="Profile"
               width={35}
               height={35}
