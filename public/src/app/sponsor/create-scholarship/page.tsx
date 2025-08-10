@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Plus, Info, X, Image as ImageIcon, Edit2, AlertCircle, Loader2, CheckCircle, Calendar } from "lucide-react";
+import { useState, useRef, useEffect, ReactNode } from "react";
+import { Plus, Info, X, Image as ImageIcon, Edit2, AlertCircle, Loader2, CheckCircle, Calendar, HelpCircle } from "lucide-react";
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -12,19 +12,26 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import ScholarshipBanner from "@/components/sponsor/ScholarshipBanner";
 import { useScholarshipDetails } from '@/hooks/useScholarshipDetails';
+import scholarshipBannerService from '@/services/scholarshipBannerService';
 
 interface FormData {
   title: string;
   description: string;
   scholarshipType: string;
   purpose: string;
-  totalScholars: number | string; // Allow both number and string
-  amountPerScholar: number | string; // Allow both number and string
+  totalScholars: number | string;
+  amountPerScholar: number | string;
   selectedSchool: string;
   selectionMode: "auto" | "manual";
-  applicationDeadline: Date | undefined; // Changed to Date | undefined
+  applicationDeadline: Date | undefined;
   criteriaTags: string[];
   requiredDocuments: string[];
   bannerImage?: File | null;
@@ -43,8 +50,111 @@ interface FormErrors {
   purpose?: string;
 }
 
+// Tooltip descriptions
+const tooltipDescriptions: Record<
+  "scholarshipType" | "purpose" | "selectionMode",
+  Record<string, string>
+> = {
+  scholarshipType: {
+    "Merit-Based":
+      "Scholarship awarded based on academic performance, GPA, and academic achievements",
+    "Skill-Based":
+      "Scholarship awarded based on specific skills, talents, certifications, or abilities",
+  },
+  purpose: {
+    Tuition:
+      "Funds are sent directly to the school to cover tuition fees and academic expenses",
+    Allowance:
+      "Financial support provided to students for daily needs and living expenses",
+  },
+  selectionMode: {
+    auto: "The school reviews applications and selects scholars based on criteria",
+    manual:
+      "You personally review applications and select scholars yourself",
+  },
+};
+
+// Dropdown with Tooltip Component
+interface DropdownWithTooltipProps {
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  options: string[];
+  tooltipType: keyof typeof tooltipDescriptions; // <— Fix here
+  error?: string;
+  disabled?: boolean;
+  placeholder?: string;
+  className?: string;
+}
+
+const DropdownWithTooltip = ({
+  name,
+  value,
+  onChange,
+  options,
+  tooltipType,
+  error,
+  disabled,
+  placeholder,
+  className,
+}: DropdownWithTooltipProps) => (
+  <div className="relative">
+    <div className="flex items-center gap-2">
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        className={`flex-1 ${className} ${
+          error ? "border-red-300" : "border-gray-300"
+        }`}
+        disabled={disabled}
+      >
+        {placeholder && (
+          <option value="" className="text-gray-400" disabled>
+            {placeholder}
+          </option>
+        )}
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+      
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <HelpCircle className="w-3 h-3" /> {/* Decreased icon size */}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent 
+            side="top" 
+            className="max-w-[12rem] bg-white/95 backdrop-blur-sm border border-gray-200 shadow-lg p-3"
+          >
+            <div className="space-y-2">
+              {Object.entries(tooltipDescriptions[tooltipType]).map(([key, desc]) => (
+                <div key={key}>
+                  <p className="font-medium text-[9.5px] text-gray-900">{key}</p> {/* Decreased text size */}
+                  <p className="text-[8.5px] text-gray-700">{desc}</p> {/* Decreased text size */}
+                </div>
+              ))}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+    {error && (
+      <p className="text-xs text-red-500 mt-1">{error}</p>
+    )}
+  </div>
+);
+
 // Notification Toast Component
-const NotificationToast = ({ notification, onClose }) => (
+const NotificationToast = ({ notification, onClose }: { notification: { show: boolean; type: 'success' | 'error' | 'info'; message: string }; onClose: () => void }) => (
   <AnimatePresence>
     {notification.show && (
       <motion.div
@@ -83,11 +193,11 @@ export default function CreateScholarshipPage() {
     description: "",
     scholarshipType: "",
     purpose: "",
-    totalScholars: "", // Changed from 1 to empty string
-    amountPerScholar: "", // Changed from 0 to empty string
+    totalScholars: "",
+    amountPerScholar: "",
     selectedSchool: "",
     selectionMode: "auto",
-    applicationDeadline: undefined, // Changed to undefined
+    applicationDeadline: undefined,
     criteriaTags: [],
     requiredDocuments: [],
     bannerImage: null,
@@ -96,6 +206,7 @@ export default function CreateScholarshipPage() {
 
   const [newDocument, setNewDocument] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<{
     show: boolean;
     type: 'success' | 'error' | 'info';
@@ -106,16 +217,15 @@ export default function CreateScholarshipPage() {
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
   const [tempDescription, setTempDescription] = useState(formData.description);
   
-  // Use the enhanced scholarship details hook
   const scholarshipDetails = useScholarshipDetails();
 
   // Show notification helper
   const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
     setNotification({ show: true, type, message });
     if (type === 'error') {
-      setTimeout(() => setNotification({ show: false, type: 'info', message: '' }), 3000);
-    } else if (type === 'success') {
       setTimeout(() => setNotification({ show: false, type: 'info', message: '' }), 5000);
+    } else if (type === 'success') {
+      setTimeout(() => setNotification({ show: false, type: 'info', message: '' }), 3000);
     }
   };
 
@@ -157,9 +267,7 @@ export default function CreateScholarshipPage() {
     const { name, value } = e.target;
     
     if (name === "totalScholars" || name === "amountPerScholar") {
-      // Allow empty string for placeholder, otherwise convert to number
       const numValue = value === "" ? "" : parseFloat(value);
-      
       setFormData((prev) => ({
         ...prev,
         [name]: numValue,
@@ -177,14 +285,12 @@ export default function CreateScholarshipPage() {
     }
   };
 
-  // Handle date change for the DatePicker
   const handleDateChange = (date: Date | undefined) => {
     setFormData((prev) => ({
       ...prev,
       applicationDeadline: date,
     }));
     
-    // Clear date field error when user selects a date
     if (errors.applicationDeadline && date) {
       setErrors((prev) => ({ ...prev, applicationDeadline: undefined }));
     }
@@ -202,7 +308,6 @@ export default function CreateScholarshipPage() {
         return;
       }
       
-      // Clean up previous preview URL to prevent memory leaks
       if (formData.bannerImagePreview) {
         URL.revokeObjectURL(formData.bannerImagePreview);
       }
@@ -250,74 +355,67 @@ export default function CreateScholarshipPage() {
     }));
   };
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    if (!formData.title.trim()) newErrors.title = "Title is required";
-    if (!formData.description.trim()) newErrors.description = "Description is required";
-    if (!formData.scholarshipType) newErrors.scholarshipType = "Scholarship type is required";
-    if (!formData.purpose) newErrors.purpose = "Purpose is required";
-    if (!formData.selectedSchool) newErrors.selectedSchool = "School selection is required";
-    if (!formData.applicationDeadline) newErrors.applicationDeadline = "Application deadline is required";
-    
-    // Updated validation for number fields
-    const totalScholars = Number(formData.totalScholars);
-    const amountPerScholar = Number(formData.amountPerScholar);
-    
-    if (!formData.totalScholars || totalScholars < 1) {
-      newErrors.totalScholars = "Number of scholars must be at least 1";
-    }
-    if (!formData.amountPerScholar || amountPerScholar <= 0) {
-      newErrors.amountPerScholar = "Amount must be greater than 0";
-    }
-
-    // Updated date validation for Date object
-    if (formData.applicationDeadline) {
-      const selectedDate = new Date(formData.applicationDeadline);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate <= today) {
-        newErrors.applicationDeadline = "Deadline must be in the future";
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
+    
+    if (isSubmitting) return;
+    
+    // Client-side validation using service
+    const formattedData = scholarshipBannerService.formatScholarshipData(formData);
+    const validation = scholarshipBannerService.validateScholarshipData(formattedData);
+    
+    if (!validation.isValid) {
+      setErrors(validation.errors);
       showNotification('error', 'Please fill in all required fields');
       return;
     }
 
-    console.log("Creating scholarship:", formData);
-
-    // Clean up the preview URL when form is submitted
-    if (formData.bannerImagePreview) {
-      URL.revokeObjectURL(formData.bannerImagePreview);
-    }
-
-    setFormData({
-      title: "",
-      description: "",
-      scholarshipType: scholarshipDetails.types[0] || "",
-      purpose: scholarshipDetails.purposes[0] || "",
-      totalScholars: "", // Reset to empty string
-      amountPerScholar: "", // Reset to empty string
-      selectedSchool: "",
-      selectionMode: "auto",
-      applicationDeadline: undefined, // Reset to undefined
-      criteriaTags: [],
-      requiredDocuments: [],
-      bannerImage: null,
-      bannerImagePreview: "",
-    });
+    setIsSubmitting(true);
     setErrors({});
-    setNewDocument("");
-    showNotification('success', 'Scholarship created successfully!');
+
+    try {
+      const result = await scholarshipBannerService.createScholarship(
+        formattedData,
+        formData.bannerImage
+      );
+
+      console.log("Scholarship created:", result);
+      
+      // Clean up the preview URL
+      if (formData.bannerImagePreview) {
+        URL.revokeObjectURL(formData.bannerImagePreview);
+      }
+
+      // Reset form
+      setFormData({
+        title: "",
+        description: "",
+        scholarshipType: scholarshipDetails.types[0] || "",
+        purpose: scholarshipDetails.purposes[0] || "",
+        totalScholars: "",
+        amountPerScholar: "",
+        selectedSchool: "",
+        selectionMode: "auto",
+        applicationDeadline: undefined,
+        criteriaTags: [],
+        requiredDocuments: [],
+        bannerImage: null,
+        bannerImagePreview: "",
+      });
+      
+      setNewDocument("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      
+      showNotification('success', 'Scholarship created successfully!');
+      
+    } catch (error: any) {
+      console.error("Create scholarship error:", error);
+      showNotification('error', error.message || 'Failed to create scholarship');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleDescriptionDone = () => {
@@ -329,7 +427,6 @@ export default function CreateScholarshipPage() {
   };
 
   const handleRemoveImage = () => {
-    // Clean up the preview URL
     if (formData.bannerImagePreview) {
       URL.revokeObjectURL(formData.bannerImagePreview);
     }
@@ -359,9 +456,9 @@ export default function CreateScholarshipPage() {
         URL.revokeObjectURL(formData.bannerImagePreview);
       }
     };
-  }, []);
+  }, [formData.bannerImagePreview]);
 
-  // Loading state for scholarship types and purposes
+  // Loading state
   if (scholarshipDetails.isLoading) {
     return (
       <div className="flex flex-1 px-40 items-center justify-center min-h-96">
@@ -375,7 +472,6 @@ export default function CreateScholarshipPage() {
 
   return (
     <div className="flex flex-1 px-40 gap-5">
-      {/* Notification Toast */}
       <NotificationToast 
         notification={notification}
         onClose={() => setNotification({ show: false, type: 'info', message: '' })}
@@ -386,50 +482,38 @@ export default function CreateScholarshipPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <select
+              <DropdownWithTooltip
                 name="scholarshipType"
                 value={formData.scholarshipType}
                 onChange={handleInputChange}
-                className={`w-full px-2 py-2 cursor-pointer text-xs font-semibold border rounded-lg focus:ring-2 focus:ring-blue-500 transition-all ${
-                  errors.scholarshipType ? "border-red-300" : "border-gray-300"
-                }`}
-                disabled={scholarshipDetails.isLoading}
-              >
-                {scholarshipDetails.types.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
+                options={scholarshipDetails.types}
+                tooltipType="scholarshipType"
+                error={errors.scholarshipType}
+                disabled={scholarshipDetails.isLoading || isSubmitting}
+                className="w-full px-2 py-2 cursor-pointer text-xs font-semibold border rounded-lg focus:ring-2 focus:ring-blue-500 transition-all"
+              />
 
-              <select
+              <DropdownWithTooltip
                 name="purpose"
                 value={formData.purpose}
                 onChange={handleInputChange}
-                className={`w-full px-2 py-2 cursor-pointer text-xs font-semibold border rounded-lg focus:ring-2 focus:ring-blue-500 transition-all ${
-                  errors.purpose ? "border-red-300" : "border-gray-300"
-                }`}
-                disabled={scholarshipDetails.isLoading}
-              >
-                {scholarshipDetails.purposes.map((purpose) => (
-                  <option key={purpose} value={purpose}>
-                    {purpose}
-                  </option>
-                ))}
-              </select>
+                options={scholarshipDetails.purposes}
+                tooltipType="purpose"
+                error={errors.purpose}
+                disabled={scholarshipDetails.isLoading || isSubmitting}
+                className="w-full px-2 py-2 cursor-pointer text-xs font-semibold border rounded-lg focus:ring-2 focus:ring-blue-500 transition-all"
+              />
             </div>
             
-            <div>
-              <select
-                name="selectionMode"
-                value={formData.selectionMode}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 cursor-pointer text-xs font-semibold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all"
-              >
-                <option value="manual">Manual</option>
-                <option value="auto">Auto</option>
-              </select>
-            </div>
+            <DropdownWithTooltip
+              name="selectionMode"
+              value={formData.selectionMode}
+              onChange={handleInputChange}
+              options={["manual", "auto"]}
+              tooltipType="selectionMode"
+              disabled={isSubmitting}
+              className="w-full px-3 py-2 cursor-pointer text-xs font-semibold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all"
+            />
           </div>
           
           {/* Basic Information */}
@@ -444,6 +528,7 @@ export default function CreateScholarshipPage() {
                     onChange={handleImageUpload}
                     accept="image/*"
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isSubmitting}
                   />
                   {formData.bannerImagePreview ? (
                     <div className="relative w-full h-full">
@@ -455,7 +540,8 @@ export default function CreateScholarshipPage() {
                       <button
                         type="button"
                         onClick={handleRemoveImage}
-                        className="absolute top-2 cursor-pointer right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                        disabled={isSubmitting}
+                        className="absolute top-2 cursor-pointer right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors disabled:opacity-50"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -468,9 +554,12 @@ export default function CreateScholarshipPage() {
                     </div>
                   )}
                 </div>
+                {errors.bannerImage && (
+                  <p className="text-xs text-red-500 mt-1">{errors.bannerImage}</p>
+                )}
               </div>
 
-              {/* Title, Description */}
+              {/* Title, Description, etc */}
               <div className="w-full md:w-2/3 space-y-3 flex flex-col justify-between">
                 <div>
                   <input
@@ -478,18 +567,23 @@ export default function CreateScholarshipPage() {
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
+                    disabled={isSubmitting}
                     className={`w-full py-3 text-3xl font-semibold transition-all focus:outline-none focus:border-none ${
                       errors.title ? "border-red-300" : ""
                     }`}
                     placeholder="Scholarship Title"
                   />
+                  {errors.title && (
+                    <p className="text-xs text-red-500 mt-1">{errors.title}</p>
+                  )}
                 </div>
 
                 <div>
                   <button
                     type="button"
                     onClick={() => setIsDescriptionModalOpen(true)}
-                    className="flex items-center cursor-pointer gap-1 w-full px-3 py-2 text-xs font-semibold bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors"
+                    disabled={isSubmitting}
+                    className="flex items-center cursor-pointer gap-1 w-full px-3 py-2 text-xs font-semibold bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50"
                   >
                     <Edit2 className="w-3 h-3" />
                     {formData.description ? "Edit Description" : "Add Description"}
@@ -504,10 +598,14 @@ export default function CreateScholarshipPage() {
                     onChange={handleInputChange}
                     min="1"
                     placeholder="Total Scholars"
+                    disabled={isSubmitting}
                     className={`w-full px-2 py-2 text-xs font-semibold border rounded-lg focus:ring-2 focus:ring-blue-500 transition-all ${
                       errors.totalScholars ? "border-red-300" : "border-gray-300"
                     }`}
                   />
+                  {errors.totalScholars && (
+                    <p className="text-xs text-red-500 mt-1">{errors.totalScholars}</p>
+                  )}
                 </div>
 
                 <div>
@@ -519,10 +617,14 @@ export default function CreateScholarshipPage() {
                     min="0.01"
                     step="0.01"
                     placeholder="Amount per Scholar (PHP)"
+                    disabled={isSubmitting}
                     className={`w-full px-2 py-2 text-xs font-semibold border rounded-lg focus:ring-2 focus:ring-blue-500 transition-all ${
                       errors.amountPerScholar ? "border-red-300" : "border-gray-300"
                     }`}
                   />
+                  {errors.amountPerScholar && (
+                    <p className="text-xs text-red-500 mt-1">{errors.amountPerScholar}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -566,9 +668,9 @@ export default function CreateScholarshipPage() {
             </div>
           )}
 
-          {/* Financial Details */}
+          {/* Financial Summary */}
           <div>
-           {Number(formData.totalScholars) > 0 && Number(formData.amountPerScholar) > 0 && (
+            {Number(formData.totalScholars) > 0 && Number(formData.amountPerScholar) > 0 && (
               <div className="bg-blue-50 p-2 rounded-lg">
                 <p className="text-sm text-blue-700">
                   <span className="font-medium">Total Amount: </span>
@@ -589,6 +691,7 @@ export default function CreateScholarshipPage() {
                   name="selectedSchool"
                   value={formData.selectedSchool}
                   onChange={handleInputChange}
+                  disabled={isSubmitting}
                   className={`w-full px-2 py-2 cursor-pointer text-xs font-semibold border rounded-lg focus:ring-2 focus:ring-blue-500 transition-all ${
                     errors.selectedSchool ? "border-red-300" : "border-gray-300"
                   }`}
@@ -602,16 +705,19 @@ export default function CreateScholarshipPage() {
                     </option>
                   ))}
                 </select>
+                {errors.selectedSchool && (
+                  <p className="text-xs text-red-500 mt-1">{errors.selectedSchool}</p>
+                )}
               </div>
 
-              {/* Replaced HTML date input with shadcn DatePicker */}
               <div>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
+                      disabled={isSubmitting}
                       className={cn(
-                        "w-full px-2 py-2 text-xs font-semibold border rounded-lg focus:ring-2 focus:ring-blue-500 transition-all justify-start text-left font-normal h-auto",
+                        "w-full px-2 py-2 text-xs font-semibold cursor-pointer border rounded-lg focus:ring-2 focus:ring-blue-500 transition-all justify-start text-left font-normal h-auto",
                         !formData.applicationDeadline && "text-gray-500",
                         errors.applicationDeadline ? "border-red-300" : "border-gray-300"
                       )}
@@ -636,6 +742,9 @@ export default function CreateScholarshipPage() {
                     />
                   </PopoverContent>
                 </Popover>
+                {errors.applicationDeadline && (
+                  <p className="text-xs text-red-500 mt-1">{errors.applicationDeadline}</p>
+                )}
               </div>
             </div>
           </div>
@@ -646,8 +755,8 @@ export default function CreateScholarshipPage() {
               <select
                 onChange={(e) => addCriteriaTag(e.target.value)}
                 value=""
+                disabled={scholarshipDetails.isLoading || isSubmitting}
                 className="flex-1 px-2 py-2 text-xs cursor-pointer font-semibold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all"
-                disabled={scholarshipDetails.isLoading}
               >
                 <option value="" className="text-gray-400" disabled>
                   Select criteria
@@ -671,7 +780,8 @@ export default function CreateScholarshipPage() {
                     <button
                       type="button"
                       onClick={() => removeCriteriaTag(index)}
-                      className="hover:bg-blue-200 rounded-full p-1"
+                      disabled={isSubmitting}
+                      className="hover:bg-blue-200 rounded-full p-1 disabled:opacity-50"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -687,8 +797,8 @@ export default function CreateScholarshipPage() {
               <select
                 onChange={(e) => addRequiredDocument(e.target.value)}
                 value=""
+                disabled={scholarshipDetails.isLoading || isSubmitting}
                 className="flex-1 px-2 py-2 text-xs cursor-pointer font-semibold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-all"
-                disabled={scholarshipDetails.isLoading}
               >
                 <option value="" className="text-gray-400" disabled>
                   Select documents
@@ -712,7 +822,8 @@ export default function CreateScholarshipPage() {
                     <button
                       type="button"
                       onClick={() => removeRequiredDocument(index)}
-                      className="hover:bg-blue-200 rounded-full p-1"
+                      disabled={isSubmitting}
+                      className="hover:bg-blue-200 rounded-full p-1 disabled:opacity-50"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -725,10 +836,17 @@ export default function CreateScholarshipPage() {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={scholarshipDetails.isLoading}
-            className="px-3 py-2 w-full cursor-pointer font-bold mt-2 text-sm bg-yellow-500 hover:bg-yellow-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+            disabled={scholarshipDetails.isLoading || isSubmitting}
+            className="px-3 py-2 w-full cursor-pointer font-bold mt-2 text-sm bg-yellow-500 hover:bg-yellow-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center justify-center gap-2"
           >
-            Create Scholarship
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Creating Scholarship...
+              </>
+            ) : (
+              'Create Scholarship'
+            )}
           </button>
         </form>
       </div>
@@ -745,9 +863,7 @@ export default function CreateScholarshipPage() {
             scholarship={{
               ...formData,
               description: truncateDescription(formData.description, 384),
-              // Pass the preview image URL to the banner component
               imageUrl: formData.bannerImagePreview || null,
-              // Convert Date object to string for the preview component
               applicationDeadline: formData.applicationDeadline ? format(formData.applicationDeadline, "yyyy-MM-dd") : "",
             }}
             isPreview={true}

@@ -82,7 +82,7 @@ export default function ScholarshipBanner({ scholarship, isPreview = false }) {
   const imageSource = getImageSource();
 
   return (
-    <div className="bg-white rounded-xl min-h-[10rem] shadow-lg border border-gray-200 overflow-hidden max-w-lg mx-auto">
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden max-w-lg mx-auto">
       {/* Header */}
       <div className="bg-gradient-to-r h-[8rem] rounded-md from-blue-600 to-blue-700 text-white">
         <div className="flex items-start h-full pr-5 justify-between">
@@ -146,13 +146,8 @@ export default function ScholarshipBanner({ scholarship, isPreview = false }) {
 
       {/* Content */}
       <div className="px-4 py-1">
-        {/* Description */}
-        <p className="text-gray-600 text-xs mb-4 mt-2 line-clamp-3">
-          {bannerData.description}
-        </p>
-
         {/* Financial Info */}
-        <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="grid grid-cols-2 gap-3 mb-3 mt-2.5">
           <div className="bg-green-50 p-3 rounded-lg">
             <div className="flex items-center mb-1">
               <DollarSign className="w-3 h-3 text-green-600 mr-1" />

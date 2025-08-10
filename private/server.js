@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
+
 const authRoutes = require("./routes/auth");
 const platformRoutes = require("./routes/platform");
 const userManagementRoutes = require("./routes/user-management");
@@ -11,6 +12,7 @@ const credentialsRoutes = require("./routes/credentials");
 const tokenPaymentRoutes = require("./routes/token-payment");
 const kycKybConfigurationRoutes = require("./routes/kyc-kyb-configuration");
 const kycKybVerificationRoutes = require("./routes/kyc-kyb-verification");
+const scholarshipBannerRoutes = require("./routes/scholarship-banner");
 
 dotenv.config();
 const app = express();
@@ -34,6 +36,7 @@ app.use("/credentials", credentialsRoutes);
 app.use("/token-payment", tokenPaymentRoutes);
 app.use("/kyc-kyb-configuration", kycKybConfigurationRoutes);
 app.use("/kyc-kyb-verification", kycKybVerificationRoutes);
+app.use("/scholarship-banner", scholarshipBannerRoutes);
 
 // connection
 mongoose

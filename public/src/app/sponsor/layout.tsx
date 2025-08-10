@@ -57,7 +57,7 @@ export default function SponsorLayout({
   ];
 
   return (
-    <div className="min-h-screen flex  flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Top Navigation */}
       <header className="w-full sticky top-0 z-50 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-30 py-3 flex items-center justify-between">
