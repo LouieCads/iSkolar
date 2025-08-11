@@ -72,17 +72,12 @@ export default function SponsorLayout({
       icon: Home,
     },
     {
-      name: "Scholarships",
+      name: "Create",
       path: "/sponsor/create-scholarship",
       icon: BadgeDollarSign,
     },
     {
-      name: "Applications",
-      path: "/sponsor/applications",
-      icon: FileText,
-    },
-    {
-      name: "Funds",
+      name: "Wallet",
       path: "/sponsor/funds",
       icon: Wallet,
     },
@@ -157,7 +152,7 @@ export default function SponsorLayout({
                 <Link
                   key={item.path}
                   href={item.path}
-                  className={`flex flex-col items-center text-xs cursor-pointer transition-colors ${
+                  className={`flex flex-col items-center text-[11px] font-medium cursor-pointer transition-colors ${
                     isActive
                       ? "text-blue-600"
                       : "text-gray-600 hover:text-gray-900"

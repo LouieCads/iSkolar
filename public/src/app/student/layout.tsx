@@ -68,23 +68,13 @@ export default function StudentLayout({
   const navItems = [
     {
       name: "Home",
-      path: "/student/dashboard",
+      path: "/student/feed",
       icon: Home,
     },
     {
-      name: "Scholarships",
-      path: "/student/scholarships",
+      name: "Discover",
+      path: "/student/discover",
       icon: Search,
-    },
-    {
-      name: "Applications",
-      path: "/student/applications",
-      icon: FileText,
-    },
-    {
-      name: "Wallet",
-      path: "/student/wallet",
-      icon: Wallet,
     },
     {
       name: "Notifications",
@@ -152,7 +142,7 @@ export default function StudentLayout({
                 <Link
                   key={item.path}
                   href={item.path}
-                  className={`flex flex-col items-center text-xs cursor-pointer transition-colors ${
+                  className={`flex flex-col items-center text-[11px] font-medium cursor-pointer transition-colors ${
                     isActive
                       ? "text-blue-600"
                       : "text-gray-600 hover:text-gray-900"
