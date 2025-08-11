@@ -1,56 +1,128 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
 import {
-  Repeat,
   Home,
-  BadgeDollarSign,
+  Search,
   FileText,
   Wallet,
   Bell,
+  User,
 } from "lucide-react";
 import { usePlatform } from "@/hooks/use-platform";
 
-export default function SponsorLayout({
+// Confirmation Modal Component (reusable)
+function LogoutConfirmModal({
+  isOpen,
+  onConfirm,
+  onCancel,
+}: {
+  isOpen: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-5 max-w-sm mx-4">
+        <h3 className="text-base font-semibold text-gray-900 mb-4">
+          Confirm Logout
+        </h3>
+        <p className="text-gray-600 mb-6 text-sm">
+          Are you sure you want to logout? You will be redirected to the login page.
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-gray-600 bg-gray-100 text-sm cursor-pointer font-medium rounded-md hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-white bg-red-600 text-sm cursor-pointer font-medium rounded-md hover:bg-red-700 transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function StudentLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { platform } = usePlatform();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const navItems = [
     {
       name: "Home",
-      path: "/sponsor/feed",
+      path: "/student/dashboard",
       icon: Home,
     },
     {
       name: "Scholarships",
-      path: "/sponsor/scholarships",
-      icon: BadgeDollarSign,
+      path: "/student/scholarships",
+      icon: Search,
     },
     {
-      name: "My Applications",
-      path: "/sponsor/my-applications",
+      name: "Applications",
+      path: "/student/applications",
       icon: FileText,
     },
     {
+      name: "Wallet",
+      path: "/student/wallet",
+      icon: Wallet,
+    },
+    {
       name: "Notifications",
-      path: "/sponsor/notifications",
+      path: "/student/notifications",
       icon: Bell,
     },
   ];
 
+  const handleLogout = () => {
+    // Remove token from localStorage
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      // You can also remove other auth-related items if needed
+      // localStorage.removeItem("userType");
+      // localStorage.removeItem("userId");
+    }
+
+    // Close dropdown and modal
+    setIsDropdownOpen(false);
+    setIsLogoutModalOpen(false);
+
+    // Redirect to auth page
+    router.push("/auth");
+  };
+
+  const handleLogoutClick = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const handleCancelLogout = () => {
+    setIsLogoutModalOpen(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Top Navigation */}
-      <header className="w-full bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-35 py-3 flex items-center justify-between">
+      <header className="w-full sticky top-0 z-50 bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-8 py-3 flex items-center justify-between">
           {/* Logo + Search */}
           <div className="flex items-center gap-4">
             <Link href="/student">
@@ -63,7 +135,7 @@ export default function SponsorLayout({
             </Link>
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search scholarships..."
               className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -99,7 +171,7 @@ export default function SponsorLayout({
             onClick={() => setIsDropdownOpen((prev) => !prev)}
           >
             <Image
-              src="/default-avatar.png"
+              src="/iSkolar_logo.png"
               alt="Profile"
               width={35}
               height={35}
@@ -114,13 +186,14 @@ export default function SponsorLayout({
                   My Profile
                 </Link>
                 <Link
-                  href="/student/account"
+                  href="/student/account/my-account"
                   className="block px-4 py-2 text-sm hover:bg-gray-100"
                 >
                   Account
                 </Link>
                 <button
-                  className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                  onClick={handleLogoutClick}
+                  className="block w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
                 >
                   Logout
                 </button>
@@ -132,6 +205,13 @@ export default function SponsorLayout({
 
       {/* Page Content */}
       <main className="flex-1 bg-gray-50">{children}</main>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onConfirm={handleLogout}
+        onCancel={handleCancelLogout}
+      />
     </div>
   );
 }

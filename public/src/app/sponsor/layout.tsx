@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
 import {
@@ -14,14 +14,56 @@ import {
 } from "lucide-react";
 import { usePlatform } from "@/hooks/use-platform";
 
+// Confirmation Modal Component
+function LogoutConfirmModal({
+  isOpen,
+  onConfirm,
+  onCancel,
+}: {
+  isOpen: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-5 max-w-sm mx-4">
+        <h3 className="text-base font-semibold text-gray-900 mb-4">
+          Confirm Logout
+        </h3>
+        <p className="text-gray-600 mb-6 text-sm">
+          Are you sure you want to logout? You will be redirected to the login page.
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm cursor-pointer text-gray-600 font-medium bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-white text-sm cursor-pointer font-medium bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SponsorLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { platform } = usePlatform();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const navItems = [
     {
@@ -56,11 +98,36 @@ export default function SponsorLayout({
     },
   ];
 
+  const handleLogout = () => {
+    // Remove token from localStorage
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      // You can also remove other auth-related items if needed
+      // localStorage.removeItem("userType");
+      // localStorage.removeItem("userId");
+    }
+
+    // Close dropdown and modal
+    setIsDropdownOpen(false);
+    setIsLogoutModalOpen(false);
+
+    // Redirect to auth page
+    router.push("/auth");
+  };
+
+  const handleLogoutClick = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const handleCancelLogout = () => {
+    setIsLogoutModalOpen(false);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Top Navigation */}
       <header className="w-full sticky top-0 z-50 bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-30 py-3 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-8 py-3 flex items-center justify-between">
           {/* Logo + Search */}
           <div className="flex items-center gap-4">
             <Link href="/sponsor">
@@ -130,7 +197,8 @@ export default function SponsorLayout({
                   Account
                 </Link>
                 <button
-                  className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                  onClick={handleLogoutClick}
+                  className="block cursor-pointer w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
                 >
                   Logout
                 </button>
@@ -142,6 +210,13 @@ export default function SponsorLayout({
 
       {/* Page Content */}
       <main className="flex-1 bg-gray-50">{children}</main>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={isLogoutModalOpen}
+        onConfirm={handleLogout}
+        onCancel={handleCancelLogout}
+      />
     </div>
   );
 }
