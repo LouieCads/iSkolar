@@ -1,4 +1,4 @@
-const Scholarship = require("../models/ScholarshipBanner");
+const Scholarship = require("../models/Scholarships");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs").promises;
@@ -55,16 +55,6 @@ const mapToEnumValues = (data) => {
       Tuition: "tuition",
       Allowance: "allowance",
     },
-    requiredDocuments: {
-      "Certificate of Enrollment": "id_card",
-      "Transcript of Records": "academic_records",
-      "Birth Certificate": "birth_certificate",
-      "Academic Records": "academic_records",
-      Certificates: "certificates",
-      Awards: "awards",
-      Essay: "essay",
-      "ID Card": "id_card",
-    },
   };
 
   const result = { ...data };
@@ -79,11 +69,28 @@ const mapToEnumValues = (data) => {
     result.purpose = mappings.purpose[data.purpose];
   }
 
-  // Map requiredDocuments
+  // Handle criteriaTags dynamically - just ensure it's an array and trim values
+  if (Array.isArray(data.criteriaTags)) {
+    result.criteriaTags = data.criteriaTags
+      .map((tag) => (typeof tag === "string" ? tag.trim() : tag))
+      .filter((tag) => tag && tag.length > 0); // Remove empty tags
+  } else if (data.criteriaTags) {
+    // Handle single string or other formats
+    result.criteriaTags = [data.criteriaTags]
+      .flat()
+      .filter((tag) => tag && tag.length > 0);
+  }
+
+  // Handle requiredDocuments dynamically - just ensure it's an array
   if (Array.isArray(data.requiredDocuments)) {
-    result.requiredDocuments = data.requiredDocuments.map(
-      (doc) => mappings.requiredDocuments[doc] || doc
+    result.requiredDocuments = data.requiredDocuments.filter(
+      (doc) => doc && doc.length > 0
     );
+  } else if (data.requiredDocuments) {
+    // Handle single string or other formats
+    result.requiredDocuments = [data.requiredDocuments]
+      .flat()
+      .filter((doc) => doc && doc.length > 0);
   }
 
   return result;
@@ -100,6 +107,205 @@ const findOrCreateSchool = async (schoolName) => {
 
   const mongoose = require("mongoose");
   return new mongoose.Types.ObjectId(); // Placeholder - replace with actual school lookup
+};
+
+// **NEW FUNCTION** - Get all scholarship banners for feed (public access)
+const getAllScholarshipBanners = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      scholarshipType,
+      purpose,
+      search,
+      school,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
+
+    // Build query for active scholarships only
+    const query = {
+      status: "active",
+      applicationDeadline: { $gt: new Date() }, // Only future deadlines
+    };
+
+    // Apply filters
+    if (scholarshipType && scholarshipType !== "all") {
+      query.scholarshipType = scholarshipType;
+    }
+    if (purpose && purpose !== "all") {
+      query.purpose = purpose;
+    }
+    if (school && school !== "all") {
+      query.selectedSchool = { $regex: school, $options: "i" };
+    }
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { selectedSchool: { $regex: search, $options: "i" } },
+        { criteriaTags: { $in: [new RegExp(search, "i")] } },
+      ];
+    }
+
+    // Build sort object
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
+
+    const options = {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sort: sortOptions,
+    };
+
+    // Execute query with pagination
+    const scholarships = await Scholarship.find(query)
+      .select(
+        "bannerUrl title description scholarshipType purpose totalScholars amountPerScholar totalAmount selectedSchool applicationDeadline criteriaTags requiredDocuments sponsorId createdAt"
+      )
+      .populate("sponsorId", "organizationName logo contactInfo")
+      .sort(options.sort)
+      .limit(options.limit)
+      .skip((options.page - 1) * options.limit)
+      .lean();
+
+    const total = await Scholarship.countDocuments(query);
+
+    // Transform data for frontend consumption
+    const transformedScholarships = scholarships.map((scholarship) => ({
+      id: scholarship._id,
+      bannerUrl: scholarship.bannerUrl,
+      title: scholarship.title,
+      description: scholarship.description,
+      scholarshipType: scholarship.scholarshipType,
+      purpose: scholarship.purpose,
+      totalScholars: scholarship.totalScholars,
+      amountPerScholar: scholarship.amountPerScholar,
+      totalAmount: scholarship.totalAmount,
+      selectedSchool: scholarship.selectedSchool,
+      applicationDeadline: scholarship.applicationDeadline,
+      criteriaTags: scholarship.criteriaTags || [],
+      requiredDocuments: scholarship.requiredDocuments || [],
+      sponsor: scholarship.sponsorId
+        ? {
+            id: scholarship.sponsorId._id,
+            name: scholarship.sponsorId.organizationName,
+            logo: scholarship.sponsorId.logo,
+            contactInfo: scholarship.sponsorId.contactInfo,
+          }
+        : null,
+      createdAt: scholarship.createdAt,
+      // Calculate remaining days
+      daysRemaining: Math.ceil(
+        (new Date(scholarship.applicationDeadline) - new Date()) /
+          (1000 * 60 * 60 * 24)
+      ),
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        scholarships: transformedScholarships,
+        pagination: {
+          page: options.page,
+          limit: options.limit,
+          total,
+          pages: Math.ceil(total / options.limit),
+          hasNext: options.page < Math.ceil(total / options.limit),
+          hasPrev: options.page > 1,
+        },
+        filters: {
+          scholarshipType,
+          purpose,
+          search,
+          school,
+          sortBy,
+          sortOrder,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Get all scholarship banners error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// **NEW FUNCTION** - Get scholarship banner details for public view
+const getScholarshipBannerDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const scholarship = await Scholarship.findOne({
+      _id: id,
+      status: "active",
+      applicationDeadline: { $gt: new Date() },
+    })
+      .select("-applications -selectedScholars") // Exclude sensitive data
+      .populate("sponsorId", "organizationName logo contactInfo website")
+      .lean();
+
+    if (!scholarship) {
+      return res.status(404).json({
+        success: false,
+        message: "Scholarship not found or no longer available",
+      });
+    }
+
+    // Transform data for public consumption
+    const transformedScholarship = {
+      id: scholarship._id,
+      bannerUrl: scholarship.bannerUrl,
+      title: scholarship.title,
+      description: scholarship.description,
+      scholarshipType: scholarship.scholarshipType,
+      purpose: scholarship.purpose,
+      totalScholars: scholarship.totalScholars,
+      amountPerScholar: scholarship.amountPerScholar,
+      totalAmount: scholarship.totalAmount,
+      selectedSchool: scholarship.selectedSchool,
+      selectionMode: scholarship.selectionMode,
+      applicationDeadline: scholarship.applicationDeadline,
+      criteriaTags: scholarship.criteriaTags || [],
+      requiredDocuments: scholarship.requiredDocuments || [],
+      sponsor: scholarship.sponsorId
+        ? {
+            id: scholarship.sponsorId._id,
+            name: scholarship.sponsorId.organizationName,
+            logo: scholarship.sponsorId.logo,
+            contactInfo: scholarship.sponsorId.contactInfo,
+            website: scholarship.sponsorId.website,
+          }
+        : null,
+      createdAt: scholarship.createdAt,
+      daysRemaining: Math.ceil(
+        (new Date(scholarship.applicationDeadline) - new Date()) /
+          (1000 * 60 * 60 * 24)
+      ),
+      // Calculate application statistics (without sensitive data)
+      applicationCount: scholarship.applications
+        ? scholarship.applications.length
+        : 0,
+      availableSlots:
+        scholarship.totalScholars -
+        (scholarship.selectedScholars
+          ? scholarship.selectedScholars.length
+          : 0),
+    };
+
+    res.json({
+      success: true,
+      data: transformedScholarship,
+    });
+  } catch (error) {
+    console.error("Get scholarship banner details error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
 };
 
 // Create new scholarship
@@ -171,7 +377,7 @@ const createScholarship = async (req, res) => {
       criteriaTags: parsedCriteriaTags,
       requiredDocuments: parsedRequiredDocuments,
       sponsorId: req.user.personaId,
-      status: "draft",
+      status: "active",
     };
 
     // Map display values to enum values
@@ -186,7 +392,7 @@ const createScholarship = async (req, res) => {
 
     // Handle banner image upload
     if (req.file) {
-      mappedData.bannerUrl = `/public/uploads/scholarships/${req.file.filename}`;
+      mappedData.bannerUrl = `/private/public/uploads/scholarships/${req.file.filename}`;
     }
 
     // Create scholarship
@@ -485,4 +691,7 @@ module.exports = {
   getScholarship,
   updateScholarship,
   deleteScholarship,
+  // **NEW EXPORTS** - Public functions for feed
+  getAllScholarshipBanners,
+  getScholarshipBannerDetails,
 };

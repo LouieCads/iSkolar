@@ -64,18 +64,19 @@ export default function SchoolLayout({
       name: 'Transactions',
       path: '/school/transactions',
       icon: Repeat
-    }
+    },
+    {
+      name: 'My Profile',
+      path: '/school/my-profile',
+      icon: UserCircle
+    },
   ];
 
   const settingsItems = [
-    {
-      name: 'My Profile',
-      path: '/school/settings/profile',
-      icon: UserCircle
-    },
+
     {
       name: 'Account',
-      path: '/school/settings/account',
+      path: '/school/settings/my-account',
       icon: Settings
     },
     {

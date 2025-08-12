@@ -128,6 +128,7 @@ exports.addUser = async (req, res) => {
       personaModel,
       isVerified: role === "admin" ? true : !!isVerified,
       status: status || "active",
+      hasSelectedRole: true,
     });
     await user.save();
     res.status(201).json({

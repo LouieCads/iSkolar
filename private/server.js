@@ -12,7 +12,7 @@ const credentialsRoutes = require("./routes/credentials");
 const tokenPaymentRoutes = require("./routes/token-payment");
 const kycKybConfigurationRoutes = require("./routes/kyc-kyb-configuration");
 const kycKybVerificationRoutes = require("./routes/kyc-kyb-verification");
-const scholarshipBannerRoutes = require("./routes/scholarship-banner");
+const scholarshipBannerRoutes = require("./routes/scholarships");
 
 dotenv.config();
 const app = express();

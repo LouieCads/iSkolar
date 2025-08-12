@@ -142,7 +142,7 @@ export default function StudentLayout({
                 <Link
                   key={item.path}
                   href={item.path}
-                  className={`flex flex-col items-center text-[11px] font-medium cursor-pointer transition-colors ${
+                  className={`flex flex-col items-center text-[11.5px] font-medium cursor-pointer transition-colors ${
                     isActive
                       ? "text-blue-600"
                       : "text-gray-600 hover:text-gray-900"

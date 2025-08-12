@@ -26,12 +26,10 @@ const scholarshipSchema = new mongoose.Schema({
   // Scholarship Details
   scholarshipType: {
     type: String,
-    enum: ["merit_based", "skill_based"],
     required: true,
   },
   purpose: {
     type: String,
-    enum: ["tuition", "allowance"],
     required: true,
   },
 
@@ -45,14 +43,6 @@ const scholarshipSchema = new mongoose.Schema({
   requiredDocuments: [
     {
       type: String,
-      enum: [
-        "id_card",
-        "birth_certificate",
-        "academic_records",
-        "certificates",
-        "awards",
-        "essay",
-      ],
     },
   ],
 
@@ -102,7 +92,7 @@ const scholarshipSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ["draft", "active", "closed", "archived"],
-    default: "draft",
+    default: "active",
   },
 
   // Applications

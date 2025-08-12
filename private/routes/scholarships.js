@@ -6,7 +6,9 @@ const {
   getScholarship,
   updateScholarship,
   deleteScholarship,
-} = require("../controllers/scholarship-banner");
+  getAllScholarshipBanners,
+  getScholarshipBannerDetails,
+} = require("../controllers/scholarships");
 const verifyToken = require("../middleware/auth");
 
 const router = express.Router();
@@ -25,9 +27,23 @@ const checkSponsorRole = (req, res, next) => {
   next();
 };
 
-// Apply sponsor role check to all routes
-router.use(checkSponsorRole);
+// **PUBLIC FEED ROUTES** - These should come BEFORE the sponsor middleware
+/**
+ * @route   GET /scholarship-banner/feed
+ * @desc    Get all active scholarship banners for feed display
+ * @access  Private (Both students and sponsors can access)
+ * @query   page, limit, scholarshipType, purpose, search, school, sortBy, sortOrder
+ */
+router.get("/feed", getAllScholarshipBanners);
 
+/**
+ * @route   GET /scholarship-banner/feed/:id
+ * @desc    Get detailed information about a specific scholarship banner
+ * @access  Private (Both students and sponsors can access)
+ */
+router.get("/feed/:id", getScholarshipBannerDetails);
+
+// **SPONSOR-ONLY ROUTES** - Apply sponsor role check to these routes
 /**
  * @route   POST /scholarship-banner/create
  * @desc    Create a new scholarship
@@ -37,7 +53,12 @@ router.use(checkSponsorRole);
  *          criteriaTags, requiredDocuments
  * @file    bannerImage (optional)
  */
-router.post("/create", upload.single("bannerImage"), createScholarship);
+router.post(
+  "/create",
+  checkSponsorRole,
+  upload.single("bannerImage"),
+  createScholarship
+);
 
 /**
  * @route   GET /scholarship-banner
@@ -45,14 +66,14 @@ router.post("/create", upload.single("bannerImage"), createScholarship);
  * @access  Private (Sponsor only)
  * @query   page, limit, status, scholarshipType, purpose, search
  */
-router.get("/", getScholarships);
+router.get("/", checkSponsorRole, getScholarships);
 
 /**
  * @route   GET /scholarship-banner/:id
  * @desc    Get a single scholarship by ID
  * @access  Private (Sponsor only)
  */
-router.get("/:id", getScholarship);
+router.get("/:id", checkSponsorRole, getScholarship);
 
 /**
  * @route   PUT /scholarship-banner/:id
@@ -61,13 +82,18 @@ router.get("/:id", getScholarship);
  * @body    Any scholarship fields to update
  * @file    bannerImage (optional)
  */
-router.put("/:id", upload.single("bannerImage"), updateScholarship);
+router.put(
+  "/:id",
+  checkSponsorRole,
+  upload.single("bannerImage"),
+  updateScholarship
+);
 
 /**
  * @route   DELETE /scholarship-banner/:id
  * @desc    Delete a scholarship
  * @access  Private (Sponsor only)
  */
-router.delete("/:id", deleteScholarship);
+router.delete("/:id", checkSponsorRole, deleteScholarship);
 
 module.exports = router;

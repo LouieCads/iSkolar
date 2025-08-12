@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function UserManagementSettingsLayout({
+export default function SponsorVerificationLayout({
   children,
 }: {
   children: React.ReactNode;

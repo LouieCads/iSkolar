@@ -181,7 +181,7 @@ export default function ScholarshipBanner({ scholarship, isPreview = false }) {
                   Criteria
                 </h4>
                 <div className="flex flex-wrap gap-1">
-                  {bannerData.criteriaTags.slice(0, 3).map((tag, index) => (
+                  {bannerData.criteriaTags.slice(0, 2).map((tag, index) => (
                     <span
                       key={index}
                       className="px-1.5 py-0.5 bg-gray-100 text-gray-700 text-[10.5px] rounded-full leading-tight"
@@ -189,9 +189,9 @@ export default function ScholarshipBanner({ scholarship, isPreview = false }) {
                       {tag}
                     </span>
                   ))}
-                  {bannerData.criteriaTags.length > 3 && (
+                  {bannerData.criteriaTags.length > 2 && (
                     <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-full leading-tight">
-                      +{bannerData.criteriaTags.length - 3} more
+                      +{bannerData.criteriaTags.length - 2} more
                     </span>
                   )}
                 </div>
