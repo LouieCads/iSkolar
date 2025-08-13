@@ -37,12 +37,14 @@ const scholarshipSchema = new mongoose.Schema({
   criteriaTags: [
     {
       type: String,
+      required: true,
       trim: true,
     },
   ],
   requiredDocuments: [
     {
       type: String,
+      required: true,
     },
   ],
 

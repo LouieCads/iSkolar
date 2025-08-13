@@ -94,7 +94,7 @@ export default function ScholarshipCard({ scholarship }) {
               <div className="w-32 h-32 flex-shrink-0 rounded-md overflow-hidden bg-white/10 relative">
                 {hasUploadedImage ? (
                   <img
-                    src={`/private/${imageSource}`}
+                    src={imageSource}
                     alt={`${scholarship.selectedSchool} banner`}
                     className="w-full h-full object-cover rounded-md"
                   />
@@ -178,13 +178,13 @@ export default function ScholarshipCard({ scholarship }) {
           <div className="grid grid-cols-2 gap-4 mb-4">
             {/* Criteria Tags - Left Column */}
             <div className="min-h-[60px]">
+              <h4 className="text-[10.5px] font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+                Criteria
+              </h4>
               {scholarship.criteriaTags?.length > 0 && (
                 <>
-                  <h4 className="text-[10.5px] font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
-                    Criteria
-                  </h4>
                   <div className="flex flex-wrap gap-1">
-                    {scholarship.criteriaTags.slice(0, 3).map((tag, index) => (
+                    {scholarship.criteriaTags.slice(0, 2).map((tag, index) => (
                       <span
                         key={index}
                         className="px-1.5 py-0.5 bg-gray-100 text-gray-700 text-[10.5px] rounded-full leading-tight"
@@ -192,7 +192,7 @@ export default function ScholarshipCard({ scholarship }) {
                         {tag}
                       </span>
                     ))}
-                    {scholarship.criteriaTags.length > 3 && (
+                    {scholarship.criteriaTags.length > 2 && (
                       <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-full leading-tight">
                         +{scholarship.criteriaTags.length - 2} more
                       </span>
@@ -207,16 +207,23 @@ export default function ScholarshipCard({ scholarship }) {
               <h4 className="text-[10.5px] font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
                 Required Documents
               </h4>
-              <div className="flex flex-wrap gap-1">
-                {scholarship.requiredDocuments?.map((doc, index) => (
-                  <span
-                    key={index}
-                    className="px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10.5px] rounded-full leading-tight"
-                  >
-                    {doc.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                  </span>
-                )) || <span className="text-xs text-gray-500">No documents specified</span>}
-              </div>
+              {scholarship.requiredDocuments?.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {scholarship.requiredDocuments.slice(0, 2).map((doc, index) => (
+                    <span
+                      key={index}
+                      className="px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10.5px] rounded-full leading-tight"
+                    >
+                      {doc.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </span>
+                  ))}
+                  {scholarship.requiredDocuments.length > 2 && (
+                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-full leading-tight">
+                      +{scholarship.requiredDocuments.length - 2} more
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

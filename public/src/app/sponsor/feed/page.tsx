@@ -226,38 +226,38 @@ export default function SponsorFeedPage() {
           <div className="col-span-3">
             <div className="sticky top-23 space-y-6">
               {/* Quick Stats */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <h3 className="text-base font-semibold text-gray-900 mb-4">
                   Quick Stats
                 </h3>
                 <div className="space-y-4">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">
+                  <div className="text-center p-2 bg-blue-50 rounded-lg">
+                    <div className="text-xl font-bold text-blue-600">
                       {pagination.total}
                     </div>
-                    <div className="text-sm text-gray-600">Active Scholarships</div>
+                    <div className="text-xs text-gray-600">Active Scholarships</div>
                   </div>
                   <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-xl font-bold text-green-600">
                       {totalSlots}
                     </div>
-                    <div className="text-sm text-gray-600">Total Slots Available</div>
+                    <div className="text-xs text-gray-600">Total Slots Available</div>
                   </div>
                   <div className="text-center p-3 bg-purple-50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">
+                    <div className="text-xl font-bold text-purple-600">
                       {new Intl.NumberFormat("en-PH", {
                         style: "currency",
                         currency: "PHP",
                         notation: "compact",
                       }).format(totalValue)}
                     </div>
-                    <div className="text-sm text-gray-600">Total Value</div>
+                    <div className="text-xs text-gray-600">Total Value</div>
                   </div>
                   <div className="text-center p-3 bg-orange-50 rounded-lg">
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-xl font-bold text-orange-600">
                       {urgentCount}
                     </div>
-                    <div className="text-sm text-gray-600">Ending Soon</div>
+                    <div className="text-xs text-gray-600">Ending Soon</div>
                   </div>
                 </div>
               </div>
