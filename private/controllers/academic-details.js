@@ -1,4 +1,5 @@
 const AcademicDetails = require("../models/AcademicDetails");
+const School = require("../models/School");
 
 // Get all academic details
 exports.getAcademicDetails = async (req, res) => {
@@ -15,6 +16,43 @@ exports.getAcademicDetails = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch academic details" });
+  }
+};
+
+// Get verified schools for student KYC form
+exports.getVerifiedSchools = async (req, res) => {
+  try {
+    // Find schools that have verified KYC/KYB records
+    const verifiedSchools = await School.aggregate([
+      {
+        $lookup: {
+          from: "kyckybverifications",
+          localField: "kycId",
+          foreignField: "_id",
+          as: "kycVerification",
+        },
+      },
+      {
+        $match: {
+          "kycVerification.status": "verified",
+        },
+      },
+      {
+        $project: {
+          schoolName: 1,
+          schoolType: 1,
+        },
+      },
+    ]);
+
+    res.json({
+      schools: verifiedSchools.map((school) => ({
+        name: school.schoolName,
+        type: school.schoolType,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch verified schools" });
   }
 };
 
@@ -78,7 +116,7 @@ exports.addSemester = async (req, res) => {
     const { semester } = req.body;
     if (!semester || typeof semester !== "string") {
       return res.status(400).json({ message: "Semester is required" });
-    } 
+    }
     let details = await AcademicDetails.findOne();
     if (!details) details = await AcademicDetails.create({});
     if (details.semester.includes(semester)) {
@@ -181,7 +219,7 @@ exports.deleteYearLevel = async (req, res) => {
 };
 
 // --- SCHOOL ---
-exports.addSchool = async (req, res) => {
+exports.addSchoolType = async (req, res) => {
   try {
     const { school } = req.body;
     if (!school || typeof school !== "string") {
@@ -200,7 +238,7 @@ exports.addSchool = async (req, res) => {
   }
 };
 
-exports.updateSchool = async (req, res) => {
+exports.updateSchoolType = async (req, res) => {
   try {
     const { oldSchool, newSchool } = req.body;
     if (!oldSchool || !newSchool) {
@@ -221,7 +259,7 @@ exports.updateSchool = async (req, res) => {
   }
 };
 
-exports.deleteSchool = async (req, res) => {
+exports.deleteSchoolType = async (req, res) => {
   try {
     const { school } = req.body;
     let details = await AcademicDetails.findOne();

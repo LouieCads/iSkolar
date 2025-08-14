@@ -2,8 +2,30 @@
 const KycKybVerification = require("../models/KycKybVerification");
 const School = require("../models/School");
 const Student = require("../models/Student");
+const User = require("../models/User");
 const fs = require("fs").promises;
 const path = require("path");
+
+// Helper function to find existing persona record
+const findExistingPersonaRecord = async (userId, personaType) => {
+  const user = await User.findById(userId);
+  if (!user || !user.personaId) {
+    return null;
+  }
+
+  switch (personaType) {
+    case "school":
+      return await School.findById(user.personaId);
+    case "student":
+      return await Student.findById(user.personaId);
+    case "sponsor":
+      // Add Sponsor model import if needed
+      // return await Sponsor.findById(user.personaId);
+      return null;
+    default:
+      return null;
+  }
+};
 
 // Get KYC/KYB status for current user
 exports.getKycStatus = async (req, res) => {
@@ -68,29 +90,59 @@ exports.submitStudentKyc = async (req, res) => {
       });
     }
 
-    // Accept schoolName from studentData
-    // const schoolName = studentData.student?.schoolName;
-    // if (!schoolName) {
-    //   return res.status(400).json({ message: "School name is required." });
-    // }
+    // Validate school selection
+    const schoolName = studentData.student?.schoolName;
+    if (!schoolName) {
+      return res.status(400).json({ message: "School name is required." });
+    }
 
-    // // Find the school by schoolName (case-insensitive)
-    // const school = await School.findOne({
-    //   schoolName: new RegExp(`^${schoolName}$`, "i"),
-    // });
-    // if (!school) {
-    //   return res.status(400).json({ message: "School not found." });
-    // }
+    // Find the verified school by schoolName
+    const school = await School.aggregate([
+      {
+        $match: {
+          schoolName: new RegExp(`^${schoolName}$`, "i"),
+        },
+      },
+      {
+        $lookup: {
+          from: "kyckybverifications",
+          localField: "kycId",
+          foreignField: "_id",
+          as: "kycVerification",
+        },
+      },
+      {
+        $match: {
+          "kycVerification.status": "verified",
+        },
+      },
+      {
+        $limit: 1,
+      },
+    ]);
+
+    if (!school || school.length === 0) {
+      return res.status(400).json({
+        message:
+          "Selected school not found or not verified. Please select a verified school from the dropdown.",
+      });
+    }
+
+    const schoolRecord = school[0];
+
+    // Find existing Student record
+    const existingStudent = await findExistingPersonaRecord(userId, "student");
 
     const kycData = {
       userId,
-      personaType: "Student",
+      personaType: "student", // Fixed to lowercase
       status: "pending", // Will be pending until school pre-approves
       declarationsAndConsent: studentData.declarationsAndConsent,
       student: studentData.student,
       documents: studentData.documents || [],
       submittedAt: new Date(),
-      schoolName: studentData.schoolName,
+      schoolName: schoolRecord.schoolName, // Use the verified school name
+      schoolId: schoolRecord._id, // Add school ID reference
     };
 
     let verification;
@@ -103,9 +155,25 @@ exports.submitStudentKyc = async (req, res) => {
       await verification.save();
     }
 
-    // Add to school's KYC review queue using schoolName
+    // Update or create Student record
+    if (existingStudent) {
+      existingStudent.schoolId = schoolRecord._id;
+      existingStudent.kycId = verification._id;
+      await existingStudent.save();
+      console.log("Updated existing Student record");
+    } else {
+      // Create new Student record if none exists
+      const newStudent = new Student({
+        schoolId: schoolRecord._id,
+        kycId: verification._id,
+      });
+      await newStudent.save();
+      console.log("Created new Student record");
+    }
+
+    // Add to school's KYC review queue
     await School.updateOne(
-      { schoolName: new RegExp(`^${schoolName}$`, "i") },
+      { _id: schoolRecord._id },
       {
         $addToSet: {
           kycReviewQueue: {
@@ -113,7 +181,7 @@ exports.submitStudentKyc = async (req, res) => {
             studentName: `${studentData.student?.fullName?.firstName || ""} ${
               studentData.student?.fullName?.lastName || ""
             }`.trim(),
-            schoolName,
+            schoolName: schoolRecord.schoolName,
             submittedAt: new Date(),
             status: "pending",
           },
@@ -128,7 +196,7 @@ exports.submitStudentKyc = async (req, res) => {
     res.status(existingKyc ? 200 : 201).json({
       message,
       verification,
-      schoolName, // Include for reference
+      schoolName: schoolRecord.schoolName,
       nextStep: "Waiting for school pre-approval",
     });
   } catch (error) {
@@ -507,8 +575,62 @@ exports.submitCorporateSponsorKyb = async (req, res) => {
 // Submit School KYB
 exports.submitSchoolKyb = async (req, res) => {
   try {
+    console.log("=== School KYB Submission ===");
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+
     const userId = req.user.id;
     const schoolData = req.body;
+
+    // Validate required fields
+    if (!schoolData.declarationsAndConsent) {
+      return res
+        .status(400)
+        .json({ message: "Declarations and consent are required" });
+    }
+
+    if (!schoolData.school || !schoolData.school.schoolName) {
+      return res.status(400).json({ message: "School name is required" });
+    }
+
+    if (!schoolData.school.schoolType) {
+      return res.status(400).json({ message: "School type is required" });
+    }
+
+    if (!schoolData.school.officialEmail) {
+      return res.status(400).json({ message: "Official email is required" });
+    }
+
+    if (
+      !schoolData.school.contactNumbers ||
+      schoolData.school.contactNumbers.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "At least one contact number is required" });
+    }
+
+    if (
+      !schoolData.school.businessVerification ||
+      !schoolData.school.businessVerification.tin
+    ) {
+      return res.status(400).json({ message: "TIN is required" });
+    }
+
+    if (
+      !schoolData.school.businessVerification ||
+      !schoolData.school.businessVerification.schoolIdNumber
+    ) {
+      return res.status(400).json({ message: "School ID number is required" });
+    }
+
+    if (
+      !schoolData.school.authorizedRepresentative ||
+      !schoolData.school.authorizedRepresentative.fullName
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Authorized representative full name is required" });
+    }
 
     const existingKyb = await KycKybVerification.findOne({ userId });
 
@@ -533,33 +655,56 @@ exports.submitSchoolKyb = async (req, res) => {
       });
     }
 
-    const kybData = {
+    const kycData = {
       userId,
-      personaType: "School",
+      personaType: "school", // Convert to lowercase to match model enum
       status: "pending",
       declarationsAndConsent: schoolData.declarationsAndConsent,
       school: schoolData.school,
-      documents: schoolData.documents || [],
+      fileNames: schoolData.documents || [], // Use fileNames instead of documents
       submittedAt: new Date(),
     };
 
+    let verification;
     if (existingKyb) {
-      Object.assign(existingKyb, kybData);
+      Object.assign(existingKyb, kycData);
       existingKyb.resubmissionCount = (existingKyb.resubmissionCount || 0) + 1;
-      await existingKyb.save();
-      res.status(200).json({
-        message: "School KYB resubmitted successfully",
-        verification: existingKyb,
-      });
+      verification = await existingKyb.save();
     } else {
-      const newKyb = new KycKybVerification(kybData);
-      await newKyb.save();
-      res.status(201).json({
-        message: "School KYB submitted successfully",
-        verification: newKyb,
-      });
+      verification = new KycKybVerification(kycData);
+      await verification.save();
     }
+
+    // Find existing School record by userId (from User model) or create new one
+    const existingSchool = await findExistingPersonaRecord(userId, "school");
+
+    if (existingSchool) {
+      // Update existing School record
+      existingSchool.schoolName = schoolData.school.schoolName;
+      existingSchool.schoolType = schoolData.school.schoolType;
+      existingSchool.kycId = verification._id;
+      await existingSchool.save();
+      console.log("Updated existing School record");
+    } else {
+      // Create new School record only if none exists
+      const schoolRecord = new School({
+        schoolName: schoolData.school.schoolName,
+        schoolType: schoolData.school.schoolType,
+        kycId: verification._id,
+      });
+      await schoolRecord.save();
+      console.log("Created new School record");
+    }
+
+    console.log("School KYB submitted successfully");
+    res.status(existingKyb ? 200 : 201).json({
+      message: existingKyb
+        ? "School KYB resubmitted successfully"
+        : "School KYB submitted successfully",
+      verification,
+    });
   } catch (error) {
+    console.error("School KYB Error:", error);
     res
       .status(500)
       .json({ message: "Error submitting School KYB", error: error.message });
@@ -789,6 +934,9 @@ exports.updateVerificationStatus = async (req, res) => {
     }
 
     await verification.save();
+
+    // Note: School verification status is now tracked through KycKybVerification
+    // No need to update School.verificationStatus anymore
 
     res.status(200).json({
       message: `Verification ${status} successfully`,

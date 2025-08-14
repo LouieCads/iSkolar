@@ -9,6 +9,17 @@ interface AcademicDetails {
   error: string | null;
 }
 
+interface VerifiedSchool {
+  name: string;
+  type: string;
+}
+
+interface VerifiedSchoolsData {
+  schools: VerifiedSchool[];
+  isLoading: boolean;
+  error: string | null;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export const useAcademicDetails = () => {
@@ -49,4 +60,39 @@ export const useAcademicDetails = () => {
   }, []);
 
   return details;
+};
+
+// Hook to fetch verified schools for student KYC
+export const useVerifiedSchools = () => {
+  const [verifiedSchools, setVerifiedSchools] = useState<VerifiedSchoolsData>({
+    schools: [],
+    isLoading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    const fetchVerifiedSchools = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/academic-details/verified-schools`);
+        if (!response.ok) throw new Error('Failed to fetch verified schools');
+        const data = await response.json();
+        
+        setVerifiedSchools({
+          schools: data.schools || [],
+          isLoading: false,
+          error: null,
+        });
+      } catch (error) {
+        setVerifiedSchools(prev => ({
+          ...prev,
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'An error occurred',
+        }));
+      }
+    };
+
+    fetchVerifiedSchools();
+  }, []);
+
+  return verifiedSchools;
 };

@@ -1,217 +1,97 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import Image from "next/image";
-import { useState } from "react";
+import { UserCircle, ShieldCheck } from "lucide-react";
 import {
-  Home,
-  Search,
-  FileText,
-  Wallet,
-  Bell,
-  User,
-} from "lucide-react";
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider 
+} from "@/components/ui/sidebar";
 import { usePlatform } from "@/hooks/use-platform";
 
-// Confirmation Modal Component (reusable)
-function LogoutConfirmModal({
-  isOpen,
-  onConfirm,
-  onCancel,
-}: {
-  isOpen: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/70 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-5 max-w-sm mx-4">
-        <h3 className="text-base font-semibold text-gray-900 mb-4">
-          Confirm Logout
-        </h3>
-        <p className="text-gray-600 mb-6 text-sm">
-          Are you sure you want to logout? You will be redirected to the login page.
-        </p>
-        <div className="flex gap-3 justify-end">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 text-gray-600 text-sm cursor-pointer bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 text-white text-sm cursor-pointer bg-red-600 rounded-md hover:bg-red-700 transition-colors"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function StudentLayout({
+export default function AccountLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { platform } = usePlatform();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const { platform, loading } = usePlatform();
 
   const navItems = [
     {
-      name: "Home",
-      path: "/student/dashboard",
-      icon: Home,
+      name: 'My Account',
+      path: '/student/account/my-account',
+      icon: UserCircle
     },
     {
-      name: "Scholarships",
-      path: "/student/scholarships",
-      icon: Search,
-    },
-    {
-      name: "Applications",
-      path: "/student/applications",
-      icon: FileText,
-    },
-    {
-      name: "Wallet",
-      path: "/student/wallet",
-      icon: Wallet,
-    },
-    {
-      name: "Notifications",
-      path: "/student/notifications",
-      icon: Bell,
+      name: 'Verification',
+      path: '/student/account/verification',
+      icon: ShieldCheck
     },
   ];
 
-  const handleLogout = () => {
-    // Remove token from localStorage
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      // You can also remove other auth-related items if needed
-      // localStorage.removeItem("userType");
-      // localStorage.removeItem("userId");
-    }
-
-    // Close dropdown and modal
-    setIsDropdownOpen(false);
-    setIsLogoutModalOpen(false);
-
-    // Redirect to auth page
-    router.push("/auth");
-  };
-
-  const handleLogoutClick = () => {
-    setIsLogoutModalOpen(true);
-  };
-
-  const handleCancelLogout = () => {
-    setIsLogoutModalOpen(false);
-  };
-
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Top Navigation */}
-      <header className="w-full sticky top-0 z-50 bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          {/* Logo + Search */}
-          <div className="flex items-center gap-4">
-            <Link href="/student">
-              <Image
-                src={platform?.logoUrl || "/iSkolar_logo.png"}
-                alt="Logo"
-                width={35}
-                height={35}
-              />
-            </Link>
-            <input
-              type="text"
-              placeholder="Search scholarships..."
-              className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Horizontal Nav */}
-          <nav className="flex items-center gap-8">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                pathname === item.path ||
-                pathname.startsWith(`${item.path}/`);
-
-              return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  className={`flex flex-col items-center text-xs cursor-pointer transition-colors ${
-                    isActive
-                      ? "text-blue-600"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  <Icon className="h-5 w-5 mb-1" />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Profile Dropdown */}
-          <div
-            className="relative cursor-pointer"
-            onClick={() => setIsDropdownOpen((prev) => !prev)}
-          >
-            <Image
-              src="/iSkolar_logo.png"
-              alt="Profile"
-              width={35}
-              height={35}
-              className="rounded-full"
-            />
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                <Link
-                  href="/student/my-profile"
-                  className="block px-4 py-2 text-sm hover:bg-gray-100"
-                >
-                  My Profile
-                </Link>
-                <Link
-                  href="/student/account/my-account"
-                  className="block px-4 py-2 text-sm hover:bg-gray-100"
-                >
+    <SidebarProvider> {/* Add this wrapper */}
+      <div className="flex min-h-screen">
+        <Sidebar className="border-r border-gray-200 bg-white">
+          <SidebarHeader className="p-4 pl-10 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <Link href="/sponsor" className="flex items-center space-x-2">
+                <Image
+                  src={platform?.logoUrl || "/iSkolar_logo.png"}
+                  alt="iSkolar Logo"
+                  width={33}
+                  height={35}
+                />
+                <span className="text-xl font-bold text-blue-900">
                   Account
-                </Link>
-                <button
-                  onClick={handleLogoutClick}
-                  className="block w-full text-sm cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+                </span>
+              </Link>
+            </div>
+          </SidebarHeader>
+          
+          <SidebarContent className="p-4">
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-1">
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <SidebarMenuItem key={item.path}>
+                        <Link href={item.path}>
+                          <SidebarMenuButton
+                            className={`w-full flex items-center cursor-pointer space-x-3 px-4 py-2.5 rounded-lg text-base font-normal transition-all duration-200 ${
+                              pathname === item.path
+                                ? "bg-blue-50 text-blue-700"
+                                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                            }`}
+                          >
+                            <Icon className="h-5 w-5" />
+                            <span>{item.name}</span>
+                          </SidebarMenuButton>
+                        </Link>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+        </Sidebar>
 
-      {/* Page Content */}
-      <main className="flex-1 bg-gray-50">{children}</main>
-
-      {/* Logout Confirmation Modal */}
-      <LogoutConfirmModal
-        isOpen={isLogoutModalOpen}
-        onConfirm={handleLogout}
-        onCancel={handleCancelLogout}
-      />
-    </div>
+        {/* Right Content Area */}
+        <main className="flex-1 p-8">
+          {children}
+        </main>
+      </div>
+    </SidebarProvider>
   );
 }

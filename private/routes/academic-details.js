@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   getAcademicDetails,
+  getVerifiedSchools,
   addCourse,
   updateCourse,
   deleteCourse,
@@ -11,13 +12,16 @@ const {
   addYearLevel,
   updateYearLevel,
   deleteYearLevel,
-  addSchool,
-  updateSchool,
-  deleteSchool,
+  addSchoolType,
+  updateSchoolType,
+  deleteSchoolType,
 } = require("../controllers/academic-details");
 
 // Get all academic details
 router.get("/academic-details", getAcademicDetails);
+
+// Get verified schools for student KYC
+router.get("/verified-schools", getVerifiedSchools);
 
 // Course endpoints
 router.post("/courses", addCourse);
@@ -34,9 +38,9 @@ router.post("/year-levels", addYearLevel);
 router.put("/year-levels", updateYearLevel);
 router.delete("/year-levels", deleteYearLevel);
 
-// School endpoints
-router.post("/schools", addSchool);
-router.put("/schools", updateSchool);
-router.delete("/schools", deleteSchool);
+// School Type endpoints
+router.post("/school-types", addSchoolType);
+router.put("/school-types", updateSchoolType);
+router.delete("/school-types", deleteSchoolType);
 
 module.exports = router;

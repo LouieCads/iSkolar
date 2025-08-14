@@ -1,7 +1,42 @@
-// School.js - Updated model
+// /models/School.js
 const mongoose = require("mongoose");
 
 const schoolSchema = new mongoose.Schema({
+  // School identification fields
+  schoolName: {
+    type: String,
+    unique: true,
+    trim: true,
+  },
+  schoolType: {
+    type: String,
+  },
+  // Remove verificationStatus - will use KycKybVerification instead
+  // Add KYC reference
+  kycId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "KycKybVerification",
+  },
+  // Add KYC review queue for student submissions
+  kycReviewQueue: [
+    {
+      verificationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "KycKybVerification",
+      },
+      studentName: String,
+      schoolName: String,
+      submittedAt: { type: Date, default: Date.now },
+      status: {
+        type: String,
+        enum: ["pending", "pre_approved", "denied"],
+        default: "pending",
+      },
+      reviewedAt: Date,
+      reviewedBy: String,
+      reviewerNotes: String,
+    },
+  ],
   courses: [
     {
       code: { type: String },
@@ -14,23 +49,6 @@ const schoolSchema = new mongoose.Schema({
       isActive: { type: Boolean, default: true },
     },
   ],
-  paymentMethods: {
-    gcash: {
-      number: { type: String },
-      accountName: { type: String },
-      isActive: { type: Boolean, default: false },
-    },
-    maya: {
-      number: { type: String },
-      accountName: { type: String },
-      isActive: { type: Boolean, default: false },
-    },
-    crypto: {
-      phpc: { type: String },
-      usdt: { type: String },
-      usdc: { type: String },
-    },
-  },
   students: [
     {
       studentId: {
@@ -43,28 +61,6 @@ const schoolSchema = new mongoose.Schema({
         default: "enrolled",
       },
       enrollmentDate: { type: Date, default: Date.now },
-    },
-  ],
-  kycReviewQueue: [
-    {
-      studentId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Student",
-      },
-      verificationId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "KycKybVerification",
-        required: true, // Add this to link to the actual KYC record
-      },
-      submittedAt: { type: Date, default: Date.now },
-      status: {
-        type: String,
-        enum: ["pending", "pre_approved", "denied"], // Fixed to use underscore for consistency
-        default: "pending",
-      },
-      reviewedAt: { type: Date },
-      reviewerNotes: { type: String },
-      reviewedBy: { type: String }, // Email of the school verifier
     },
   ],
   // Add field to track authorized verifiers

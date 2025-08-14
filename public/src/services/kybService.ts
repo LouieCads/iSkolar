@@ -22,42 +22,6 @@ export interface KybStatus {
   resubmissionCount?: number;
 }
 
-export interface SchoolData {
-  declarationsAndConsent: boolean;
-  school: {
-    schoolName: string;
-    schoolType: string;
-    campusAddress: {
-      country: string;
-      province: string;
-      city: string;
-      barangay: string;
-      street: string;
-      zipCode: string;
-    };
-    officialEmail: string;
-    contactNumbers: string[];
-    website?: string;
-    businessVerification: {
-      accreditationCertificate?: string;
-      businessPermit?: string;
-      tin: string;
-      schoolIdNumber: string;
-    };
-    authorizedRepresentative: {
-      fullName: string;
-      position: string;
-      email: string;
-      contactNumber: string;
-      nationality: string;
-      idType: string;
-      idNumber: string;
-      schoolId: string;
-    };
-  };
-  documents: File[];
-}
-
 export interface IndividualSponsorData {
   declarationsAndConsent: boolean;
   individualSponsor: {
@@ -146,27 +110,6 @@ export const kybService = {
         throw new Error('Please log in');
       }
       throw new Error(error.response?.data?.message || 'Error fetching KYB status');
-    }
-  },
-
-  // Submit School KYB
-  async submitSchoolKyb(schoolData: SchoolData) {
-    try {
-      const response = await axios.post(
-        `${API_URL}/kyc-kyb-verification/school/submit`,
-        schoolData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new Error('Please log in');
-      }
-      throw new Error(error.response?.data?.message || 'Error submitting School KYB');
     }
   },
 

@@ -226,38 +226,82 @@ export default function StudentFeedPage() {
           <div className="col-span-3">
             <div className="sticky top-23 space-y-6">
               {/* Quick Stats */}
-              <div className="bg-white rounded-lg border border-gray-200 p-5">
-                <h3 className="text-base font-semibold text-gray-900 mb-4">
+              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                <h3 className="text-base font-bold text-gray-900 mb-6 flex items-center">
+                  <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mr-3"></div>
                   Quick Stats
                 </h3>
                 <div className="space-y-4">
-                  <div className="text-center p-2 bg-blue-50 rounded-lg">
-                    <div className="text-xl font-bold text-blue-600">
-                      {pagination.total}
+                  {/* Active Scholarships */}
+                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-3 border border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xl font-bold text-blue-700">
+                          {pagination.total}
+                        </div>
+                        <div className="text-xs font-medium text-blue-600">Active Scholarships</div>
+                      </div>
+                      <div className="w-9 h-9 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-600">Active Scholarships</div>
                   </div>
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <div className="text-xl font-bold text-green-600">
-                      {totalSlots}
+
+                  {/* Total Slots */}
+                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 to-green-100 p-3 border border-green-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xl font-bold text-green-700">
+                          {totalSlots}
+                        </div>
+                        <div className="text-xs font-medium text-green-600">Total Slots Available</div>
+                      </div>
+                      <div className="w-9 h-9 bg-green-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-600">Total Slots Available</div>
                   </div>
-                  <div className="text-center p-3 bg-purple-50 rounded-lg">
-                    <div className="text-xl font-bold text-purple-600">
-                      {new Intl.NumberFormat("en-PH", {
-                        style: "currency",
-                        currency: "PHP",
-                        notation: "compact",
-                      }).format(totalValue)}
+
+                  {/* Total Value */}
+                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-50 to-purple-100 p-3 border border-purple-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xl font-bold text-purple-700">
+                          {new Intl.NumberFormat("en-PH", {
+                            style: "currency",
+                            currency: "PHP",
+                            notation: "compact",
+                          }).format(totalValue)}
+                        </div>
+                        <div className="text-xs font-medium text-purple-600">Total Value</div>
+                      </div>
+                      <div className="w-9 h-9 bg-purple-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-600">Total Value</div>
                   </div>
-                  <div className="text-center p-3 bg-orange-50 rounded-lg">
-                    <div className="text-xl font-bold text-orange-600">
-                      {urgentCount}
+
+                  {/* Ending Soon */}
+                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 p-3 border border-orange-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xl font-bold text-orange-700">
+                          {urgentCount}
+                        </div>
+                        <div className="text-xs font-medium text-orange-600">Ending Soon</div>
+                      </div>
+                      <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-600">Ending Soon</div>
                   </div>
                 </div>
               </div>

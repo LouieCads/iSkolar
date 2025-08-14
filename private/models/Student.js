@@ -6,6 +6,11 @@ const studentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "School",
   },
+  // Add KYC reference
+  kycId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "KycKybVerification",
+  },
   scholarshipApplications: [
     {
       scholarshipId: {

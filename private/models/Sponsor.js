@@ -2,6 +2,10 @@
 const mongoose = require("mongoose");
 
 const sponsorSchema = new mongoose.Schema({
+  kycId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "KycKybVerification",
+  },
   subRole: {
     type: String,
     enum: ["individual", "corporate"],

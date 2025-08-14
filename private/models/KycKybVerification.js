@@ -1,4 +1,4 @@
-// KycKybVerification.js
+// /models/KycKybVerification.js
 const mongoose = require("mongoose");
 
 const kycKybVerificationSchema = new mongoose.Schema({
@@ -8,8 +8,9 @@ const kycKybVerificationSchema = new mongoose.Schema({
   },
   personaType: {
     type: String,
-    enum: ["Student", "Sponsor", "School"],
+    enum: ["student", "sponsor", "school"],
     required: true,
+    lowercase: true, // Ensure lowercase
   },
   status: {
     type: String,
@@ -85,6 +86,12 @@ const kycKybVerificationSchema = new mongoose.Schema({
       seniorHigh: { name: String, yearGraduated: Number },
       college: { name: String, expectedGraduation: Number },
     },
+  },
+
+  // Add school reference for student KYC
+  schoolId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "School",
   },
 
   // Individual Sponsor-specific fields
@@ -214,6 +221,9 @@ const kycKybVerificationSchema = new mongoose.Schema({
       isVerified: { type: Boolean, default: false },
     },
   ],
+
+  // Alternative: Simple file names array for initial submissions
+  fileNames: [String],
 
   // System fields
   createdAt: {

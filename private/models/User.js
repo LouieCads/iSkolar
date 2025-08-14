@@ -1,3 +1,4 @@
+// /models/User.js
 const mongoose = require("mongoose");
 
 const PERSONA_TYPES = ["student", "sponsor", "school", "admin"];
@@ -26,10 +27,6 @@ const userSchema = new mongoose.Schema({
     enum: PERSONA_TYPES.map(
       (type) => type.charAt(0).toUpperCase() + type.slice(1)
     ), 
-  },
-  kycId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "KycKybVerification",
   },
   hasSelectedRole: {
     type: Boolean,

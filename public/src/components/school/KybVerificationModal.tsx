@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { CheckCircle, Building2, MapPin, FileText, Shield, User, X, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useKycKybConfiguration } from '@/hooks/useKycKybConfiguration';
-import { kybService } from '@/services/kybService';
+import { kycKybService } from '@/services/kycKybService';
 
 const STEPS = [
   { title: 'School Info', icon: Building2, gradient: 'from-indigo-500 to-purple-600' },
@@ -337,6 +337,16 @@ export default function SchoolKybVerificationModal({
     try {
       setIsSubmitting(true);
 
+      // Filter out empty contact numbers and prepare documents
+      const contactNumbers = formData.contactNumbers.filter(num => num.trim());
+      const documents = [
+        formData.accreditationDoc,
+        formData.businessPermitDoc,
+        formData.birCertificate,
+        formData.authorizationLetter,
+        formData.gisDoc,
+      ].filter(Boolean).map(doc => doc?.name || ''); // Convert File objects to file names
+
       const schoolData = {
         declarationsAndConsent: formData.consent,
         school: {
@@ -351,11 +361,11 @@ export default function SchoolKybVerificationModal({
             zipCode: formData.zipCode,
           },
           officialEmail: formData.officialEmail,
-          contactNumbers: formData.contactNumbers.filter(num => num.trim()),
-          website: formData.website,
+          contactNumbers: contactNumbers,
+          website: formData.website || '',
           businessVerification: {
-            accreditationCertificate: formData.accreditationCertificate,
-            businessPermit: formData.businessPermit,
+            accreditationCertificate: formData.accreditationCertificate || '',
+            businessPermit: formData.businessPermit || '',
             tin: formData.tin,
             schoolIdNumber: formData.schoolIdNumber,
           },
@@ -370,16 +380,11 @@ export default function SchoolKybVerificationModal({
             schoolId: formData.schoolId,
           },
         },
-        documents: [
-          formData.accreditationDoc,
-          formData.businessPermitDoc,
-          formData.birCertificate,
-          formData.authorizationLetter,
-          formData.gisDoc,
-        ].filter(Boolean) as File[],
+        documents: documents, // This will be an array of file names (strings)
       };
 
-      const response = await kybService.submitSchoolKyb(schoolData);
+      console.log('Submitting school data:', schoolData);
+      const response = await kycKybService.submitSchoolKyb(schoolData);
 
       showNotification('success', response.message || 'School KYB submitted successfully');
       setTimeout(() => {

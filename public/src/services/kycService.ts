@@ -18,10 +18,20 @@ export interface KycStatus {
   cooldownUntil?: string;
 }
 
+export interface VerifiedSchool {
+  name: string;
+  type: string;
+}
+
 export const kycService = {
   async getKycStatus(): Promise<KycStatus> {
     const response = await axios.get(`${API_URL}/kyc-kyb-verification/status`);
     return response.data;
+  },
+
+  async getVerifiedSchools(): Promise<VerifiedSchool[]> {
+    const response = await axios.get(`${API_URL}/academic-details/verified-schools`);
+    return response.data.schools;
   },
 
   async submitStudentKyc(formData: any) {
