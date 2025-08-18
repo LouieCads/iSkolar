@@ -223,8 +223,8 @@ export default function SponsorFeedPage() {
           </div>
 
           {/* Right Sidebar - Quick Stats & Info (3 columns) */}
-          <div className="col-span-3">
-            <div className="sticky top-23 space-y-6">
+          <div className="col-span-3 sticky top-23">
+            <div className="space-y-6">
               {/* Quick Stats */}
               <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                 <h3 className="text-base font-bold text-gray-900 mb-6 flex items-center">

@@ -1,797 +1,684 @@
+// app/school/kyc-approvals/page.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Eye, Check, X, Calendar, User, GraduationCap, MapPin, FileText, Phone, Mail } from "lucide-react";
-import axios from "axios";
-import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Search,
+  Eye,
+  Clock,
+  GraduationCap,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Loader2,
+  RefreshCw,
+  LogOut,
+  Mail,
+  Phone,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { schoolKycApprovalService, Verification, QueueItem } from "@/services/schoolKycApprovalService";
+import { StudentDetailsCard } from "@/components/school/kyc-approvals/StudentDetailsCard";
+import { useRouter } from "next/navigation";
 
-// Base API URL from environment variable or default
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+// Types
+interface Stats {
+  total: number;
+  pending: number;
+  preApproved: number;
+  denied: number;
+}
 
-// Axios instance with auth header
-const axiosInstance = axios.create({
-  baseURL: API_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+// Unified type for display
+interface DisplayItem {
+  id: string;
+  status: "pending" | "pre_approved" | "denied";
+  submittedAt: string;
+  studentName: string;
+  schoolName: string;
+  email?: string;
+  phone?: string;
+  course?: string;
+  yearLevel?: string;
+  studentIdNumber?: string;
+  verification?: Verification;
+}
 
-// Add JWT token to requests
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-const StatusBadge = ({ status, resubmissionCount }) => {
-  const getStatusColor = () => {
+// Status Badge Component
+const StatusBadge = ({ status }: { status: string }) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
       case "pre_approved":
-        return "bg-green-100 text-green-800 border-green-200";
+        return { color: "bg-blue-100 text-blue-800", icon: CheckCircle };
       case "denied":
-        return "bg-red-100 text-red-800 border-red-200";
+        return { color: "bg-red-100 text-red-800", icon: XCircle };
+      case "pending":
+        return { color: "bg-yellow-100 text-yellow-800", icon: Clock };
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return { color: "bg-gray-100 text-gray-800", icon: Clock };
     }
   };
 
+  const config = getStatusConfig(status);
+  const Icon = config.icon;
+
   return (
-    <div className="flex items-center gap-2">
-      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor()}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1).replace("_", " ")}
-      </span>
-      {resubmissionCount > 0 && (
-        <span className="text-xs text-orange-600 font-medium">
-          Resubmission #{resubmissionCount}
-        </span>
-      )}
+    <Badge className={`text-xs ${config.color} flex items-center gap-1`}>
+      <Icon className="h-3 w-3" />
+      {status.replace('_', ' ').charAt(0).toUpperCase() + status.replace('_', ' ').slice(1)}
+    </Badge>
+  );
+};
+
+// Verification Row Component
+const VerificationRow = ({
+  item,
+  onViewDetails,
+}: {
+  item: DisplayItem;
+  onViewDetails: (item: DisplayItem) => void;
+}) => {
+  const getPersonaDetails = () => {
+    return {
+      email: item.email || 'N/A',
+      phone: item.phone || 'N/A',
+      primary: item.schoolName || 'N/A',
+      secondary: item.course ? `${item.course}${item.yearLevel ? ` - Year ${item.yearLevel}` : ''}` : 'N/A',
+      id: item.studentIdNumber || 'N/A',
+    };
+  };
+
+  const details = getPersonaDetails();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
+      onClick={() => onViewDetails(item)}
+    >
+      <div className="p-4">
+        <div className="grid grid-cols-12 gap-4 items-center">
+          <div className="col-span-3">
+            <div className="flex items-center space-x-3">
+              <GraduationCap className="h-4 w-4 text-blue-600" />
+              <div className="min-w-0 flex-1">
+                <h3 className="font-medium text-gray-900 truncate">{item.studentName}</h3>
+                <p className="text-sm text-gray-500 capitalize">Student</p>
+              </div>
+            </div>
+          </div>
+          <div className="col-span-2">
+            <div className="space-y-1">
+              <div className="flex items-center text-sm text-gray-600">
+                <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span className="truncate" title={details.email}>{details.email}</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span className="truncate" title={details.phone}>{details.phone}</span>
+              </div>
+            </div>
+          </div>
+          <div className="col-span-2">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-900 truncate" title={details.primary}>{details.primary}</p>
+              <p className="text-sm text-gray-500 truncate" title={details.secondary}>{details.secondary}</p>
+            </div>
+          </div>
+          <div className="col-span-1">
+            <p className="text-sm text-gray-600 truncate" title={details.id}>{details.id}</p>
+          </div>
+          <div className="col-span-1 flex justify-center">
+            <StatusBadge status={item.status} />
+          </div>
+          <div className="col-span-2">
+            <div className="space-y-1">
+              <div className="flex items-center text-sm text-gray-600">
+                <Calendar className="h-3 w-3 mr-1" />
+                <span>{new Date(item.submittedAt).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+          <div className="col-span-1 flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewDetails(item);
+              }}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Table Header Component
+const TableHeader = () => {
+  return (
+    <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
+      <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
+        <div className="col-span-3">Name & Type</div>
+        <div className="col-span-2">Contact Information</div>
+        <div className="col-span-2">Primary Details</div>
+        <div className="col-span-1">ID Number</div>
+        <div className="col-span-1 text-center">Status</div>
+        <div className="col-span-2">Date</div>
+        <div className="col-span-1 text-right">Actions</div>
+      </div>
     </div>
   );
 };
 
-const KycModal = ({ student, isOpen, onClose, onApprove, onReject }) => {
-  const [rejectReason, setRejectReason] = useState("");
-  const [reviewerNotes, setReviewerNotes] = useState("");
-  const [showRejectForm, setShowRejectForm] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  if (!isOpen || !student) return null;
-
-  const handleApprove = async () => {
-    setIsLoading(true);
-    try {
-      await onApprove(student._id, reviewerNotes);
-    } catch (error) {
-      throw error; // Handled in parent component
-    } finally {
-      setIsLoading(false);
-      setReviewerNotes("");
-    }
-  };
-
-  const handleReject = async () => {
-    if (rejectReason.trim()) {
-      setIsLoading(true);
-      try {
-        await onReject(student._id, rejectReason, reviewerNotes);
-        onClose();
-        setRejectReason("");
-        setReviewerNotes("");
-        setShowRejectForm(false);
-      } catch (error) {
-        throw error; // Handled in parent component
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      // Trigger error notification
-      throw new Error("Please provide a reason for rejection");
-    }
-  };
-
-  const formatFullName = (fullName) => {
-    return `${fullName.firstName} ${fullName.middleName || ""} ${fullName.lastName}`.trim();
-  };
-
-  const handleViewDocument = (fileUrl) => {
-    window.open(`${API_URL}${fileUrl}`, "_blank");
-  };
-
-  // Handler for clicking outside the modal
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
+// Stats Cards Component
+const StatsCards = ({ stats }: { stats: Stats }) => {
+  const statItems = [
+    { label: "Total", count: stats.total, color: "text-gray-600", icon: GraduationCap },
+    { label: "Pending", count: stats.pending, color: "text-yellow-600", icon: Clock },
+    { label: "Pre-Approved", count: stats.preApproved, color: "text-blue-600", icon: CheckCircle },
+    { label: "Denied", count: stats.denied, color: "text-red-600", icon: XCircle },
+  ];
 
   return (
-    <div
-      className="fixed inset-0 bg-black/30 backdrop-blur-md flex items-center justify-center z-50 p-4"
-      onClick={handleBackdropClick}
-    >
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b p-6 flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-900">Student KYC Review</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            disabled={isLoading}
-          >
-            <X size={24} />
-          </button>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      {statItems.map((stat) => (
+        <Card key={stat.label} className="p-4">
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                <p className={`text-2xl font-bold ${stat.color}`}>{stat.count}</p>
+              </div>
+              <div className="p-2 rounded-full bg-gray-100">
+                <stat.icon className="w-5 h-5 text-gray-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
+// Main Page Component
+export default function KYCApprovalsPage() {
+  const [verifications, setVerifications] = useState<Verification[]>([]);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedVerification, setSelectedVerification] = useState<DisplayItem | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isDenialModalOpen, setIsDenialModalOpen] = useState(false);
+  const [denialReason, setDenialReason] = useState("");
+  const [reviewerNotes, setReviewerNotes] = useState("");
+  const [processingAction, setProcessingAction] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const router = useRouter();
+  const itemsPerPage = 10;
+
+  // Fetch school's KYC queue
+  const fetchVerifications = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await schoolKycApprovalService.getSchoolKycQueue();
+      console.log("Frontend received API response:", response);
+      setVerifications(response.kycVerifications || []);
+      setQueue(response.queue || []);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch student verifications');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVerifications();
+  }, []);
+
+  // Reset currentPage when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    router.push('/login');
+  };
+
+  // Combine verifications and queue for display
+  const displayItems: DisplayItem[] = verifications.length > 0
+    ? verifications.map((v) => ({
+        id: v._id,
+        status: v.status,
+        submittedAt: v.submittedAt,
+        studentName: v.student?.fullName
+          ? `${v.student.fullName.firstName || ''} ${v.student.fullName.lastName || ''}`.trim()
+          : 'Unknown',
+        schoolName: v.student?.schoolName || '',
+        email: v.student?.email,
+        phone: v.student?.mobileNumber,
+        course: v.student?.course,
+        yearLevel: v.student?.yearLevel,
+        studentIdNumber: v.student?.studentIdNumber,
+        verification: v,
+      }))
+    : queue.map((q) => ({
+        id: q.verificationId,
+        status: q.status,
+        submittedAt: q.submittedAt,
+        studentName: q.studentName,
+        schoolName: q.schoolName,
+        email: q.verification?.student?.email,
+        phone: q.verification?.student?.mobileNumber,
+        course: q.verification?.student?.course,
+        yearLevel: q.verification?.student?.yearLevel,
+        studentIdNumber: q.verification?.student?.studentIdNumber,
+        verification: q.verification,
+      }));
+
+  // Filter display items
+  const filteredItems = displayItems.filter((item) => {
+    const name = item.studentName.toLowerCase();
+    const email = item.email?.toLowerCase() || '';
+    const matchesSearch = name.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const paginatedItems = filteredItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Calculate stats
+  const stats: Stats = {
+    total: displayItems.length,
+    pending: displayItems.filter(v => v.status === "pending").length,
+    preApproved: displayItems.filter(v => v.status === "pre_approved").length,
+    denied: displayItems.filter(v => v.status === "denied").length,
+  };
+
+  // Handle actions
+  const handleViewDetails = (item: DisplayItem) => {
+    setSelectedVerification(item);
+    setIsDetailModalOpen(true);
+  };
+
+  const handlePreApprove = async () => {
+    if (!selectedVerification) return;
+    try {
+      setProcessingAction(true);
+      await schoolKycApprovalService.preApproveStudent(selectedVerification.id, { reviewerNotes });
+      setVerifications(prev =>
+        prev.map(v =>
+          v._id === selectedVerification.id
+            ? { ...v, status: "pre_approved", verifiedBy: "current_user", updatedAt: new Date().toISOString() }
+            : v
+        )
+      );
+      setQueue(prev =>
+        prev.map(q =>
+          q.verificationId === selectedVerification.id
+            ? { ...q, status: "pre_approved", reviewedAt: new Date().toISOString(), reviewerNotes }
+            : q
+        )
+      );
+      setIsDetailModalOpen(false);
+      setSelectedVerification(null);
+      setReviewerNotes("");
+    } catch (err: any) {
+      setError(err.message || 'Failed to pre-approve student');
+    } finally {
+      setProcessingAction(false);
+    }
+  };
+
+  const handleDeny = async () => {
+    if (!selectedVerification || !denialReason.trim()) return;
+    try {
+      setProcessingAction(true);
+      await schoolKycApprovalService.denyStudent(selectedVerification.id, { denialReason, reviewerNotes });
+      setVerifications(prev =>
+        prev.map(v =>
+          v._id === selectedVerification.id
+            ? { ...v, status: "denied", denialReason, verifiedBy: "current_user", updatedAt: new Date().toISOString() }
+            : v
+        )
+      );
+      setQueue(prev =>
+        prev.map(q =>
+          q.verificationId === selectedVerification.id
+            ? { ...q, status: "denied", denialReason, reviewedAt: new Date().toISOString(), reviewerNotes }
+            : q
+        )
+      );
+      setIsDetailModalOpen(false);
+      setIsDenialModalOpen(false);
+      setSelectedVerification(null);
+      setDenialReason("");
+      setReviewerNotes("");
+    } catch (err: any) {
+      setError(err.message || 'Failed to deny student');
+    } finally {
+      setProcessingAction(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading student verifications...</p>
         </div>
+      </div>
+    );
+  }
 
-        <div className="p-6 space-y-6">
-          {/* Student Information */}
-          <section>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <User size={20} className="text-blue-600" />
-              Student Information
-            </h3>
-            <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Full Name</label>
-                <p className="text-gray-900">{formatFullName(student.student.fullName)}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Student ID</label>
-                <p className="text-gray-900">{student.student.studentIdNumber}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Email</label>
-                <p className="text-gray-900 flex items-center gap-1">
-                  <Mail size={16} />
-                  {student.student.email}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Mobile</label>
-                <p className="text-gray-900 flex items-center gap-1">
-                  <Phone size={16} />
-                  {student.student.mobileNumber}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Age / Gender</label>
-                <p className="text-gray-900">
-                  {student.student.age} years old, {student.student.gender}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Nationality</label>
-                <p className="text-gray-900">{student.student.nationality}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Date of Birth</label>
-                <p className="text-gray-900">{new Date(student.student.dateOfBirth).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Place of Birth</label>
-                <p className="text-gray-900">{student.student.placeOfBirth}</p>
-              </div>
-            </div>
-          </section>
-
-          {/* Address */}
-          <section>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <MapPin size={20} className="text-green-600" />
-              Address
-            </h3>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-gray-900">
-                {student.student.address.street}, {student.student.address.barangay},{" "}
-                {student.student.address.city}, {student.student.address.province}{" "}
-                {student.student.address.zipCode}, {student.student.address.country}
-              </p>
-            </div>
-          </section>
-
-          {/* Academic Details */}
-          <section>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <GraduationCap size={20} className="text-purple-600" />
-              Academic Details
-            </h3>
-            <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Course</label>
-                <p className="text-gray-900">{student.student.course}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Year Level</label>
-                <p className="text-gray-900">{student.student.yearLevel}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">School</label>
-                <p className="text-gray-900">{student.student.schoolName}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Expected Graduation</label>
-                <p className="text-gray-900">
-                  {student.student.educationalBackground.college.expectedGraduation}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <h4 className="font-medium text-gray-900 mb-3">Educational Background</h4>
-              <div className="space-y-2">
-                {Object.entries(student.student.educationalBackground).map(([level, info]) => (
-                  <div
-                    key={level}
-                    className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0"
-                  >
-                    <span className="capitalize font-medium text-gray-700">
-                      {level.replace(/([A-Z])/g, " $1").trim()}
-                    </span>
-                    <span className="text-gray-600">
-                      {} -
-                      {level === "college" ? `Expected: ${info}` : "2027"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Documents */}
-          <section>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <FileText size={20} className="text-orange-600" />
-              Documents ({student.documents.length})
-            </h3>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="space-y-3">
-                {student.documents.map((doc, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-white rounded border">
-                    <div className="flex items-center gap-3">
-                      <FileText size={20} className="text-blue-600" />
-                      <div>
-                        <p className="font-medium text-gray-900">{doc.fileName}</p>
-                        <p className="text-sm text-gray-600 capitalize">{doc.type.replace(/_/g, " ")}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleViewDocument(doc.fileUrl)}
-                      className="text-blue-600 hover:text-blue-800 transition-colors font-medium"
-                    >
-                      View
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Reviewer Notes */}
-          <section>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <FileText size={20} className="text-gray-600" />
-              Reviewer Notes
-            </h3>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <textarea
-                value={reviewerNotes}
-                onChange={(e) => setReviewerNotes(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                rows={3}
-                placeholder="Add optional notes for this review..."
-              />
-            </div>
-          </section>
+  if (error) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-4" />
+          <p className="text-red-600 mb-4">{error}</p>
+          <div className="flex flex-col gap-2">
+            <Button onClick={fetchVerifications} className="flex items-center mx-auto">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+            {error.includes("Unauthorized") && (
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="flex items-center mx-auto"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Log Out
+              </Button>
+            )}
+          </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Action Buttons */}
-        <div className="sticky bottom-0 bg-white border-t p-6">
-          {showRejectForm ? (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Reason for Rejection
-                </label>
-                <textarea
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  rows={3}
-                  placeholder="Please provide a reason for rejection..."
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Student KYC Approvals</h1>
+          <p className="text-gray-600">Review and pre-approve student verification requests</p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <StatsCards stats={stats} />
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
                 />
               </div>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowRejectForm(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-                  disabled={isLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleReject}
-                  disabled={isLoading}
-                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isLoading ? "Processing..." : "Confirm Rejection"}
-                </button>
-              </div>
             </div>
-          ) : (
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowRejectForm(true)}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
-                disabled={isLoading}
-              >
-                <X size={18} />
-                Reject
-              </button>
-              <button
-                onClick={handleApprove}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-                disabled={isLoading}
-              >
-                <Check size={18} />
-                {isLoading ? "Processing..." : "Pre-Approve"}
-              </button>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="pre_approved">Pre-Approved</SelectItem>
+                  <SelectItem value="denied">Denied</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Verifications Table */}
+      <Card>
+        <TableHeader />
+        <div className="divide-y divide-gray-200">
+          {paginatedItems.map((item) => (
+            <VerificationRow
+              key={item.id}
+              item={item}
+              onViewDetails={handleViewDetails}
+            />
+          ))}
+        </div>
+      </Card>
+
+      {/* Empty State */}
+      {displayItems.length === 0 && (
+        <div className="text-center py-12">
+          <GraduationCap className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 mb-2">No student verifications found</p>
+          {queue.length > 0 && verifications.length === 0 && (
+            <p className="text-gray-500 text-sm">
+              {queue.length} queue entries found but no matching KYC verifications. Contact support to resolve data issues.
+            </p>
           )}
         </div>
-      </div>
-    </div>
-  );
-};
+      )}
 
-export default function KYCApprovalsPage() {
-  const [kycData, setKycData] = useState([]);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("pending");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [notification, setNotification] = useState({ show: false, type: "", message: "" });
-
-  // Fetch KYC queue on mount and when activeFilter changes
-  useEffect(() => {
-    const fetchKycQueue = async () => {
-      setIsLoading(true);
-      setError("");
-      try {
-        const response = await axiosInstance.get("/kyc-kyb-verification/school/queue");
-        const queue = response.data.queue || [];
-        setKycData(
-          queue.map((item) => ({
-            _id: item.verificationId._id,
-            userId: item.studentId._id,
-            personaType: "Student",
-            status: item.status,
-            resubmissionCount: item.verificationId.resubmissionCount || 0,
-            declarationsAndConsent: item.verificationId.declarationsAndConsent,
-            submittedAt: item.submittedAt,
-            student: item.verificationId.student,
-            documents: item.verificationId.documents,
-            reviewerNotes: item.reviewerNotes,
-            reviewedAt: item.reviewedAt,
-          }))
-        );
-        setNotification({
-          show: true,
-          type: "fetch",
-          message: "KYC queue loaded successfully!",
-        });
-        setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
-      } catch (error) {
-        setError(error.response?.data?.message || "Error fetching KYC queue");
-        setNotification({
-          show: true,
-          type: "error",
-          message: error.response?.data?.message || "Error fetching KYC queue",
-        });
-        setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchKycQueue();
-  }, [activeFilter]);
-
-  const handleRowClick = (student) => {
-    setSelectedStudent(student);
-    setIsModalOpen(true);
-  };
-
-  const handleApprove = async (verificationId, reviewerNotes) => {
-    try {
-      await axiosInstance.post(`/kyc-kyb-verification/pre-approve/${verificationId}`, {
-        reviewerNotes,
-      });
-      setKycData((prev) =>
-        prev.map((student) =>
-          student._id === verificationId
-            ? { ...student, status: "pre_approved", reviewedAt: new Date(), reviewerNotes }
-            : student
-        )
-      );
-      setNotification({
-        show: true,
-        type: "approve",
-        message: "Student KYC pre-approved successfully!",
-      });
-      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
-    } catch (error) {
-      setNotification({
-        show: true,
-        type: "error",
-        message: error.response?.data?.message || "Error pre-approving student",
-      });
-      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
-      throw error;
-    }
-  };
-
-  const handleReject = async (verificationId, denialReason, reviewerNotes) => {
-    try {
-      await axiosInstance.post(`/kyc-kyb-verification/school-deny/${verificationId}`, {
-        denialReason,
-        reviewerNotes,
-      });
-      setKycData((prev) =>
-        prev.map((student) =>
-          student._id === verificationId
-            ? {
-                ...student,
-                status: "denied",
-                denialReason,
-                reviewerNotes,
-                reviewedAt: new Date(),
-                resubmissionCount: student.resubmissionCount + 1,
-              }
-            : student
-        )
-      );
-      setNotification({
-        show: true,
-        type: "deny",
-        message: "Student KYC denied successfully!",
-      });
-      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
-    } catch (error) {
-      setNotification({
-        show: true,
-        type: "error",
-        message: error.response?.data?.message || "Error denying student",
-      });
-      setTimeout(() => setNotification({ show: false, type: "", message: "" }), 3000);
-      throw error;
-    }
-  };
-
-  const formatFullName = (fullName) => {
-    return `${fullName.firstName} ${fullName.middleName || ""} ${fullName.lastName}`.trim();
-  };
-
-  const pendingStudents = kycData.filter((student) => student.status === "pending");
-  const preApprovedStudents = kycData.filter((student) => student.status === "pre_approved");
-  const deniedStudents = kycData.filter((student) => student.status === "denied");
-
-  const getFilteredStudents = () => {
-    switch (activeFilter) {
-      case "pending":
-        return pendingStudents;
-      case "pre_approved":
-        return preApprovedStudents;
-      case "denied":
-        return deniedStudents;
-      default:
-        return pendingStudents;
-    }
-  };
-
-  const filteredStudents = getFilteredStudents();
-
-  const getFilterTitle = () => {
-    switch (activeFilter) {
-      case "pending":
-        return "Pending Approvals";
-      case "pre_approved":
-        return "Pre-Approved Students";
-      case "denied":
-        return "Denied Applications";
-      default:
-        return "Students";
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="mb-4">
-          <h1 className="text-xl font-bold text-gray-900 mb-1">KYC Pre-Approvals</h1>
-          <p className="text-sm text-gray-600">Review and approve student KYC submissions</p>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredItems.length)} of {filteredItems.length} results
+          </p>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
+      )}
 
-        {error && (
-          <div className="text-center text-red-500 py-6 text-sm">{error}</div>
-        )}
+      {/* Detail Modal */}
+      <Dialog open={isDetailModalOpen} onOpenChange={(open) => {
+        setIsDetailModalOpen(open);
+        if (!open) setSelectedVerification(null);
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <GraduationCap className="h-6 w-6 text-blue-600" />
+              <span>Student Verification Details - {selectedVerification?.studentName || 'Unknown'}</span>
+            </DialogTitle>
+          </DialogHeader>
 
-        {/* Status Overview Cards */}
-        {isLoading ? (
-          <div className="text-center text-gray-500 py-6 text-sm">Loading KYC submissions...</div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
-              <div
-                className={`bg-white p-3 rounded-md shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${
-                  activeFilter === "pending" ? "ring-2 ring-yellow-500 ring-opacity-50 bg-yellow-50" : ""
-                }`}
-                onClick={() => setActiveFilter("pending")}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600">Pending Review</p>
-                    <p className="text-xl font-bold text-yellow-600">{pendingStudents.length}</p>
-                  </div>
-                  <div className="p-2 rounded-full bg-yellow-100">
-                    <Calendar className="w-5 h-5 text-yellow-600" />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Awaiting approval</p>
-              </div>
-
-              <div
-                className={`bg-white p-3 rounded-md shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${
-                  activeFilter === "pre_approved" ? "ring-2 ring-green-500 ring-opacity-50 bg-green-50" : ""
-                }`}
-                onClick={() => setActiveFilter("pre_approved")}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600">Pre-Approved</p>
-                    <p className="text-xl font-bold text-green-600">{preApprovedStudents.length}</p>
-                  </div>
-                  <div className="p-2 rounded-full bg-green-100">
-                    <Check className="w-5 h-5 text-green-600" />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Ready for final verification</p>
-              </div>
-
-              <div
-                className={`bg-white p-3 rounded-md shadow-sm border border-gray-200 cursor-pointer transition-all hover:shadow-md ${
-                  activeFilter === "denied" ? "ring-2 ring-red-500 ring-opacity-50 bg-red-50" : ""
-                }`}
-                onClick={() => setActiveFilter("denied")}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-gray-600">Denied</p>
-                    <p className="text-xl font-bold text-red-600">{deniedStudents.length}</p>
-                  </div>
-                  <div className="p-2 rounded-full bg-red-100">
-                    <X className="w-5 h-5 text-red-600" />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Requires resubmission</p>
-              </div>
-            </div>
-
-            {/* Main Content Container */}
-            <div className="bg-white rounded-md shadow-sm border border-gray-200 h-[600px] flex flex-col min-w-[1000px]">
-              {/* Filter Tabs */}
-              <div className="border-b">
-                <nav className="flex space-x-8 px-6">
-                  <button
-                    onClick={() => setActiveFilter("pending")}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                      activeFilter === "pending"
-                        ? "border-yellow-500 text-yellow-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    Pending ({pendingStudents.length})
-                  </button>
-                  <button
-                    onClick={() => setActiveFilter("pre_approved")}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                      activeFilter === "pre_approved"
-                        ? "border-green-500 text-green-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    Pre-Approved ({preApprovedStudents.length})
-                  </button>
-                  <button
-                    onClick={() => setActiveFilter("denied")}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                      activeFilter === "denied"
-                        ? "border-red-500 text-red-600"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                  >
-                    Denied ({deniedStudents.length})
-                  </button>
-                </nav>
-              </div>
-
-              {/* Table Header */}
-              <div className="p-3 border-b bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-semibold text-gray-900">
-                    {getFilterTitle()} ({filteredStudents.length})
-                  </h2>
-                  <div className="text-sm text-gray-500">Click on any row to review details</div>
-                </div>
-              </div>
-
-              {/* Table Content */}
-              <div className="flex-1 overflow-hidden">
-                <div className="overflow-x-auto overflow-y-auto h-full">
-                  <table className="w-full table-fixed">
-                    <thead className="bg-gray-50 sticky top-0">
-                      <tr>
-                        <th className="w-1/4 px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Student
-                        </th>
-                        <th className="w-1/4 px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Academic Details
-                        </th>
-                        <th className="w-1/6 px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="w-1/6 px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          {activeFilter === "pending" ? "Submitted" : activeFilter === "pre_approved" ? "Approved" : "Denied"}
-                        </th>
-                        <th className="w-1/6 px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Documents
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredStudents.length > 0 ? (
-                        filteredStudents.map((student) => (
-                          <tr
-                            key={student._id}
-                            onClick={() => handleRowClick(student)}
-                            className="hover:bg-gray-50 cursor-pointer transition-colors"
-                          >
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                  <User size={20} className="text-blue-600" />
-                                </div>
-                                <div>
-                                  <div className="font-medium text-gray-900">
-                                    {formatFullName(student.student.fullName)}
-                                  </div>
-                                  <div className="text-sm text-gray-500">{student.student.studentIdNumber}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div>
-                                <div className="font-medium text-gray-900">{student.student.course}</div>
-                                <div className="text-sm text-gray-500">
-                                  {student.student.yearLevel} • {student.student.schoolName}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <StatusBadge status={student.status} resubmissionCount={student.resubmissionCount} />
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-1 text-sm text-gray-500">
-                                <Calendar size={16} />
-                                {new Date(student.submittedAt).toLocaleDateString()}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-1 text-sm text-gray-500">
-                                <FileText size={16} />
-                                {student.documents.length} files
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={5} className="px-6 py-4 text-center">
-                            <div className="flex flex-col items-center justify-center h-full py-16">
-                              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                                {activeFilter === "pending" && <Calendar size={24} className="text-gray-400" />}
-                                {activeFilter === "pre_approved" && <Check size={24} className="text-gray-400" />}
-                                {activeFilter === "denied" && <X size={24} className="text-gray-400" />}
-                              </div>
-                              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                No {activeFilter.replace("_", " ")} applications
-                              </h3>
-                              <p className="text-gray-500">
-                                {activeFilter === "pending" && "All KYC submissions have been processed."}
-                                {activeFilter === "pre_approved" && "No students have been pre-approved yet."}
-                                {activeFilter === "denied" && "No applications have been denied."}
-                              </p>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <KycModal
-              student={selectedStudent}
-              isOpen={isModalOpen}
-              onClose={() => {
-                setIsModalOpen(false);
-                setSelectedStudent(null);
-              }}
-              onApprove={handleApprove}
-              onReject={handleReject}
-            />
-
-            {/* Notification */}
-            <AnimatePresence>
-              {notification.show && (
-                <motion.div
-                  initial={{ opacity: 1, x: 500 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 500 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 900,
-                    damping: 25,
-                    duration: 0.2,
-                  }}
-                  className={`fixed w-[325px] flex justify-end items-center h-[55px] bottom-5 right-5 rounded-[10px] text-[#002828] ${
-                    notification.type === "error" || notification.type === "deny"
-                      ? "bg-red-500"
-                      : "bg-[#26D871]"
-                  } rounded-md shadow-xl z-100`}
-                >
-                  <div className="flex gap-3 items-center w-[320px] h-[55px] bg-gray-50 rounded-[5px] border-white px-3 py-2">
+          {selectedVerification && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      {notification.type === "error" || notification.type === "deny" ? (
-                        <X width={23} height={23} className="text-red-500" />
-                      ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="23"
-                          height="23"
-                          fill="#26D871"
-                          className="bi bi-check-square-fill"
-                          viewBox="0 0 16 16"
-                        >
-                          <path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm10.03 4.97a.75.75 0 0 1 .011 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.75.75 0 0 1 1.08-.022z" />
-                        </svg>
-                      )}
+                      <label className="text-sm font-medium text-gray-700">Name</label>
+                      <p className="text-gray-900">{selectedVerification.studentName}</p>
                     </div>
                     <div>
-                      <p className="font-semibold text-[14px]">
-                        {notification.type === "error" ? "Error" : "Success"}
-                      </p>
-                      <p className="text-[12px]">{notification.message}</p>
+                      <label className="text-sm font-medium text-gray-700">Email</label>
+                      <p className="text-gray-900">{selectedVerification.email || 'N/A'}</p>
                     </div>
-                    <button
-                      onClick={() => setNotification({ show: false, type: "", message: "" })}
-                      className="ml-auto text-gray-400 hover:text-gray-600"
-                    >
-                      &times;
-                    </button>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Status</label>
+                      <StatusBadge status={selectedVerification.status} />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Submitted</label>
+                      <p className="text-gray-900">{new Date(selectedVerification.submittedAt).toLocaleDateString()}</p>
+                    </div>
                   </div>
-                </motion.div>
+                </CardContent>
+              </Card>
+
+              {/* Student Details */}
+              {selectedVerification.verification ? (
+                <StudentDetailsCard verification={selectedVerification.verification} />
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Student Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600">Detailed student information is unavailable. Please contact support to resolve data issues.</p>
+                  </CardContent>
+                </Card>
               )}
-            </AnimatePresence>
-          </>
-        )}
-      </div>
+
+              {/* Reviewer Notes */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Reviewer Notes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={reviewerNotes}
+                    onChange={(e) => setReviewerNotes(e.target.value)}
+                    placeholder="Add notes for this verification..."
+                    rows={4}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              {selectedVerification.status === "pending" && (
+                <div className="flex justify-end space-x-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDenialModalOpen(true)}
+                    disabled={processingAction || !selectedVerification.verification}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Deny
+                  </Button>
+                  <Button
+                    onClick={handlePreApprove}
+                    disabled={processingAction || !selectedVerification.verification}
+                  >
+                    {processingAction ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                    )}
+                    Pre-Approve
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Denial Modal */}
+      <Dialog open={isDenialModalOpen} onOpenChange={(open) => {
+        setIsDenialModalOpen(open);
+        if (!open) {
+          setDenialReason("");
+          setReviewerNotes("");
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Deny Student Verification</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Reason for Denial</label>
+              <Textarea
+                value={denialReason}
+                onChange={(e) => setDenialReason(e.target.value)}
+                placeholder="Please provide a reason for denying this verification..."
+                rows={4}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Reviewer Notes</label>
+              <Textarea
+                value={reviewerNotes}
+                onChange={(e) => setReviewerNotes(e.target.value)}
+                placeholder="Add any additional notes..."
+                rows={4}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsDenialModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeny}
+                disabled={!denialReason.trim() || processingAction || !selectedVerification?.verification}
+              >
+                {processingAction ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <XCircle className="h-4 w-4 mr-2" />
+                )}
+                Confirm Denial
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -2,6 +2,6 @@
 
 import { redirect } from 'next/navigation';
 
-export default function Student() {
+export default function StudentPage() {
   redirect('/student/feed');
 }
