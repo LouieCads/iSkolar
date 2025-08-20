@@ -17,7 +17,7 @@ export interface Verification {
   _id: string;
   userId: string;
   personaType: "student" | "sponsor" | "school";
-  status: "unverified" | "pending" | "pre_approved" | "verified" | "denied";
+  status: "unverified" | "pending" | "verified" | "denied";
   submittedAt: string;
   verifiedAt?: string;
   denialReason?: string;

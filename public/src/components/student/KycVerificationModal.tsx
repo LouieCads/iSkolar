@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle, User, MapPin, GraduationCap, FileText, Shield, X, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
@@ -185,31 +185,9 @@ export default function KycVerificationModal({ isOpen = true, onClose = () => {}
 	const [formData, setFormData] = useState(INITIAL_FORM_DATA);
 	const [notification, setNotification] = useState({ show: false, type: '', message: '' });
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [verifiedSchools, setVerifiedSchools] = useState([]);
-	const [schoolsLoading, setSchoolsLoading] = useState(true);
-	const [schoolsError, setSchoolsError] = useState(null);
 
 	const academicDetails = useAcademicDetails();
 	const { status: kycStatus, loading: kycLoading, refetch: refetchKycStatus } = useKycStatus();
-
-	// Fetch verified schools on component mount
-	useEffect(() => {
-		const fetchVerifiedSchools = async () => {
-			try {
-				setSchoolsLoading(true);
-				const schools = await kycService.getVerifiedSchools();
-				setVerifiedSchools(schools);
-				setSchoolsError(null);
-			} catch (error) {
-				console.error('Error fetching verified schools:', error);
-				setSchoolsError('Failed to load verified schools');
-			} finally {
-				setSchoolsLoading(false);
-			}
-		};
-
-		fetchVerifiedSchools();
-	}, []);
 
 	const showNotification = (type, message) => {
 		setNotification({ show: true, type, message });
@@ -340,8 +318,8 @@ export default function KycVerificationModal({ isOpen = true, onClose = () => {}
 	};
 
 	const renderStudentInfo = () => {
-		if (academicDetails.isLoading || schoolsLoading) return <LoadingSpinner message="Loading academic details..." />;
-		if (academicDetails.error || schoolsError) {
+		if (academicDetails.isLoading) return <LoadingSpinner />;
+		if (academicDetails.error) {
 			return (
 				<div className="text-center p-4">
 					<p className="text-sm text-red-600">Error loading academic details. Please try again later.</p>
@@ -367,7 +345,7 @@ export default function KycVerificationModal({ isOpen = true, onClose = () => {}
 				</div>
 
 				{/* Personal Info */}
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
 					<SelectField label="Gender" id="gender" value={formData.gender} onValueChange={(value) => handleSelectChange('gender', value)} options={['male', 'female']} loading={false} error={false} required />
 					<FormField label="Age" id="age" name="age" type="number" value={formData.age} onChange={handleInputChange} placeholder="Enter age" required />
 					<SelectField label="Civil Status" id="civilStatus" value={formData.civilStatus} onValueChange={(value) => handleSelectChange('civilStatus', value)} options={['single', 'married', 'divorced', 'widowed']} loading={false} error={false} required />
@@ -381,36 +359,7 @@ export default function KycVerificationModal({ isOpen = true, onClose = () => {}
 
 				{/* Academic Info */}
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-					<div>
-						<Label htmlFor="schoolName" className="block text-sm font-medium text-gray-700 mb-1">
-							School Name *
-						</Label>
-						<Select name="schoolName" value={formData.schoolName} onValueChange={(value) => handleSelectChange('schoolName', value)} required>
-							<SelectTrigger id="schoolName" className="w-full">
-								<SelectValue placeholder="Select your school" />
-							</SelectTrigger>
-							<SelectContent>
-								{schoolsLoading ? (
-									<SelectItem value="loading" disabled>Loading schools...</SelectItem>
-								) : schoolsError ? (
-									<SelectItem value="error" disabled>Error loading schools</SelectItem>
-								) : verifiedSchools.length === 0 ? (
-									<SelectItem value="none" disabled>No verified schools available</SelectItem>
-								) : (
-									verifiedSchools.map((school) => (
-										<SelectItem key={school.name} value={school.name}>
-											{school.name} ({school.type})
-										</SelectItem>
-									))
-								)}
-							</SelectContent>
-						</Select>
-						{verifiedSchools.length === 0 && !schoolsLoading && (
-							<p className="text-xs text-amber-600 mt-1">
-								No verified schools are currently available. Please contact support or wait for schools to complete verification.
-							</p>
-						)}
-					</div>
+					<FormField label="School Name" id="schoolName" name="schoolName" value={formData.schoolName} onChange={handleInputChange} placeholder="Enter school name" required />
 					<FormField label="School Email" id="schoolEmail" name="schoolEmail" type="email" value={formData.schoolEmail} onChange={handleInputChange} placeholder="Enter school email" required />
 				</div>
 

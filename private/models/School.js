@@ -17,26 +17,6 @@ const schoolSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "KycKybVerification",
   },
-  // Add KYC review queue for student submissions
-  kycReviewQueue: [
-    {
-      verificationId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "KycKybVerification",
-      },
-      studentName: String,
-      schoolName: String,
-      submittedAt: { type: Date, default: Date.now },
-      status: {
-        type: String,
-        enum: ["pending", "pre_approved", "denied"],
-        default: "pending",
-      },
-      reviewedAt: Date,
-      reviewedBy: String,
-      reviewerNotes: String,
-    },
-  ],
   courses: [
     {
       code: { type: String },
@@ -49,32 +29,21 @@ const schoolSchema = new mongoose.Schema({
       isActive: { type: Boolean, default: true },
     },
   ],
-  students: [
-    {
-      studentId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Student",
-      },
-      enrollmentStatus: {
-        type: String,
-        enum: ["enrolled", "graduated", "transferred", "dropped"],
-        default: "enrolled",
-      },
-      enrollmentDate: { type: Date, default: Date.now },
-    },
-  ],
-  // Add field to track authorized verifiers
-  verifiers: [
-    {
-      userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-      email: String,
-      addedAt: { type: Date, default: Date.now },
-      isActive: { type: Boolean, default: true },
-    },
-  ],
+  // students: [
+  //   {
+  //     studentId: {
+  //       type: mongoose.Schema.Types.ObjectId,
+  //       ref: "Student",
+  //     },
+  //     enrollmentStatus: {
+  //       type: String,
+  //       enum: ["enrolled", "graduated", "transferred", "dropped"],
+  //       default: "enrolled",
+  //     },
+  //     enrollmentDate: { type: Date, default: Date.now },
+  //   },
+  // ],
+  // Add field to track authorized verifier
   activeScholarships: [
     {
       scholarshipId: {

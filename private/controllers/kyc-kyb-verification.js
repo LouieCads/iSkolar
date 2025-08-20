@@ -59,7 +59,7 @@ exports.getKycStatus = async (req, res) => {
   }
 };
 
-// Submit Student KYC - WITH SCHOOL ROUTING
+// Submit Student KYC - DIRECTLY TO ADMIN
 exports.submitStudentKyc = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -91,58 +91,56 @@ exports.submitStudentKyc = async (req, res) => {
     }
 
     // Validate school selection
-    const schoolName = studentData.student?.schoolName;
-    if (!schoolName) {
-      return res.status(400).json({ message: "School name is required." });
-    }
+    // const schoolName = studentData.student?.schoolName;
+    // if (!schoolName) {
+    //   return res.status(400).json({ message: "School name is required." });
+    // }
 
     // Find the verified school by schoolName
-    const school = await School.aggregate([
-      {
-        $match: {
-          schoolName: new RegExp(`^${schoolName}$`, "i"),
-        },
-      },
-      {
-        $lookup: {
-          from: "kyckybverifications",
-          localField: "kycId",
-          foreignField: "_id",
-          as: "kycVerification",
-        },
-      },
-      {
-        $match: {
-          "kycVerification.status": "verified",
-        },
-      },
-      {
-        $limit: 1,
-      },
-    ]);
+    // const school = await School.aggregate([
+    //   {
+    //     $match: {
+    //       schoolName: new RegExp(`^${schoolName}$`, "i"),
+    //     },
+    //   },
+    //   {
+    //     $lookup: {
+    //       from: "kyckybverifications",
+    //       localField: "kycId",
+    //       foreignField: "_id",
+    //       as: "kycVerification",
+    //     },
+    //   },
+    //   {
+    //     $match: {
+    //       "kycVerification.status": "verified",
+    //     },
+    //   },
+    //   {
+    //     $limit: 1,
+    //   },
+    // ]);
 
-    if (!school || school.length === 0) {
-      return res.status(400).json({
-        message:
-          "Selected school not found or not verified. Please select a verified school from the dropdown.",
-      });
-    }
+    // if (!school || school.length === 0) {
+    //   return res.status(400).json({
+    //     message:
+    //       "Selected school not found or not verified. Please select a verified school.",
+    //   });
+    // }
 
-    const schoolRecord = school[0];
+    // const schoolRecord = school[0];
 
     // Find existing Student record
     const existingStudent = await findExistingPersonaRecord(userId, "student");
 
     const kycData = {
       userId,
-      personaType: "student", // Fixed to lowercase
-      status: "pending", // Will be pending until school pre-approves
+      personaType: "student",
+      status: "pending", // Goes directly to pending for admin review
       declarationsAndConsent: studentData.declarationsAndConsent,
       student: studentData.student,
       documents: studentData.documents || [],
       submittedAt: new Date(),
-      schoolName: schoolRecord.schoolName, // Use the verified school name
-      schoolId: schoolRecord._id, // Add school ID reference
     };
 
     let verification;
@@ -157,311 +155,31 @@ exports.submitStudentKyc = async (req, res) => {
 
     // Update or create Student record
     if (existingStudent) {
-      existingStudent.schoolId = schoolRecord._id;
       existingStudent.kycId = verification._id;
       await existingStudent.save();
       console.log("Updated existing Student record");
     } else {
       // Create new Student record if none exists
       const newStudent = new Student({
-        schoolId: schoolRecord._id,
         kycId: verification._id,
       });
       await newStudent.save();
       console.log("Created new Student record");
     }
 
-    // Add to school's KYC review queue
-    await School.updateOne(
-      { _id: schoolRecord._id },
-      {
-        $addToSet: {
-          kycReviewQueue: {
-            verificationId: verification._id,
-            studentName: `${studentData.student?.fullName?.firstName || ""} ${
-              studentData.student?.fullName?.lastName || ""
-            }`.trim(),
-            schoolName: schoolRecord.schoolName,
-            submittedAt: new Date(),
-            status: "pending",
-          },
-        },
-      }
-    );
-
     const message = existingKyc
-      ? "Student KYC resubmitted successfully and sent to school for review"
-      : "Student KYC submitted successfully and sent to school for review";
+      ? "Student KYC resubmitted successfully and sent to admin for review"
+      : "Student KYC submitted successfully and sent to admin for review";
 
     res.status(existingKyc ? 200 : 201).json({
       message,
       verification,
-      schoolName: schoolRecord.schoolName,
-      nextStep: "Waiting for school pre-approval",
+      nextStep: "Waiting for admin approval",
     });
   } catch (error) {
     res
       .status(500)
       .json({ message: "Error submitting Student KYC", error: error.message });
-  }
-};
-
-// Get school's KYC review queue (by schoolName)
-exports.getSchoolKycQueue = async (req, res) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized: No user ID found in token" });
-    }
-
-    // Allow school, school_verifier, or admin roles
-    if (!["school", "school_verifier", "admin"].includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: "Unauthorized: User role must be school, school_verifier, or admin",
-        role: req.user.role,
-        userId
-      });
-    }
-
-    // Find the school
-    let school;
-    if (req.user.role === "school") {
-      school = await School.findOne({ _id: req.user.personaId }).populate(
-        "kycReviewQueue.verificationId"
-      );
-    } else {
-      school = await School.findOne({ "verifiers.userId": userId }).populate(
-        "kycReviewQueue.verificationId"
-      );
-    }
-
-    if (!school) {
-      return res.status(404).json({ 
-        message: "School not found or user is not associated with a school",
-        userId,
-        role: req.user.role
-      });
-    }
-
-    console.log("School found:", {
-      schoolId: school._id,
-      schoolName: school.schoolName,
-      kycReviewQueue: school.kycReviewQueue
-    });
-
-    // Fetch KYC verifications for this school
-    const kycVerifications = await KycKybVerification.find({
-      _id: { $in: school.kycReviewQueue.map(item => item.verificationId) },
-      schoolName: school.schoolName,
-      personaType: "student",
-      status: { $in: ["pending", "pre_approved", "denied"] }
-    }).populate("userId", "email");
-
-    console.log("KYC Verifications found:", {
-      count: kycVerifications.length,
-      verificationIds: kycVerifications.map(v => v._id.toString())
-    });
-
-    // Filter queue for relevant statuses
-    const queue = school.kycReviewQueue.filter(
-      (item) =>
-        item.schoolName === school.schoolName &&
-        ["pending", "pre_approved", "denied"].includes(item.status) &&
-        item.verificationId // Ensure verificationId exists
-    );
-
-    console.log("Filtered queue:", {
-      count: queue.length,
-      queue: queue.map(item => ({
-        verificationId: item.verificationId?.toString(),
-        studentName: item.studentName,
-        status: item.status
-      }))
-    });
-
-    res.status(200).json({
-      queue,
-      kycVerifications,
-      count: queue.length,
-      schoolName: school.schoolName,
-    });
-  } catch (error) {
-    console.error("Error in getSchoolKycQueue:", error);
-    res.status(500).json({
-      message: "Error fetching school KYC queue",
-      error: error.message,
-    });
-  }
-};
-
-// Pre-approve student (by school) - with schoolName validation
-exports.preApproveStudent = async (req, res) => {
-  try {
-    const { verificationId } = req.params;
-    const { reviewerNotes } = req.body;
-    const verifierEmail = req.user.email;
-    const userId = req.user.id;
-
-    // Allow school, school_verifier, or admin roles
-    if (!["school", "school_verifier", "admin"].includes(req.user.role)) {
-      return res.status(403).json({
-        message:
-          "Unauthorized: User role must be school, school_verifier, or admin",
-        role: req.user.role,
-      });
-    }
-
-    const verification = await KycKybVerification.findById(verificationId);
-    if (!verification) {
-      return res.status(404).json({ message: "Verification not found" });
-    }
-
-    // Find the school
-    let school;
-    if (req.user.role === "school") {
-      school = await School.findOne({ _id: req.user.personaId });
-    } else {
-      school = await School.findOne({ "verifiers.userId": userId });
-    }
-
-    if (!school || verification.schoolName !== school.schoolName) {
-      return res.status(403).json({
-        message: "Unauthorized: Cannot review KYC for another school",
-        schoolName: school?.schoolName,
-        verificationSchoolName: verification.schoolName,
-      });
-    }
-
-    if (verification.personaType !== "student") {
-      return res
-        .status(400)
-        .json({ message: "Pre-approval is only for students" });
-    }
-
-    if (verification.status !== "pending") {
-      return res
-        .status(400)
-        .json({ message: "Can only pre-approve pending verifications" });
-    }
-
-    // Update verification status
-    verification.status = "pre_approved";
-    verification.verifiedBy = verifierEmail;
-    verification.updatedAt = new Date();
-    await verification.save();
-
-    // Update school's KYC queue
-    await School.updateOne(
-      {
-        "kycReviewQueue.verificationId": verificationId,
-        schoolName: school.schoolName,
-      },
-      {
-        $set: {
-          "kycReviewQueue.$.status": "pre_approved",
-          "kycReviewQueue.$.reviewedAt": new Date(),
-          "kycReviewQueue.$.reviewerNotes": reviewerNotes || "",
-          "kycReviewQueue.$.reviewedBy": verifierEmail,
-        },
-      }
-    );
-
-    res.status(200).json({
-      message: "Student pre-approved successfully and forwarded to admin",
-      verification,
-    });
-  } catch (error) {
-    console.error("Error in preApproveStudent:", error);
-    res.status(500).json({
-      message: "Error pre-approving student",
-      error: error.message,
-    });
-  }
-};
-
-// Deny student KYC at school level - with schoolName validation
-exports.denyStudentAtSchool = async (req, res) => {
-  try {
-    const { verificationId } = req.params;
-    const { denialReason, reviewerNotes } = req.body;
-    const verifierEmail = req.user.email;
-    const userId = req.user.id;
-
-    // Allow school, school_verifier, or admin roles
-    if (!["school", "school_verifier", "admin"].includes(req.user.role)) {
-      return res.status(403).json({
-        message:
-          "Unauthorized: User role must be school, school_verifier, or admin",
-        role: req.user.role,
-      });
-    }
-
-    const verification = await KycKybVerification.findById(verificationId);
-    if (!verification) {
-      return res.status(404).json({ message: "Verification not found" });
-    }
-
-    // Find the school
-    let school;
-    if (req.user.role === "school") {
-      school = await School.findOne({ _id: req.user.personaId });
-    } else {
-      school = await School.findOne({ "verifiers.userId": userId });
-    }
-
-    if (!school || verification.schoolName !== school.schoolName) {
-      return res.status(403).json({
-        message: "Unauthorized: Cannot review KYC for another school",
-        schoolName: school?.schoolName,
-        verificationSchoolName: verification.schoolName,
-      });
-    }
-
-    if (verification.personaType !== "student") {
-      return res
-        .status(400)
-        .json({ message: "This action is only for students" });
-    }
-
-    if (verification.status !== "pending") {
-      return res
-        .status(400)
-        .json({ message: "Can only deny pending verifications" });
-    }
-
-    // Update verification status
-    verification.status = "denied";
-    verification.verifiedBy = verifierEmail;
-    verification.denialReason = denialReason;
-    verification.updatedAt = new Date();
-    await verification.save();
-
-    // Update school's KYC queue
-    await School.updateOne(
-      {
-        "kycReviewQueue.verificationId": verificationId,
-        schoolName: school.schoolName,
-      },
-      {
-        $set: {
-          "kycReviewQueue.$.status": "denied",
-          "kycReviewQueue.$.reviewedAt": new Date(),
-          "kycReviewQueue.$.reviewerNotes": reviewerNotes || "",
-          "kycReviewQueue.$.reviewedBy": verifierEmail,
-        },
-      }
-    );
-
-    res.status(200).json({
-      message: "Student KYC denied at school level",
-      verification,
-    });
-  } catch (error) {
-    console.error("Error in denyStudentAtSchool:", error);
-    res.status(500).json({
-      message: "Error denying student KYC",
-      error: error.message,
-    });
   }
 };
 
@@ -532,9 +250,9 @@ exports.submitIndividualSponsorKyb = async (req, res) => {
 
     const kybData = {
       userId,
-      personaType: "Sponsor",
+      personaType: "sponsor",
       status: "pending",
-      declarationsAndConsent: sponsorData.declarationsAndConsent, // Boolean
+      declarationsAndConsent: sponsorData.declarationsAndConsent,
       individualSponsor: sponsorData.individualSponsor,
       documents: sponsorData.documents || [],
       submittedAt: new Date(),
@@ -631,9 +349,9 @@ exports.submitCorporateSponsorKyb = async (req, res) => {
 
     const kybData = {
       userId,
-      personaType: "Sponsor",
+      personaType: "sponsor",
       status: "pending",
-      declarationsAndConsent: corporateData.declarationsAndConsent, // Boolean
+      declarationsAndConsent: corporateData.declarationsAndConsent,
       corporateSponsor: corporateData.corporateSponsor,
       documents: corporateData.documents || [],
       submittedAt: new Date(),
@@ -753,11 +471,11 @@ exports.submitSchoolKyb = async (req, res) => {
 
     const kycData = {
       userId,
-      personaType: "school", // Convert to lowercase to match model enum
+      personaType: "school",
       status: "pending",
       declarationsAndConsent: schoolData.declarationsAndConsent,
       school: schoolData.school,
-      fileNames: schoolData.documents || [], // Use fileNames instead of documents
+      fileNames: schoolData.documents || [],
       submittedAt: new Date(),
     };
 
@@ -804,54 +522,6 @@ exports.submitSchoolKyb = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error submitting School KYB", error: error.message });
-  }
-};
-
-// Pre-approve student (by school)
-exports.preApproveStudent = async (req, res) => {
-  try {
-    const { verificationId } = req.params;
-    const verifierEmail = req.user.email;
-
-    // Check if user is a school verifier
-    if (req.user.role !== "school_verifier" && req.user.role !== "admin") {
-      return res
-        .status(403)
-        .json({ message: "Unauthorized to pre-approve students" });
-    }
-
-    const verification = await KycKybVerification.findById(verificationId);
-
-    if (!verification) {
-      return res.status(404).json({ message: "Verification not found" });
-    }
-
-    if (verification.personaType !== "Student") {
-      return res
-        .status(400)
-        .json({ message: "Pre-approval is only for students" });
-    }
-
-    if (verification.status !== "pending") {
-      return res
-        .status(400)
-        .json({ message: "Can only pre-approve pending verifications" });
-    }
-
-    verification.status = "pre-approved";
-    verification.verifiedBy = verifierEmail;
-    verification.updatedAt = new Date();
-
-    await verification.save();
-
-    res.status(200).json({
-      message: "Student pre-approved successfully",
-      verification,
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error pre-approving student", error: error.message });
   }
 };
 
@@ -932,13 +602,13 @@ exports.deleteDocument = async (req, res) => {
   }
 };
 
-// Get verification by ID (Admin/School verifier)
+// Get verification by ID (Admin only)
 exports.getVerificationById = async (req, res) => {
   try {
     const { verificationId } = req.params;
 
-    if (req.user.role !== "admin" && req.user.role !== "school_verifier") {
-      return res.status(403).json({ message: "Unauthorized" });
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Admin access required" });
     }
 
     const verification = await KycKybVerification.findById(
@@ -957,7 +627,7 @@ exports.getVerificationById = async (req, res) => {
   }
 };
 
-// Get all verifications (Admin)
+// Get all verifications (Admin only)
 exports.getAllVerifications = async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -1001,7 +671,7 @@ exports.getAllVerifications = async (req, res) => {
   }
 };
 
-// Update verification status (Admin)
+// Update verification status (Admin only)
 exports.updateVerificationStatus = async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -1017,16 +687,32 @@ exports.updateVerificationStatus = async (req, res) => {
       return res.status(404).json({ message: "Verification not found" });
     }
 
+    // Store previous status to check if this is a status change
+    const previousStatus = verification.status;
+
     verification.status = status;
     verification.verifiedBy = req.user.email;
     verification.updatedAt = new Date();
 
     if (status === "verified") {
       verification.verifiedAt = new Date();
+      // Clear cooldown when verified
+      verification.cooldownUntil = undefined;
     }
 
     if (status === "denied" && denialReason) {
       verification.denialReason = denialReason;
+
+      // FIXED: Only set cooldown if resubmissionCount has reached maximum (2)
+      // and this is a status change to denied
+      if (previousStatus !== "denied" && verification.resubmissionCount >= 2) {
+        verification.cooldownUntil = new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000
+        ); // 30 days
+        console.log(
+          `Set cooldown for verification ${verification._id} due to max resubmissions reached`
+        );
+      }
     }
 
     await verification.save();
@@ -1040,9 +726,6 @@ exports.updateVerificationStatus = async (req, res) => {
         `Updated User ${user.email} isVerified to: ${user.isVerified}`
       );
     }
-
-    // Note: School verification status is now tracked through KycKybVerification
-    // No need to update School.verificationStatus anymore
 
     res.status(200).json({
       message: `Verification ${status} successfully`,
@@ -1092,7 +775,7 @@ exports.resubmitVerification = async (req, res) => {
         .json({ message: "Can only resubmit denied verifications" });
     }
 
-    if (verification.resubmissionCount >= 3) {
+    if (verification.resubmissionCount >= 2) {
       return res
         .status(400)
         .json({ message: "Maximum resubmission limit reached" });
@@ -1106,9 +789,9 @@ exports.resubmitVerification = async (req, res) => {
     }
 
     // Update verification data based on persona type
-    if (verification.personaType === "Student") {
+    if (verification.personaType === "student") {
       verification.student = { ...verification.student, ...updateData.student };
-    } else if (verification.personaType === "Sponsor") {
+    } else if (verification.personaType === "sponsor") {
       if (updateData.individualSponsor) {
         verification.individualSponsor = {
           ...verification.individualSponsor,
@@ -1121,13 +804,13 @@ exports.resubmitVerification = async (req, res) => {
           ...updateData.corporateSponsor,
         };
       }
-    } else if (verification.personaType === "School") {
+    } else if (verification.personaType === "school") {
       verification.school = { ...verification.school, ...updateData.school };
     }
 
     verification.status = "pending";
     verification.denialReason = undefined;
-    verification.cooldownUntil = undefined;
+    verification.cooldownUntil = undefined; // Clear any existing cooldown
     verification.resubmissionCount += 1;
     verification.submittedAt = new Date();
 
@@ -1155,7 +838,7 @@ exports.resubmitVerification = async (req, res) => {
   }
 };
 
-// Bulk update verification status (Admin)
+// Bulk update verification status (Admin only)
 exports.bulkUpdateStatus = async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -1168,6 +851,12 @@ exports.bulkUpdateStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid verification IDs" });
     }
 
+    // FIXED: Handle cooldown logic properly for bulk operations
+    // First, get all verifications to check their resubmission counts
+    const verifications = await KycKybVerification.find({
+      _id: { $in: verificationIds },
+    });
+
     const updateData = {
       status,
       verifiedBy: req.user.email,
@@ -1176,22 +865,43 @@ exports.bulkUpdateStatus = async (req, res) => {
 
     if (status === "verified") {
       updateData.verifiedAt = new Date();
+      updateData.cooldownUntil = null; // Clear cooldown when verified
     }
 
     if (status === "denied" && denialReason) {
       updateData.denialReason = denialReason;
     }
 
+    // Update verifications with basic update data first
     const result = await KycKybVerification.updateMany(
       { _id: { $in: verificationIds } },
       updateData
     );
 
+    // FIXED: For bulk deny operations, only set cooldown for verifications
+    // that have reached maximum resubmissions (>= 2)
+    if (status === "denied") {
+      const verificationsForCooldown = verifications.filter(
+        (v) => v.resubmissionCount >= 2 && v.status !== "denied" // Only if status is changing to denied
+      );
+
+      if (verificationsForCooldown.length > 0) {
+        const cooldownIds = verificationsForCooldown.map((v) => v._id);
+        await KycKybVerification.updateMany(
+          { _id: { $in: cooldownIds } },
+          {
+            cooldownUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          }
+        );
+
+        console.log(
+          `Set cooldown for ${verificationsForCooldown.length} verifications that reached max resubmissions`
+        );
+      }
+    }
+
     // Update User's isVerified field for all affected users
     if (result.modifiedCount > 0) {
-      const verifications = await KycKybVerification.find({
-        _id: { $in: verificationIds },
-      });
       const userIds = verifications.map((v) => v.userId);
 
       // Update all affected users' isVerified status
@@ -1235,9 +945,6 @@ exports.getVerificationStats = async (req, res) => {
             $sum: { $cond: [{ $eq: ["$status", "unverified"] }, 1, 0] },
           },
           pending: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },
-          preApproved: {
-            $sum: { $cond: [{ $eq: ["$status", "pre-approved"] }, 1, 0] },
-          },
           verified: {
             $sum: { $cond: [{ $eq: ["$status", "verified"] }, 1, 0] },
           },
@@ -1264,7 +971,6 @@ exports.getVerificationStats = async (req, res) => {
         total: 0,
         unverified: 0,
         pending: 0,
-        preApproved: 0,
         verified: 0,
         denied: 0,
       },

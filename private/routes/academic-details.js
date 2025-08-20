@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const {
   getAcademicDetails,
-  getVerifiedSchools,
   addCourse,
   updateCourse,
   deleteCourse,
@@ -19,9 +18,6 @@ const {
 
 // Get all academic details
 router.get("/academic-details", getAcademicDetails);
-
-// Get verified schools for student KYC
-router.get("/verified-schools", getVerifiedSchools);
 
 // Course endpoints
 router.post("/courses", addCourse);

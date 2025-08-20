@@ -5,22 +5,27 @@ const kycKybVerificationSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
+    required: true,
+  },
+  email: {
+    type: mongoose.Schema.Types.String,
+    ref: "User",
   },
   personaType: {
     type: String,
     enum: ["student", "sponsor", "school"],
     required: true,
-    lowercase: true, // Ensure lowercase
+    lowercase: true,
   },
   status: {
     type: String,
-    enum: ["unverified", "pending", "pre_approved", "verified", "denied"],
+    enum: ["unverified", "pending", "verified", "denied"],
     default: "unverified",
   },
   resubmissionCount: {
     type: Number,
     default: 0,
-    max: 3,
+    max: 2,
   },
   cooldownUntil: {
     type: Date,
@@ -30,7 +35,7 @@ const kycKybVerificationSchema = new mongoose.Schema({
     required: true,
   },
   verifiedBy: {
-    type: String, // Email of Admin or School Verifier
+    type: String, // Email of Admin
   },
   submittedAt: {
     type: Date,
@@ -86,12 +91,6 @@ const kycKybVerificationSchema = new mongoose.Schema({
       seniorHigh: { name: String, yearGraduated: Number },
       college: { name: String, expectedGraduation: Number },
     },
-  },
-
-  // Add school reference for student KYC
-  schoolId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "School",
   },
 
   // Individual Sponsor-specific fields
@@ -242,7 +241,7 @@ kycKybVerificationSchema.pre("save", function (next) {
   if (
     this.isModified("status") &&
     this.status === "denied" &&
-    this.resubmissionCount < 3
+    this.resubmissionCount >= 2
   ) {
     this.cooldownUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days cooldown
   }

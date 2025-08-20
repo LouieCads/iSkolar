@@ -62,7 +62,7 @@ export const PersonaDetailsCard: React.FC<PersonaDetailsCardProps> = ({ verifica
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Date of Birth</label>
-            <p className="text-gray-900">{new Date(student.dateOfBirth).toLocaleDateString()}</p>
+            <p className="text-gray-900">{student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Place of Birth</label>
@@ -219,7 +219,7 @@ export const PersonaDetailsCard: React.FC<PersonaDetailsCardProps> = ({ verifica
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Date of Birth</label>
-            <p className="text-gray-900">{new Date(sponsor.dateOfBirth).toLocaleDateString()}</p>
+            <p className="text-gray-900">{sponsor.dateOfBirth ? new Date(sponsor.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Place of Birth</label>
@@ -325,7 +325,7 @@ export const PersonaDetailsCard: React.FC<PersonaDetailsCardProps> = ({ verifica
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Date of Incorporation</label>
-            <p className="text-gray-900">{new Date(sponsor.dateOfIncorporation).toLocaleDateString()}</p>
+            <p className="text-gray-900">{sponsor.dateOfIncorporation ? new Date(sponsor.dateOfIncorporation).toLocaleDateString() : 'N/A'}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">Country of Registration</label>
@@ -518,12 +518,39 @@ export const PersonaDetailsCard: React.FC<PersonaDetailsCardProps> = ({ verifica
     );
   };
 
+  // Helper function to determine sponsor type and render appropriate details
+  const renderSponsorDetails = () => {
+    // Check if it's an individual sponsor
+    if (verification.individualSponsor) {
+      return renderIndividualSponsorDetails();
+    }
+    // Check if it's a corporate sponsor
+    else if (verification.corporateSponsor) {
+      return renderCorporateSponsorDetails();
+    }
+    // Fallback if no sponsor data found
+    else {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No sponsor details available</p>
+        </div>
+      );
+    }
+  };
+
   const getPersonaTitle = () => {
     switch (verification.personaType) {
       case "student":
         return "Student Information";
       case "sponsor":
-        return "Sponsor Information";
+        // Determine sponsor type dynamically
+        if (verification.individualSponsor) {
+          return "Individual Sponsor Information";
+        } else if (verification.corporateSponsor) {
+          return "Corporate Sponsor Information";
+        } else {
+          return "Sponsor Information";
+        }
       case "school":
         return "School Information";
       default:
@@ -543,10 +570,9 @@ export const PersonaDetailsCard: React.FC<PersonaDetailsCardProps> = ({ verifica
       </CardHeader>
       <CardContent>
         {verification.personaType === "student" && renderStudentDetails()}
-        {verification.personaType === "sponsor" && renderIndividualSponsorDetails()}
+        {verification.personaType === "sponsor" && renderSponsorDetails()}
         {verification.personaType === "school" && renderSchoolDetails()}
       </CardContent>
     </Card>
   );
 };
-

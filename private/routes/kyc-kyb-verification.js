@@ -4,6 +4,8 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const authMiddleware = require("../middleware/auth");
+
+// Import controller functions
 const {
   getKycStatus,
   submitStudentKyc,
@@ -13,9 +15,6 @@ const {
   getVerificationById,
   getAllVerifications,
   updateVerificationStatus,
-  preApproveStudent,
-  denyStudentAtSchool,
-  getSchoolKycQueue,
   uploadDocument,
   deleteDocument,
   getVerificationHistory,
@@ -62,44 +61,20 @@ const upload = multer({
 router.get("/status", authMiddleware, getKycStatus);
 router.get("/history", authMiddleware, getVerificationHistory);
 
-// Student KYC routes
+// KYC/KYB submission routes (all go directly to admin)
 router.post("/student/submit", authMiddleware, submitStudentKyc);
-
-// Individual Sponsor KYB routes
-router.post(
-  "/individual-sponsor/submit",
-  authMiddleware,
-  submitIndividualSponsorKyb
-);
-
-// Corporate Sponsor KYB routes
-router.post(
-  "/corporate-sponsor/submit",
-  authMiddleware,
-  submitCorporateSponsorKyb
-);
-
-// School KYB routes
+router.post("/individual-sponsor/submit", authMiddleware, submitIndividualSponsorKyb);
+router.post("/corporate-sponsor/submit", authMiddleware, submitCorporateSponsorKyb);
 router.post("/school/submit", authMiddleware, submitSchoolKyb);
 
-// Document upload routes
-router.post(
-  "/upload-document",
-  authMiddleware,
-  upload.single("document"),
-  uploadDocument
-);
+// Document management routes
+router.post("/upload-document", authMiddleware, upload.single("document"), uploadDocument);
 router.delete("/document/:documentId", authMiddleware, deleteDocument);
 
 // Resubmission route
 router.post("/resubmit", authMiddleware, resubmitVerification);
 
-// School verifier routes (for pre-approval)
-router.post("/pre-approve/:verificationId", authMiddleware, preApproveStudent);
-router.post("/school-deny/:verificationId", authMiddleware, denyStudentAtSchool); // NEW
-router.get("/school/queue", authMiddleware, getSchoolKycQueue); // NEW
-
-// Admin routes
+// Admin-only routes for verification management
 router.get("/all", authMiddleware, getAllVerifications);
 router.get("/stats", authMiddleware, getVerificationStats);
 router.get("/:verificationId", authMiddleware, getVerificationById);

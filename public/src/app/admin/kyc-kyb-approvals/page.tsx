@@ -1,5 +1,3 @@
-// app/public/src/app/admin/kyc-kyb-approvals/page.tsx
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -10,11 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Search, 
-  Eye, 
-  Clock, 
-  User, 
+import {
+  Search,
+  Eye,
+  Clock,
+  User,
   Building2,
   FileText,
   Download,
@@ -30,52 +28,22 @@ import {
   Filter,
   Mail,
   Phone,
-  MapPin,
-  Calendar
+  Calendar,
+  Check,
+  X
 } from "lucide-react";
 import { motion } from "framer-motion";
-import axios from "axios";
-import { PersonaDetailsCard } from '@/components/admin/kyc-kyb-approvals/PersonaDetailsCard';
+import { kycKybApprovalService, Verification, VerificationResponse } from "@/services/kycKybApprovalService";
+import { PersonaDetailsCard } from "@/components/admin/kyc-kyb-approvals/PersonaDetailsCard";
 
 // Types
-interface Verification {
-  _id: string;
-  userId: string;
-  personaType: "student" | "sponsor" | "school";
-  status: "unverified" | "pending" | "pre_approved" | "verified" | "denied";
-  submittedAt: string;
-  verifiedAt?: string;
-  denialReason?: string;
-  verifiedBy?: string;
-  student?: any;
-  individualSponsor?: any;
-  corporateSponsor?: any;
-  school?: any;
-  documents?: any[];
-  fileNames?: string[];
-  user?: {
-    email: string;
-  };
-}
-
 interface Stats {
   total: number;
+  unverified: number;
   pending: number;
-  preApproved: number;
   verified: number;
   denied: number;
 }
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-
-// Add authorization header to all requests
-axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
 
 // Status Badge Component
 const StatusBadge = ({ status }: { status: string }) => {
@@ -87,8 +55,6 @@ const StatusBadge = ({ status }: { status: string }) => {
         return { color: "bg-red-100 text-red-800", icon: XCircle };
       case "pending":
         return { color: "bg-yellow-100 text-yellow-800", icon: Clock };
-      case "pre_approved":
-        return { color: "bg-blue-100 text-blue-800", icon: CheckCircle };
       default:
         return { color: "bg-gray-100 text-gray-800", icon: Clock };
     }
@@ -100,29 +66,39 @@ const StatusBadge = ({ status }: { status: string }) => {
   return (
     <Badge className={`text-xs ${config.color} flex items-center gap-1`}>
       <Icon className="h-3 w-3" />
-      {status.replace('_', ' ').charAt(0).toUpperCase() + status.replace('_', ' ').slice(1)}
+      {status.charAt(0).toUpperCase() + status.slice(1)}
     </Badge>
   );
 };
 
-// Full-Width Verification Row Component
-const VerificationRow = ({ 
-  verification, 
-  onViewDetails 
-}: { 
-  verification: Verification; 
-  onViewDetails: (verification: Verification) => void; 
+// Verification Row Component - Simplified
+const VerificationRow = ({
+  verification,
+  onViewDetails,
+  onApprove,
+  onDeny,
+  onSelect,
+  isSelected,
+  processingAction
+}: {
+  verification: Verification;
+  onViewDetails: (verification: Verification) => void;
+  onApprove: (verification: Verification) => void;
+  onDeny: (verification: Verification) => void;
+  onSelect: (id: string) => void;
+  isSelected: boolean;
+  processingAction: boolean;
 }) => {
   const getPersonaIcon = (personaType: string) => {
     switch (personaType) {
       case "student":
-        return <GraduationCap className="h-4 w-4 text-blue-600" />;
+        return <GraduationCap className="h-6 w-6 text-blue-600" />;
       case "sponsor":
-        return <Users className="h-4 w-4 text-green-600" />;
+        return <Users className="h-6 w-6 text-green-600" />;
       case "school":
-        return <Building className="h-4 w-4 text-purple-600" />;
+        return <Building className="h-6 w-6 text-purple-600" />;
       default:
-        return <User className="h-4 w-4 text-gray-600" />;
+        return <User className="h-6 w-6 text-gray-600" />;
     }
   };
 
@@ -144,114 +120,62 @@ const VerificationRow = ({
     return 'Unknown';
   };
 
-  const getPersonaDetails = (verification: Verification) => {
-    if (verification.student) {
-      return {
-        email: verification.student.email || 'N/A',
-        phone: verification.student.mobileNumber || 'N/A',
-        primary: verification.student.schoolName || 'N/A',
-        secondary: verification.student.course 
-          ? `${verification.student.course}${verification.student.yearLevel ? ` - Year ${verification.student.yearLevel}` : ''}` 
-          : 'N/A',
-        id: verification.student.studentIdNumber || 'N/A'
-      };
-    }
-    if (verification.individualSponsor) {
-      return {
-        email: verification.individualSponsor.email || 'N/A',
-        phone: verification.individualSponsor.mobileNumber || verification.individualSponsor.telephone || 'N/A',
-        primary: verification.individualSponsor.natureOfWork || 'N/A',
-        secondary: verification.individualSponsor.employmentType || 'N/A',
-        id: verification.individualSponsor.idDetails?.idNumber || 'N/A'
-      };
-    }
-    if (verification.corporateSponsor) {
-      return {
-        email: verification.corporateSponsor.authorizedRepresentative?.email || 'N/A',
-        phone: verification.corporateSponsor.authorizedRepresentative?.contactNumber || 'N/A',
-        primary: verification.corporateSponsor.industrySector || 'N/A',
-        secondary: verification.corporateSponsor.organizationType || 'N/A',
-        id: verification.corporateSponsor.registrationNumber || verification.corporateSponsor.tin || 'N/A'
-      };
-    }
-    if (verification.school) {
-      return {
-        email: verification.school.officialEmail || 'N/A',
-        phone: verification.school.contactNumbers?.[0] || 'N/A',
-        primary: verification.school.schoolType || 'N/A',
-        secondary: verification.school.authorizedRepresentative?.fullName || 'Representative N/A',
-        id: verification.school.businessVerification?.schoolIdNumber || verification.school.businessVerification?.tin || 'N/A'
-      };
-    }
-    return {
-      email: 'N/A',
-      phone: 'N/A',
-      primary: 'N/A',
-      secondary: 'N/A',
-      id: 'N/A'
-    };
+  const getEmail = () => {
+    if (verification.student?.email) return verification.student.email;
+    if (verification.individualSponsor?.email) return verification.individualSponsor.email;
+    if (verification.corporateSponsor?.authorizedRepresentative?.email) return verification.corporateSponsor.authorizedRepresentative.email;
+    if (verification.school?.officialEmail) return verification.school.officialEmail;
+    if (verification.user?.email) return verification.user.email;
+    return 'N/A';
   };
-
-  const details = getPersonaDetails(verification);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer"
-      onClick={() => onViewDetails(verification)}
+      className={`bg-white border ${isSelected ? 'border-blue-500 shadow-md' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'} transition-all`}
     >
       <div className="p-4">
-        <div className="grid grid-cols-12 gap-4 items-center">
-          {/* Persona Type & Name - 3 columns */}
-          <div className="col-span-3">
-            <div className="flex items-center space-x-3">
-              <div className="flex-shrink-0">
-                {getPersonaIcon(verification.personaType)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="font-medium text-gray-900 truncate">
-                  {getPersonaName(verification)}
-                </h3>
-                <p className="text-sm text-gray-500 capitalize">
-                  {verification.personaType}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Contact Info - 2 columns */}
-          <div className="col-span-2">
-            <div className="space-y-1">
-              <div className="flex items-center text-sm text-gray-600">
-                <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
-                <span className="truncate" title={details.email}>{details.email}</span>
-              </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
-                <span className="truncate" title={details.phone}>{details.phone}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Primary & Secondary Info - 2 columns */}
-          <div className="col-span-2">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-900 truncate" title={details.primary}>
-                {details.primary}
-              </p>
-              <p className="text-sm text-gray-500 truncate" title={details.secondary}>
-                {details.secondary}
-              </p>
-            </div>
-          </div>
-
-          {/* ID Number - 1 column */}
+        <div className="grid grid-cols-13 gap-4 items-center">
+          {/* Checkbox - 1 column */}
           <div className="col-span-1">
-            <p className="text-sm text-gray-600 truncate" title={details.id}>
-              {details.id}
-            </p>
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => onSelect(verification._id)}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+          </div>
+
+          {/* Name & Type - 3 columns */}
+          <div className="col-span-2">
+            <div className="flex items-center">
+                {getPersonaIcon(verification.personaType)}
+                
+            </div>
+          </div>
+
+          <div className="col-span-2">
+            <div className="text-sm font-medium text-gray-900 truncate flex items-center space-x-3">         
+                {getPersonaName(verification)}  
+            </div>
+          </div>
+
+          {/* Email - 3 columns */}
+          <div className="col-span-2">
+            <div className="flex items-center text-sm text-gray-600">
+              <Mail className="h-3 w-3 mr-2 flex-shrink-0" />
+              <span className="truncate" title={getEmail()}>{getEmail()}</span>
+            </div>
+          </div>
+
+          {/* Submission Date - 2 columns */}
+          <div className="col-span-2">
+            <div className="flex items-center text-sm text-gray-600">
+              <Calendar className="h-3 w-3 mr-2 flex-shrink-0" />
+              <span>{new Date(verification.submittedAt).toLocaleDateString()}</span>
+            </div>
           </div>
 
           {/* Status - 1 column */}
@@ -259,32 +183,49 @@ const VerificationRow = ({
             <StatusBadge status={verification.status} />
           </div>
 
-          {/* Documents & Date - 2 columns */}
+          {/* Actions - 2 columns */}
           <div className="col-span-2">
-            <div className="space-y-1">
-              <div className="flex items-center text-sm text-gray-600">
-                <FileText className="h-3 w-3 mr-1" />
-                <span>{verification.documents?.length || verification.fileNames?.length || 0} docs</span>
-              </div>
-              <div className="flex items-center text-sm text-gray-500">
-                <Calendar className="h-3 w-3 mr-1" />
-                <span>{new Date(verification.submittedAt).toLocaleDateString()}</span>
-              </div>
-            </div>
-          </div>
+            <div className="flex items-center justify-end space-x-2">
+              {/* View Details Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onViewDetails(verification)}
+                className="h-8 w-8 p-0"
+                title="View Details"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
 
-          {/* Action - 1 column */}
-          <div className="col-span-1 flex justify-end">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewDetails(verification);
-              }}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
+              {/* Action buttons only for pending status */}
+              {verification.status === "pending" && (
+                <>
+                  {/* Approve Button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onApprove(verification)}
+                    disabled={processingAction}
+                    className="h-8 w-8 p-0 text-green-600 hover:bg-green-50 hover:text-green-700"
+                    title="Approve"
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+
+                  {/* Deny Button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDeny(verification)}
+                    disabled={processingAction}
+                    className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700"
+                    title="Deny"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -292,18 +233,26 @@ const VerificationRow = ({
   );
 };
 
-// Table Header Component
-const TableHeader = () => {
+// Table Header Component - Updated
+const TableHeader = ({ onSelectAll, allSelected, totalItems }: { onSelectAll: (select: boolean) => void; allSelected: boolean; totalItems: number }) => {
   return (
     <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
-      <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
-        <div className="col-span-3">Name & Type</div>
-        <div className="col-span-2">Contact Information</div>
-        <div className="col-span-2">Primary Details</div>
-        <div className="col-span-1">ID Number</div>
+      <div className="grid grid-cols-13 gap-4 text-sm font-medium text-gray-700">
+        <div className="col-span-1">
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={(e) => onSelectAll(e.target.checked)}
+            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            disabled={totalItems === 0}
+          />
+        </div>
+        <div className="col-span-2">Type</div>
+        <div className="col-span-2">Name</div>
+        <div className="col-span-2">Email</div>
+        <div className="col-span-2">Submission Date</div>
         <div className="col-span-1 text-center">Status</div>
-        <div className="col-span-2">Documents & Date</div>
-        <div className="col-span-1 text-right">Actions</div>
+        <div className="col-span-2 text-right">Actions</div>
       </div>
     </div>
   );
@@ -314,13 +263,12 @@ const StatsCards = ({ stats }: { stats: Stats }) => {
   const statItems = [
     { label: "Total", count: stats.total, color: "text-gray-600", icon: Users },
     { label: "Pending", count: stats.pending, color: "text-yellow-600", icon: Clock },
-    { label: "Pre-Approved", count: stats.preApproved, color: "text-blue-600", icon: CheckCircle },
     { label: "Verified", count: stats.verified, color: "text-green-600", icon: CheckCircle },
     { label: "Denied", count: stats.denied, color: "text-red-600", icon: XCircle },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
       {statItems.map((stat) => (
         <Card key={stat.label} className="p-4">
           <CardContent className="p-0">
@@ -343,6 +291,7 @@ const StatsCards = ({ stats }: { stats: Stats }) => {
 // Main Page Component
 export default function KYCKYBApprovalsPage() {
   const [verifications, setVerifications] = useState<Verification[]>([]);
+  const [stats, setStats] = useState<Stats>({ total: 0, unverified: 0, pending: 0, verified: 0, denied: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedVerification, setSelectedVerification] = useState<Verification | null>(null);
@@ -350,58 +299,59 @@ export default function KYCKYBApprovalsPage() {
   const [isDenialModalOpen, setIsDenialModalOpen] = useState(false);
   const [denialReason, setDenialReason] = useState("");
   const [processingAction, setProcessingAction] = useState(false);
-  
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 10;
+
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [personaFilter, setPersonaFilter] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
-  // Fetch verifications
-  const fetchVerifications = async () => {
+  // Fetch verifications and stats
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/kyc-kyb-verification/all`);
-      setVerifications(response.data.verifications || []);
+      const [verificationsResponse, statsResponse] = await Promise.all([
+        kycKybApprovalService.getAllVerifications({
+          page: currentPage,
+          limit: itemsPerPage,
+          status: statusFilter !== "all" ? statusFilter : undefined,
+          personaType: personaFilter !== "all" ? personaFilter : undefined
+        }),
+        kycKybApprovalService.getVerificationStats()
+      ]);
+
+      setVerifications(verificationsResponse.verifications);
+      setTotalPages(verificationsResponse.totalPages);
+      setStats({
+        total: statsResponse.overall.total,
+        unverified: statsResponse.overall.unverified,
+        pending: statsResponse.overall.pending,
+        verified: statsResponse.overall.verified,
+        denied: statsResponse.overall.denied
+      });
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch verifications');
+      setError(err.response?.data?.message || 'Failed to fetch data');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchVerifications();
-  }, []);
+    fetchData();
+  }, [currentPage, statusFilter, personaFilter]);
 
-  // Filter verifications
+  // Filter verifications for search
   const filteredVerifications = verifications.filter((verification) => {
-    const matchesSearch = 
+    const matchesSearch =
       getPersonaName(verification).toLowerCase().includes(searchTerm.toLowerCase()) ||
       verification.user?.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "all" || verification.status === statusFilter;
-    const matchesPersona = personaFilter === "all" || verification.personaType === personaFilter;
-    
-    return matchesSearch && matchesStatus && matchesPersona;
+    return matchesSearch;
   });
 
-  // Pagination
-  const totalPages = Math.ceil(filteredVerifications.length / itemsPerPage);
-  const paginatedVerifications = filteredVerifications.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  // Calculate stats
-  const stats: Stats = {
-    total: verifications.length,
-    pending: verifications.filter(v => v.status === "pending").length,
-    preApproved: verifications.filter(v => v.status === "pre_approved").length,
-    verified: verifications.filter(v => v.status === "verified").length,
-    denied: verifications.filter(v => v.status === "denied").length,
-  };
+  const paginatedVerifications = filteredVerifications;
 
   // Helper function to get persona name
   function getPersonaName(verification: Verification): string {
@@ -428,24 +378,43 @@ export default function KYCKYBApprovalsPage() {
     setIsDetailModalOpen(true);
   };
 
-  const handleApprove = async () => {
-    if (!selectedVerification) return;
-    
+  const handleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((selectedId) => selectedId !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (select: boolean) => {
+    if (select) {
+      setSelectedIds(paginatedVerifications.map((v) => v._id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleRowApprove = async (verification: Verification) => {
     try {
       setProcessingAction(true);
-      await axios.put(`${API_URL}/kyc-kyb-verification/${selectedVerification._id}/status`, {
-        status: "verified"
-      });
-      
-      // Update local state
-      setVerifications(prev => 
-        prev.map(v => 
-          v._id === selectedVerification._id 
-            ? { ...v, status: "verified", verifiedAt: new Date().toISOString() }
-            : v
-        )
-      );
-      
+      await kycKybApprovalService.updateVerificationStatus(verification._id, { status: "verified" });
+      await fetchData();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to approve verification');
+    } finally {
+      setProcessingAction(false);
+    }
+  };
+
+  const handleRowDeny = (verification: Verification) => {
+    setSelectedVerification(verification);
+    setIsDenialModalOpen(true);
+  };
+
+  const handleApprove = async () => {
+    if (!selectedVerification) return;
+    try {
+      setProcessingAction(true);
+      await kycKybApprovalService.updateVerificationStatus(selectedVerification._id, { status: "verified" });
+      await fetchData();
       setIsDetailModalOpen(false);
       setSelectedVerification(null);
     } catch (err: any) {
@@ -457,28 +426,38 @@ export default function KYCKYBApprovalsPage() {
 
   const handleDeny = async () => {
     if (!selectedVerification || !denialReason.trim()) return;
-    
     try {
       setProcessingAction(true);
-      await axios.put(`${API_URL}/kyc-kyb-verification/${selectedVerification._id}/status`, {
+      await kycKybApprovalService.updateVerificationStatus(selectedVerification._id, {
         status: "denied",
         denialReason: denialReason.trim()
       });
-      
-      // Update local state
-      setVerifications(prev => 
-        prev.map(v => 
-          v._id === selectedVerification._id 
-            ? { ...v, status: "denied", denialReason: denialReason.trim() }
-            : v
-        )
-      );
-      
+      await fetchData();
       setIsDetailModalOpen(false);
       setSelectedVerification(null);
       setDenialReason("");
+      setIsDenialModalOpen(false);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to deny verification');
+    } finally {
+      setProcessingAction(false);
+    }
+  };
+
+  const handleBulkAction = async (status: "verified" | "denied") => {
+    if (selectedIds.length === 0) return;
+    try {
+      setProcessingAction(true);
+      await kycKybApprovalService.bulkUpdateStatus(selectedIds, {
+        status,
+        ...(status === "denied" && denialReason.trim() ? { denialReason: denialReason.trim() } : {})
+      });
+      await fetchData();
+      setSelectedIds([]);
+      setDenialReason("");
+      setIsDenialModalOpen(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || `Failed to bulk ${status} verifications`);
     } finally {
       setProcessingAction(false);
     }
@@ -501,7 +480,7 @@ export default function KYCKYBApprovalsPage() {
         <div className="text-center">
           <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-4" />
           <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={fetchVerifications}>Retry</Button>
+          <Button onClick={fetchData}>Retry</Button>
         </div>
       </div>
     );
@@ -515,6 +494,18 @@ export default function KYCKYBApprovalsPage() {
           <h1 className="text-2xl font-bold text-gray-900">KYC/KYB Approvals</h1>
           <p className="text-gray-600">Manage user verification requests and approvals</p>
         </div>
+        {selectedIds.length > 0 && (
+          <div className="flex gap-2">
+            <Button onClick={() => handleBulkAction("verified")} disabled={processingAction}>
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Approve Selected ({selectedIds.length})
+            </Button>
+            <Button variant="destructive" onClick={() => setIsDenialModalOpen(true)} disabled={processingAction}>
+              <XCircle className="h-4 w-4 mr-2" />
+              Deny Selected ({selectedIds.length})
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -543,7 +534,6 @@ export default function KYCKYBApprovalsPage() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="pre_approved">Pre-Approved</SelectItem>
                   <SelectItem value="verified">Verified</SelectItem>
                   <SelectItem value="denied">Denied</SelectItem>
                 </SelectContent>
@@ -566,13 +556,22 @@ export default function KYCKYBApprovalsPage() {
 
       {/* Verifications Table */}
       <Card>
-        <TableHeader />
+        <TableHeader
+          onSelectAll={handleSelectAll}
+          allSelected={selectedIds.length === paginatedVerifications.length && paginatedVerifications.length > 0}
+          totalItems={paginatedVerifications.length}
+        />
         <div className="divide-y divide-gray-200">
           {paginatedVerifications.map((verification) => (
             <VerificationRow
               key={verification._id}
               verification={verification}
               onViewDetails={handleViewDetails}
+              onApprove={handleRowApprove}
+              onDeny={handleRowDeny}
+              onSelect={handleSelect}
+              isSelected={selectedIds.includes(verification._id)}
+              processingAction={processingAction}
             />
           ))}
         </div>
@@ -596,7 +595,7 @@ export default function KYCKYBApprovalsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -608,7 +607,7 @@ export default function KYCKYBApprovalsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
             >
               Next
@@ -629,7 +628,7 @@ export default function KYCKYBApprovalsPage() {
               <span>Verification Details - {selectedVerification ? getPersonaName(selectedVerification) : ''}</span>
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedVerification && (
             <div className="space-y-6">
               {/* Basic Information */}
@@ -655,6 +654,12 @@ export default function KYCKYBApprovalsPage() {
                       <label className="text-sm font-medium text-gray-700">Submitted</label>
                       <p className="text-gray-900">{new Date(selectedVerification.submittedAt).toLocaleDateString()}</p>
                     </div>
+                    {selectedVerification.denialReason && (
+                      <div className="col-span-2">
+                        <label className="text-sm font-medium text-gray-700">Denial Reason</label>
+                        <p className="text-gray-900">{selectedVerification.denialReason}</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -676,8 +681,15 @@ export default function KYCKYBApprovalsPage() {
                           <span className="text-gray-900">
                             {typeof doc === 'string' ? doc : doc.fileName || `Document ${index + 1}`}
                           </span>
+                          {typeof doc !== 'string' && doc.type && (
+                            <span className="text-sm text-gray-500">({doc.type})</span>
+                          )}
                         </div>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}${doc.fileUrl}`, '_blank')}
+                        >
                           <Download className="h-4 w-4 mr-1" />
                           Download
                         </Button>
@@ -720,7 +732,7 @@ export default function KYCKYBApprovalsPage() {
       <Dialog open={isDenialModalOpen} onOpenChange={setIsDenialModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Deny Verification</DialogTitle>
+            <DialogTitle>Deny Verification{selectedIds.length > 0 ? 's' : ''}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -728,7 +740,7 @@ export default function KYCKYBApprovalsPage() {
               <Textarea
                 value={denialReason}
                 onChange={(e) => setDenialReason(e.target.value)}
-                placeholder="Please provide a reason for denying this verification..."
+                placeholder="Please provide a reason for denying the verification(s)..."
                 rows={4}
               />
             </div>
@@ -736,9 +748,9 @@ export default function KYCKYBApprovalsPage() {
               <Button variant="outline" onClick={() => setIsDenialModalOpen(false)}>
                 Cancel
               </Button>
-              <Button 
-                variant="destructive" 
-                onClick={handleDeny}
+              <Button
+                variant="destructive"
+                onClick={() => selectedIds.length > 0 ? handleBulkAction("denied") : handleDeny()}
                 disabled={!denialReason.trim() || processingAction}
               >
                 {processingAction ? (

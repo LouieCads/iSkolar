@@ -19,43 +19,6 @@ exports.getAcademicDetails = async (req, res) => {
   }
 };
 
-// Get verified schools for student KYC form
-exports.getVerifiedSchools = async (req, res) => {
-  try {
-    // Find schools that have verified KYC/KYB records
-    const verifiedSchools = await School.aggregate([
-      {
-        $lookup: {
-          from: "kyckybverifications",
-          localField: "kycId",
-          foreignField: "_id",
-          as: "kycVerification",
-        },
-      },
-      {
-        $match: {
-          "kycVerification.status": "verified",
-        },
-      },
-      {
-        $project: {
-          schoolName: 1,
-          schoolType: 1,
-        },
-      },
-    ]);
-
-    res.json({
-      schools: verifiedSchools.map((school) => ({
-        name: school.schoolName,
-        type: school.schoolType,
-      })),
-    });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch verified schools" });
-  }
-};
-
 // --- COURSE ---
 exports.addCourse = async (req, res) => {
   try {
