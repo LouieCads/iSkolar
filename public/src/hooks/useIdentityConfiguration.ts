@@ -30,7 +30,7 @@ export const useKycKybConfiguration = () => {
   useEffect(() => {
     const fetchConfiguration = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/kyc-kyb-configuration/kyc-kyb-configuration`);
+        const response = await fetch(`${API_BASE_URL}/identity-configuration/all`);
         if (!response.ok) throw new Error('Failed to fetch KYC/KYB configuration');
         
         const data = await response.json();

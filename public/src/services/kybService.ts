@@ -103,7 +103,7 @@ export const kybService = {
   // Get KYB status for current user
   async getKybStatus(): Promise<KybStatus> {
     try {
-      const response = await axios.get(`${API_URL}/kyc-kyb-verification/status`);
+      const response = await axios.get(`${API_URL}/identity-verification/status`);
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
@@ -117,7 +117,7 @@ export const kybService = {
   async submitIndividualSponsorKyb(sponsorData: IndividualSponsorData) {
     try {
       const response = await axios.post(
-        `${API_URL}/kyc-kyb-verification/individual-sponsor/submit`,
+        `${API_URL}/identity-verification/individual-sponsor/submit`,
         sponsorData,
         {
           headers: {
@@ -138,7 +138,7 @@ export const kybService = {
   async submitCorporateSponsorKyb(corporateData: CorporateSponsorData) {
     try {
       const response = await axios.post(
-        `${API_URL}/kyc-kyb-verification/corporate-sponsor/submit`,
+        `${API_URL}/identity-verification/corporate-sponsor/submit`,
         corporateData,
         {
           headers: {
@@ -163,7 +163,7 @@ export const kybService = {
       formData.append('documentType', documentType);
 
       const response = await axios.post(
-        `${API_URL}/kyc-kyb-verification/upload-document`,
+        `${API_URL}/identity-verification/upload-document`,
         formData,
         {
           headers: {
@@ -184,7 +184,7 @@ export const kybService = {
   async deleteDocument(documentId: string) {
     try {
       const response = await axios.delete(
-        `${API_URL}/kyc-kyb-verification/document/${documentId}`
+        `${API_URL}/identity-verification/document/${documentId}`
       );
       return response.data;
     } catch (error: any) {
@@ -198,7 +198,7 @@ export const kybService = {
   // Get verification history
   async getVerificationHistory() {
     try {
-      const response = await axios.get(`${API_URL}/kyc-kyb-verification/history`);
+      const response = await axios.get(`${API_URL}/identity-verification/history`);
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
@@ -212,7 +212,7 @@ export const kybService = {
   async resubmitVerification(updateData: any) {
     try {
       const response = await axios.post(
-        `${API_URL}/kyc-kyb-verification/resubmit`,
+        `${API_URL}/identity-verification/resubmit`,
         updateData,
         {
           headers: {

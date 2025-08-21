@@ -20,13 +20,13 @@ export interface KycStatus {
 
 export const kycService = {
   async getKycStatus(): Promise<KycStatus> {
-    const response = await axios.get(`${API_URL}/kyc-kyb-verification/status`);
+    const response = await axios.get(`${API_URL}/identity-verification/status`);
     return response.data;
   },
 
   async submitStudentKyc(formData: any) {
     const response = await axios.post(
-      `${API_URL}/kyc-kyb-verification/student/submit`,
+      `${API_URL}/identity-verification/student/submit`,
       formData,
       {
         headers: {
@@ -43,7 +43,7 @@ export const kycService = {
     formData.append('documentType', documentType);
 
     const response = await axios.post(
-      `${API_URL}/kyc-kyb-verification/upload-document`,
+      `${API_URL}/identity-verification/upload-document`,
       formData,
       {
         headers: {
@@ -55,7 +55,7 @@ export const kycService = {
   },
 
   async deleteDocument(documentId: string) {
-    const response = await axios.delete(`${API_URL}/kyc-kyb-verification/document/${documentId}`);
+    const response = await axios.delete(`${API_URL}/identity-verification/document/${documentId}`);
     return response.data;
   },
 };

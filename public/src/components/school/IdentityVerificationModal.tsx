@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { CheckCircle, Building2, MapPin, FileText, Shield, User, X, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useKycKybConfiguration } from '@/hooks/useKycKybConfiguration';
+import { useKycKybConfiguration } from '@/hooks/useIdentityConfiguration';
 import { kycKybService } from '@/services/kycKybService';
 
 const STEPS = [

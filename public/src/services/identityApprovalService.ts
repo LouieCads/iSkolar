@@ -1,4 +1,4 @@
-//services/kycKybApprovalService.ts
+//services/identityApprovalService.ts
 
 import axios from 'axios';
 
@@ -15,7 +15,10 @@ axios.interceptors.request.use((config) => {
 
 export interface Verification {
   _id: string;
-  userId: string;
+  userId: {
+    _id: string;
+    email: string;
+  } | string; // Can be populated object or just string ID
   personaType: "student" | "sponsor" | "school";
   status: "unverified" | "pending" | "verified" | "denied";
   submittedAt: string;
@@ -28,9 +31,6 @@ export interface Verification {
   school?: any;
   documents?: any[];
   fileNames?: string[];
-  user?: {
-    email: string;
-  };
 }
 
 export interface VerificationResponse {
@@ -40,7 +40,7 @@ export interface VerificationResponse {
   total: number;
 }
 
-export const kycKybApprovalService = {
+export const identityApprovalService = {
   // Get all verifications with pagination and filters
   async getAllVerifications(params?: {
     page?: number;
@@ -48,7 +48,7 @@ export const kycKybApprovalService = {
     status?: string;
     personaType?: string;
   }): Promise<VerificationResponse> {
-    const response = await axios.get(`${API_URL}/kyc-kyb-verification/all`, {
+    const response = await axios.get(`${API_URL}/identity-verification/all`, {
       params
     });
     return response.data;
@@ -56,7 +56,7 @@ export const kycKybApprovalService = {
 
   // Get verification by ID
   async getVerificationById(id: string): Promise<{ verification: Verification }> {
-    const response = await axios.get(`${API_URL}/kyc-kyb-verification/${id}`);
+    const response = await axios.get(`${API_URL}/identity-verification/${id}`);
     return response.data;
   },
 
@@ -68,7 +68,7 @@ export const kycKybApprovalService = {
       denialReason?: string; 
     }
   ): Promise<{ message: string; verification: Verification }> {
-    const response = await axios.put(`${API_URL}/kyc-kyb-verification/${id}/status`, data);
+    const response = await axios.put(`${API_URL}/identity-verification/${id}/status`, data);
     return response.data;
   },
 
@@ -89,7 +89,7 @@ export const kycKybApprovalService = {
       pending: number;
     }>;
   }> {
-    const response = await axios.get(`${API_URL}/kyc-kyb-verification/stats`);
+    const response = await axios.get(`${API_URL}/identity-verification/stats`);
     return response.data;
   },
 
@@ -101,11 +101,10 @@ export const kycKybApprovalService = {
       denialReason?: string; 
     }
   ): Promise<{ message: string; modifiedCount: number }> {
-    const response = await axios.post(`${API_URL}/kyc-kyb-verification/bulk-update`, {
+    const response = await axios.post(`${API_URL}/identity-verification/bulk-update`, {
       verificationIds,
       ...data
     });
     return response.data;
   }
 };
-

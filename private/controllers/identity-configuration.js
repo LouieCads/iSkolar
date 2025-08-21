@@ -1,4 +1,4 @@
-const KycKybConfiguration = require("../models/KycKybConfiguration");
+const KycKybConfiguration = require("../models/IdentityConfiguration");
 
 // --- Get all KYC/KYB configuration details ---
 exports.getKycKybConfiguration = async (req, res) => {

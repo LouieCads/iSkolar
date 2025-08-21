@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useAcademicDetails } from '@/hooks/useAcademicDetails';
-import { useKycStatus } from '@/hooks/useKycStatus';
+import { useKycStatus } from '@/hooks/useIdentityStatus';
 import { kycService } from '@/services/kycService';
 
 const STEPS = [

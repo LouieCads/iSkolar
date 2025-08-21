@@ -68,14 +68,14 @@ export interface SchoolData {
 export const kycKybService = {
   // Get KYC/KYB status
   async getStatus(): Promise<KycKybStatus> {
-    const response = await axios.get(`${API_URL}/kyc-kyb-verification/status`);
+    const response = await axios.get(`${API_URL}/identity-verification/status`);
     return response.data;
   },
 
   // Submit Individual Sponsor KYB
   async submitIndividualSponsorKyb(formData: any) {
     const response = await axios.post(
-      `${API_URL}/kyc-kyb-verification/individual-sponsor/submit`,
+      `${API_URL}/identity-verification/individual-sponsor/submit`,
       formData,
       {
         headers: {
@@ -89,7 +89,7 @@ export const kycKybService = {
   // Submit Corporate Sponsor KYB 
   async submitCorporateSponsorKyb(formData: any) {
     const response = await axios.post(
-      `${API_URL}/kyc-kyb-verification/corporate-sponsor/submit`,
+      `${API_URL}/identity-verification/corporate-sponsor/submit`,
       formData,
       {
         headers: {
@@ -104,7 +104,7 @@ export const kycKybService = {
   async submitSchoolKyb(schoolData: SchoolData) {
     try {
       const response = await axios.post(
-        `${API_URL}/kyc-kyb-verification/school/submit`,
+        `${API_URL}/identity-verification/school/submit`,
         schoolData,
         {
           headers: {
@@ -128,7 +128,7 @@ export const kycKybService = {
     formData.append('documentType', documentType);
 
     const response = await axios.post(
-      `${API_URL}/kyc-kyb-verification/upload-document`,
+      `${API_URL}/identity-verification/upload-document`,
       formData,
       {
         headers: {
@@ -142,7 +142,7 @@ export const kycKybService = {
   // Delete document
   async deleteDocument(documentId: string) {
     const response = await axios.delete(
-      `${API_URL}/kyc-kyb-verification/document/${documentId}`);
+      `${API_URL}/identity-verification/document/${documentId}`);
     return response.data;
   }
 };

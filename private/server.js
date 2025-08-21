@@ -11,8 +11,8 @@ const academicDetailsRoutes = require("./routes/academic-details");
 const scholarshipDetailsRoutes = require("./routes/scholarship-details");
 const credentialsRoutes = require("./routes/credentials");
 const tokenPaymentRoutes = require("./routes/token-payment");
-const kycKybConfigurationRoutes = require("./routes/kyc-kyb-configuration");
-const kycKybVerificationRoutes = require("./routes/kyc-kyb-verification");
+const identityConfigurationRoutes = require("./routes/identity-configuration");
+const identityVerificationRoutes = require("./routes/identity-verification");
 const scholarshipBannerRoutes = require("./routes/scholarships");
 
 dotenv.config();
@@ -35,8 +35,8 @@ app.use("/academic-details", academicDetailsRoutes);
 app.use("/scholarship-details", scholarshipDetailsRoutes);
 app.use("/credentials", credentialsRoutes);
 app.use("/token-payment", tokenPaymentRoutes);
-app.use("/kyc-kyb-configuration", kycKybConfigurationRoutes);
-app.use("/kyc-kyb-verification", kycKybVerificationRoutes);
+app.use("/identity-configuration", identityConfigurationRoutes);
+app.use("/identity-verification", identityVerificationRoutes);
 app.use("/scholarship-banner", scholarshipBannerRoutes);
 
 // connection

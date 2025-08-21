@@ -5,7 +5,7 @@ import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Settings, UserSquare, Briefcase, Wallet, Building2, Factory, School, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import ListTab from "@/components/admin/settings/kyc-kyb-configuration/ListTab";
+import ListTab from "@/components/admin/settings/identity-configuration/ListTab";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -182,7 +182,7 @@ export default function KycKybConfigurationPage() {
       setLoading(true);
       setError("");
       try {
-        const response = await axios.get(`${API_BASE_URL}/kyc-kyb-configuration/kyc-kyb-configuration`);
+        const response = await axios.get(`${API_BASE_URL}/identity-configuration/all`);
         const responseData = response.data;
         
         setData({
@@ -226,7 +226,7 @@ export default function KycKybConfigurationPage() {
     }
 
     try {
-      const url = `${API_BASE_URL}/kyc-kyb-configuration/${fieldConfig.endpoint}`;
+      const url = `${API_BASE_URL}/identity-configuration/${fieldConfig.endpoint}`;
       console.log(`${method.toUpperCase()} request to:`, url);
       console.log("Payload:", payload);
 
@@ -378,10 +378,10 @@ export default function KycKybConfigurationPage() {
       <div className="mb-4">
         <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
           <Settings className="w-6 h-6 text-blue-700" /> 
-          KYC/KYB Configuration
+          Identity Configuration
         </h1>
         <p className="text-xs text-gray-600">
-          Manage KYC/KYB required fields, ID types, and more for all roles
+          Manage Identity 
         </p>
       </div>
 

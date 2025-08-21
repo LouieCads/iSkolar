@@ -1,5 +1,5 @@
-// controllers/kyc-kyb-verification.js
-const KycKybVerification = require("../models/KycKybVerification");
+// controllers/identity-verification.js
+const KycKybVerification = require("../models/IdentityVerification");
 const School = require("../models/School");
 const Student = require("../models/Student");
 const User = require("../models/User");
@@ -611,9 +611,11 @@ exports.getVerificationById = async (req, res) => {
       return res.status(403).json({ message: "Admin access required" });
     }
 
-    const verification = await KycKybVerification.findById(
-      verificationId
-    ).populate("userId", "email");
+    const verification = await KycKybVerification.findById(verificationId)
+      .populate({
+        path: "userId",
+        select: "email role status"
+      });
 
     if (!verification) {
       return res.status(404).json({ message: "Verification not found" });
@@ -621,6 +623,7 @@ exports.getVerificationById = async (req, res) => {
 
     res.status(200).json({ verification });
   } catch (error) {
+    console.error("Error fetching verification:", error);
     res
       .status(500)
       .json({ message: "Error fetching verification", error: error.message });
@@ -651,20 +654,27 @@ exports.getAllVerifications = async (req, res) => {
     sort[sortBy] = sortOrder === "desc" ? -1 : 1;
 
     const verifications = await KycKybVerification.find(filter)
-      .populate("userId", "email")
+      .populate({
+        path: "userId",
+        select: "email role status"
+      })
       .sort(sort)
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
     const total = await KycKybVerification.countDocuments(filter);
 
+    // Log to debug - remove in production
+    console.log("Sample verification with user:", JSON.stringify(verifications[0], null, 2));
+
     res.status(200).json({
       verifications,
       totalPages: Math.ceil(total / limit),
-      currentPage: page,
+      currentPage: parseInt(page),
       total,
     });
   } catch (error) {
+    console.error("Error fetching verifications:", error);
     res
       .status(500)
       .json({ message: "Error fetching verifications", error: error.message });

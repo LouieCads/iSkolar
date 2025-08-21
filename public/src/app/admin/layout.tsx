@@ -47,7 +47,7 @@ export default function AdminLayout({
 
   const navItems = [
     { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "KYC/KYB Approvals", path: "/admin/kyc-kyb-approvals", icon: Shield },
+    { name: "Identity Approvals", path: "/admin/identity-approvals", icon: Shield },
     { name: "Scholarships", path: "/admin/scholarships", icon: FileBadge },
     { name: "Transactions", path: "/admin/transactions", icon: Repeat },
   ];
@@ -58,7 +58,7 @@ export default function AdminLayout({
     { name: "Scholarship Details", path: "/admin/settings/scholarship-details", icon: GraduationCap },
     { name: "Academic Details", path: "/admin/settings/academic-details", icon: BookOpen },
     { name: "Token & Payment", path: "/admin/settings/token-payment", icon: CreditCard },
-    { name: "KYC/KYB Configuration", path: "/admin/settings/kyc-kyb-configuration", icon: ShieldCheck },
+    { name: "Identity Configuration", path: "/admin/settings/identity-configuration", icon: ShieldCheck },
     { name: "Credentials", path: "/admin/settings/credential", icon: Key },
   ];
 

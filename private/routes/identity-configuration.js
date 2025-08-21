@@ -23,10 +23,10 @@ const {
   addSchoolType,
   updateSchoolType,
   deleteSchoolType,
-} = require("../controllers/kyc-kyb-configuration");
+} = require("../controllers/identity-configuration");
 
 // --- Get all configuration ---
-router.get("/kyc-kyb-configuration", getKycKybConfiguration);
+router.get("/all", getKycKybConfiguration);
 
 // --- ID Types ---
 router.post("/id-types", addIdType);

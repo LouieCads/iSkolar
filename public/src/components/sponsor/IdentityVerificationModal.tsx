@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
-import { useKycKybConfiguration } from '@/hooks/useKycKybConfiguration';
+import { useKycKybConfiguration } from '@/hooks/useIdentityConfiguration';
 import { kycKybService } from '@/services/kycKybService';
 import { Progress } from '@/components/ui/progress';
 

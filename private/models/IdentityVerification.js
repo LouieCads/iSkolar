@@ -7,10 +7,6 @@ const kycKybVerificationSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-  email: {
-    type: mongoose.Schema.Types.String,
-    ref: "User",
-  },
   personaType: {
     type: String,
     enum: ["student", "sponsor", "school"],

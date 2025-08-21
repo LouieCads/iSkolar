@@ -1,4 +1,4 @@
-// routes/kyc-kyb-verification.js
+// routes/identity-verification.js
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
@@ -21,7 +21,7 @@ const {
   resubmitVerification,
   bulkUpdateStatus,
   getVerificationStats,
-} = require("../controllers/kyc-kyb-verification");
+} = require("../controllers/identity-verification");
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -61,7 +61,7 @@ const upload = multer({
 router.get("/status", authMiddleware, getKycStatus);
 router.get("/history", authMiddleware, getVerificationHistory);
 
-// KYC/KYB submission routes (all go directly to admin)
+// Identity submission routes (all go directly to admin)
 router.post("/student/submit", authMiddleware, submitStudentKyc);
 router.post("/individual-sponsor/submit", authMiddleware, submitIndividualSponsorKyb);
 router.post("/corporate-sponsor/submit", authMiddleware, submitCorporateSponsorKyb);

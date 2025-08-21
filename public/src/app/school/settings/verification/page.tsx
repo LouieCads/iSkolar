@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import SchoolKybVerificationModal from '@/components/school/KybVerificationModal';
+import SchoolKybVerificationModal from '@/components/school/IdentityVerificationModal';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
@@ -15,7 +15,7 @@ export default function VerificationPage() {
       try {
         const token = localStorage.getItem('token');
         
-        const response = await fetch(`${API_BASE_URL}/kyc-kyb-verification/status`, {
+        const response = await fetch(`${API_BASE_URL}/identity-verification/status`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
