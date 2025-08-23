@@ -11,7 +11,7 @@ const {
   submitStudentIdentityVerification,
   submitIndividualSponsorIdentityVerification,
   submitCorporateSponsorIdentityVerification,
-  submitSchoolKyb,
+  submitSchoolIdentityVerification,
   getVerificationById,
   getAllVerifications,
   updateVerificationStatus,
