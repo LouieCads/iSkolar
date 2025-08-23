@@ -1,65 +1,59 @@
-'use client';
+// /components/school/IdentityVerificationModal.tsx
 
 import React, { useState } from 'react';
-import { CheckCircle, Building2, MapPin, FileText, Shield, User, X, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, User, MapPin, FileText, Shield, Camera, X, AlertCircle, Loader2, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useKycKybConfiguration } from '@/hooks/useIdentityConfiguration';
-import { kycKybService } from '@/services/kycKybService';
+import { kycKybService } from '@/services/sponsorIdentityVerificationService';
 
 const STEPS = [
-  { title: 'School Info', icon: Building2, gradient: 'from-indigo-500 to-purple-600' },
+  { title: 'Personal Info', icon: User, gradient: 'from-indigo-500 to-purple-600' },
   { title: 'Address', icon: MapPin, gradient: 'from-teal-500 to-cyan-600' },
-  { title: 'Representative', icon: User, gradient: 'from-violet-500 to-fuchsia-600' },
-  { title: 'Documents', icon: FileText, gradient: 'from-amber-500 to-orange-600' },
+  { title: 'ID Details', icon: FileText, gradient: 'from-amber-500 to-orange-600' },
+  { title: 'Selfie', icon: Camera, gradient: 'from-violet-500 to-fuchsia-600' },
   { title: 'Declaration', icon: Shield, gradient: 'from-rose-500 to-pink-600' },
 ];
 
 const INITIAL_FORM_DATA = {
-  // School Information
-  schoolName: '', 
-  schoolType: '', 
-  officialEmail: '', 
-  website: '',
-  contactNumbers: [''], 
-  tin: '', 
-  schoolIdNumber: '',
-  accreditationCertificate: '',
-  businessPermit: '',
-  
-  // Campus Address
-  country: '', 
-  province: '', 
-  city: '', 
-  barangay: '', 
-  street: '', 
-  zipCode: '',
-  
-  // Authorized Representative
-  fullName: '', 
-  position: '', 
-  email: '', 
-  contactNumber: '', 
+  // Personal Information
+  firstName: '',
+  middleName: '',
+  lastName: '',
+  dateOfBirth: '',
   nationality: '',
-  idType: '', 
-  idNumber: '', 
-  schoolId: '',
+  contactEmail: '',
+  contactNumber: '',
   
-  // Documents
-  accreditationDoc: null as File | null, 
-  businessPermitDoc: null as File | null, 
-  birCertificate: null as File | null,
-  authorizationLetter: null as File | null, 
-  gisDoc: null as File | null,
+  // Address
+  country: '',
+  stateOrProvince: '',
+  city: '',
+  districtOrBarangay: '',
+  street: '',
+  postalCode: '',
+  
+  // ID Details
+  idType: '',
+  idNumber: '',
+  expiryDate: '',
+  frontImageFile: null,
+  backImageFile: null,
+  frontImageUrl: '',
+  backImageUrl: '',
+  
+  // Selfie
+  selfieFile: null,
+  selfiePhotoUrl: '',
   
   // Declaration
   consent: false,
 };
 
 const REQUIRED_FIELDS = {
-  1: ['schoolName', 'schoolType', 'officialEmail', 'tin', 'schoolIdNumber'],
-  2: ['country', 'province', 'city', 'barangay', 'street', 'zipCode'],
-  3: ['fullName', 'position', 'email', 'contactNumber', 'nationality', 'idType', 'idNumber', 'schoolId'],
-  4: ['accreditationDoc', 'businessPermitDoc', 'birCertificate', 'authorizationLetter'],
+  1: ['firstName', 'lastName', 'dateOfBirth', 'nationality', 'contactEmail', 'contactNumber'],
+  2: ['country', 'stateOrProvince', 'city', 'districtOrBarangay', 'street', 'postalCode'],
+  3: ['idType', 'idNumber', 'expiryDate', 'frontImageUrl', 'backImageUrl'],
+  4: ['selfiePhotoUrl'],
   5: ['consent'],
 };
 
@@ -160,15 +154,26 @@ const SelectField: React.FC<SelectFieldProps> = ({
   </FormField>
 );
 
-interface FileUploadProps {
+// Updated ImageUpload component - matching the sponsor version
+interface ImageUploadProps {
   label: string;
   id: string;
-  formData: any;
+  file: File | null;
+  imageUrl: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   required?: boolean;
+  accept?: string;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ label, id, formData, onChange, required = false }) => (
+const ImageUpload: React.FC<ImageUploadProps> = ({ 
+  label, 
+  id, 
+  file,
+  imageUrl,
+  onChange, 
+  required = false, 
+  accept = "image/*"
+}) => (
   <div className="border rounded-md p-3 bg-gray-50">
     <label htmlFor={id} className="text-sm font-medium text-gray-800 block mb-2">
       {label} {required && <span className="text-red-500">*</span>}
@@ -178,16 +183,21 @@ const FileUpload: React.FC<FileUploadProps> = ({ label, id, formData, onChange, 
       type="file"
       name={id}
       onChange={onChange}
-      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+      accept={accept}
       className="w-full px-2.5 py-1.5 text-sm rounded-md border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all bg-white"
       required={required}
     />
-    {formData[id] && (
+    {(file || imageUrl) && (
       <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
         <p className="text-xs text-green-700 flex items-center">
           <CheckCircle className="w-3 h-3 mr-1" />
-          Uploaded: {formData[id].name}
+          {file ? `Uploaded: ${file.name}` : 'Image uploaded successfully'}
         </p>
+      </div>
+    )}
+    {imageUrl && (
+      <div className="mt-2">
+        <img src={imageUrl} alt={label} className="max-w-full h-32 object-cover rounded border" />
       </div>
     )}
   </div>
@@ -248,6 +258,7 @@ export default function SchoolKybVerificationModal({
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [notification, setNotification] = useState({ show: false, type: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const kycKybConfig = useKycKybConfiguration();
 
@@ -267,47 +278,67 @@ export default function SchoolKybVerificationModal({
     }));
   };
 
-  const handleContactNumberChange = (index: number, value: string) => {
-    const updatedNumbers = [...formData.contactNumbers];
-    updatedNumbers[index] = value;
-    setFormData(prev => ({ ...prev, contactNumbers: updatedNumbers }));
-  };
-
-  const addContactNumber = () => {
-    setFormData(prev => ({ 
-      ...prev, 
-      contactNumbers: [...prev.contactNumbers, ''] 
-    }));
-  };
-
-  const removeContactNumber = (index: number) => {
-    if (formData.contactNumbers.length > 1) {
-      const updatedNumbers = formData.contactNumbers.filter((_, i) => i !== index);
-      setFormData(prev => ({ ...prev, contactNumbers: updatedNumbers }));
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Updated file upload handler - matching the sponsor version
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
-    setFormData(prev => ({ ...prev, [name]: files?.[0] || null }));
+    const file = files?.[0];
+    
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      
+      let documentType;
+      let urlFieldName;
+      
+      if (name === 'frontImageFile') {
+        documentType = 'idFront';
+        urlFieldName = 'frontImageUrl';
+      } else if (name === 'backImageFile') {
+        documentType = 'idBack';
+        urlFieldName = 'backImageUrl';
+      } else if (name === 'selfieFile') {
+        documentType = 'selfie';
+        urlFieldName = 'selfiePhotoUrl';
+      } else {
+        showNotification('error', 'Invalid file type');
+        return;
+      }
+
+      const uploadResult = await kycKybService.uploadDocument(file, documentType);
+      if (!uploadResult.fileUrl) {
+        throw new Error('No file URL returned from server');
+      }
+      
+      setFormData(prev => {
+        const newFormData = {
+          ...prev,
+          [name]: file,
+          [urlFieldName]: uploadResult.fileUrl,
+        };
+        console.log('Updated formData:', newFormData);
+        return newFormData;
+      });
+
+      showNotification('success', 'File uploaded successfully');
+    } catch (error: any) {
+      console.error('File upload error:', error);
+      showNotification('error', error.message || error.response?.data?.message || 'Error uploading file');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const validateStep = () => {
     const requiredFields = REQUIRED_FIELDS[currentStep as keyof typeof REQUIRED_FIELDS];
     
-    // Special validation for contact numbers in step 1
-    if (currentStep === 1) {
-      const hasValidContactNumber = formData.contactNumbers.some(num => num.trim().length > 0);
-      if (!hasValidContactNumber) {
-        showNotification('error', 'At least one contact number is required');
-        return false;
-      }
-    }
-
     const missingFields = requiredFields.filter(field => {
       const value = formData[field as keyof typeof formData];
       return !value || (typeof value === 'string' && value.trim() === '');
     });
+
+    console.log('Missing fields in step', currentStep, ':', missingFields);
+    console.log('Current formData:', formData);
 
     if (missingFields.length > 0) {
       showNotification('error', 'Please fill in all required fields');
@@ -337,54 +368,39 @@ export default function SchoolKybVerificationModal({
     try {
       setIsSubmitting(true);
 
-      // Filter out empty contact numbers and prepare documents
-      const contactNumbers = formData.contactNumbers.filter(num => num.trim());
-      const documents = [
-        formData.accreditationDoc,
-        formData.businessPermitDoc,
-        formData.birCertificate,
-        formData.authorizationLetter,
-        formData.gisDoc,
-      ].filter(Boolean).map(doc => doc?.name || ''); // Convert File objects to file names
-
-      const schoolData = {
+      const schoolKybData = {
         declarationsAndConsent: formData.consent,
-        school: {
-          schoolName: formData.schoolName,
-          schoolType: formData.schoolType,
-          campusAddress: {
+        proofOfIdentity: {
+          fullName: {
+            firstName: formData.firstName,
+            middleName: formData.middleName || undefined,
+            lastName: formData.lastName,
+          },
+          dateOfBirth: formData.dateOfBirth,
+          nationality: formData.nationality,
+          contactEmail: formData.contactEmail,
+          contactNumber: formData.contactNumber,
+          address: {
             country: formData.country,
-            province: formData.province,
+            stateOrProvince: formData.stateOrProvince,
             city: formData.city,
-            barangay: formData.barangay,
+            districtOrBarangay: formData.districtOrBarangay,
             street: formData.street,
-            zipCode: formData.zipCode,
+            postalCode: formData.postalCode,
           },
-          officialEmail: formData.officialEmail,
-          contactNumbers: contactNumbers,
-          website: formData.website || '',
-          businessVerification: {
-            accreditationCertificate: formData.accreditationCertificate || '',
-            businessPermit: formData.businessPermit || '',
-            tin: formData.tin,
-            schoolIdNumber: formData.schoolIdNumber,
-          },
-          authorizedRepresentative: {
-            fullName: formData.fullName,
-            position: formData.position,
-            email: formData.email,
-            contactNumber: formData.contactNumber,
-            nationality: formData.nationality,
+          idDetails: {
             idType: formData.idType,
+            frontImageUrl: formData.frontImageUrl,
+            backImageUrl: formData.backImageUrl,
             idNumber: formData.idNumber,
-            schoolId: formData.schoolId,
+            expiryDate: formData.expiryDate,
           },
+          selfiePhotoUrl: formData.selfiePhotoUrl,
         },
-        documents: documents, // This will be an array of file names (strings)
       };
 
-      console.log('Submitting school data:', schoolData);
-      const response = await kycKybService.submitSchoolKyb(schoolData);
+      console.log('Submitting school KYB data:', schoolKybData);
+      const response = await kycKybService.submitSchoolKyb(schoolKybData);
 
       showNotification('success', response.message || 'School KYB submitted successfully');
       setTimeout(() => {
@@ -400,8 +416,8 @@ export default function SchoolKybVerificationModal({
     }
   };
 
-  const renderSchoolInfo = () => {
-    if (kycKybConfig.isLoading) return <LoadingSpinner message="Loading school configuration..." />;
+  const renderPersonalInfo = () => {
+    if (kycKybConfig.isLoading) return <LoadingSpinner message="Loading configuration..." />;
     
     if (kycKybConfig.error) {
       return (
@@ -413,121 +429,84 @@ export default function SchoolKybVerificationModal({
 
     return (
       <div className="space-y-4">
-        <StepHeader step="School Information" icon={Building2} gradient="from-indigo-500 to-purple-600" />
+        <StepHeader step="Personal Information" icon={User} gradient="from-indigo-500 to-purple-600" />
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <FormField 
-            label="School Name" 
-            id="schoolName" 
-            name="schoolName" 
-            value={formData.schoolName} 
-            onChange={handleInputChange} 
-            placeholder="Enter official school name" 
-            required 
-          />
-          <SelectField 
-            label="School Type" 
-            id="schoolType" 
-            value={formData.schoolType} 
-            onChange={handleInputChange} 
-            options={kycKybConfig.schoolType || []} 
-            required 
-            loading={kycKybConfig.isLoading}
-            error={kycKybConfig.error}
-          />
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-sm text-blue-700">
+            <strong>Note:</strong> Enter the information of the authorized school representative who will be responsible for this verification.
+          </p>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <FormField 
-            label="Official Email" 
-            id="officialEmail" 
-            name="officialEmail" 
-            type="email" 
-            value={formData.officialEmail} 
+            label="First Name" 
+            id="firstName" 
+            name="firstName" 
+            value={formData.firstName} 
             onChange={handleInputChange} 
-            placeholder="school@example.edu.ph" 
+            placeholder="Enter first name" 
             required 
           />
           <FormField 
-            label="Website" 
-            id="website" 
-            name="website" 
-            value={formData.website} 
+            label="Middle Name" 
+            id="middleName" 
+            name="middleName" 
+            value={formData.middleName} 
             onChange={handleInputChange} 
-            placeholder="https://www.schoolname.edu.ph" 
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Contact Numbers <span className="text-red-500">*</span>
-          </label>
-          {formData.contactNumbers.map((number, index) => (
-            <div key={index} className="flex gap-2">
-              <input
-                type="tel"
-                value={number}
-                onChange={(e) => handleContactNumberChange(index, e.target.value)}
-                placeholder="Enter contact number (e.g., +63 912 345 6789)"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-              />
-              {formData.contactNumbers.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeContactNumber(index)}
-                  className="px-3 py-2 text-red-600 border cursor-pointer border-red-300 rounded-md hover:bg-red-50 transition-colors"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={addContactNumber}
-            className="px-3 py-1 text-sm text-indigo-600 border cursor-pointer border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
-          >
-            + Add Contact Number
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <FormField 
-            label="TIN" 
-            id="tin" 
-            name="tin" 
-            value={formData.tin} 
-            onChange={handleInputChange} 
-            placeholder="Enter Tax Identification Number" 
-            required 
+            placeholder="Enter middle name" 
           />
           <FormField 
-            label="School ID Number" 
-            id="schoolIdNumber" 
-            name="schoolIdNumber" 
-            value={formData.schoolIdNumber} 
+            label="Last Name" 
+            id="lastName" 
+            name="lastName" 
+            value={formData.lastName} 
             onChange={handleInputChange} 
-            placeholder="Enter school registration ID" 
+            placeholder="Enter last name" 
             required 
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <FormField 
-            label="Accreditation Certificate No." 
-            id="accreditationCertificate" 
-            name="accreditationCertificate" 
-            value={formData.accreditationCertificate} 
+            label="Date of Birth" 
+            id="dateOfBirth" 
+            name="dateOfBirth" 
+            type="date"
+            value={formData.dateOfBirth} 
             onChange={handleInputChange} 
-            placeholder="Enter certificate number" 
+            required 
           />
           <FormField 
-            label="Business Permit No." 
-            id="businessPermit" 
-            name="businessPermit" 
-            value={formData.businessPermit} 
+            label="Nationality" 
+            id="nationality" 
+            name="nationality" 
+            value={formData.nationality} 
             onChange={handleInputChange} 
-            placeholder="Enter permit number" 
+            placeholder="Enter nationality" 
+            required 
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <FormField 
+            label="Contact Email" 
+            id="contactEmail" 
+            name="contactEmail" 
+            type="email"
+            value={formData.contactEmail} 
+            onChange={handleInputChange} 
+            placeholder="representative@school.edu.ph" 
+            required 
+          />
+          <FormField 
+            label="Contact Number" 
+            id="contactNumber" 
+            name="contactNumber" 
+            type="tel"
+            value={formData.contactNumber} 
+            onChange={handleInputChange} 
+            placeholder="+63 912 345 6789" 
+            required 
           />
         </div>
       </div>
@@ -536,7 +515,7 @@ export default function SchoolKybVerificationModal({
 
   const renderAddress = () => (
     <div className="space-y-4">
-      <StepHeader step="Campus Address" icon={MapPin} gradient="from-teal-500 to-cyan-600" />
+      <StepHeader step="Address Information" icon={MapPin} gradient="from-teal-500 to-cyan-600" />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <FormField 
@@ -549,12 +528,12 @@ export default function SchoolKybVerificationModal({
           required 
         />
         <FormField 
-          label="Province/State" 
-          id="province" 
-          name="province" 
-          value={formData.province} 
+          label="State/Province" 
+          id="stateOrProvince" 
+          name="stateOrProvince" 
+          value={formData.stateOrProvince} 
           onChange={handleInputChange} 
-          placeholder="Enter province or state" 
+          placeholder="Enter state or province" 
           required 
         />
       </div>
@@ -570,12 +549,12 @@ export default function SchoolKybVerificationModal({
           required 
         />
         <FormField 
-          label="Barangay/District" 
-          id="barangay" 
-          name="barangay" 
-          value={formData.barangay} 
+          label="District/Barangay" 
+          id="districtOrBarangay" 
+          name="districtOrBarangay" 
+          value={formData.districtOrBarangay} 
           onChange={handleInputChange} 
-          placeholder="Enter barangay or district" 
+          placeholder="Enter district or barangay" 
           required 
         />
       </div>
@@ -591,19 +570,19 @@ export default function SchoolKybVerificationModal({
           required 
         />
         <FormField 
-          label="ZIP/Postal Code" 
-          id="zipCode" 
-          name="zipCode" 
-          value={formData.zipCode} 
+          label="Postal Code" 
+          id="postalCode" 
+          name="postalCode" 
+          value={formData.postalCode} 
           onChange={handleInputChange} 
-          placeholder="Enter ZIP or postal code" 
+          placeholder="Enter postal code" 
           required 
         />
       </div>
     </div>
   );
 
-  const renderAuthorizedRepresentative = () => {
+  const renderIdDocuments = () => {
     if (kycKybConfig.isLoading) return <LoadingSpinner message="Loading configuration..." />;
     
     if (kycKybConfig.error) {
@@ -616,79 +595,14 @@ export default function SchoolKybVerificationModal({
 
     return (
       <div className="space-y-4">
-        <StepHeader step="Authorized Representative" icon={User} gradient="from-violet-500 to-fuchsia-600" />
+        <StepHeader step="ID Details" icon={FileText} gradient="from-amber-500 to-orange-600" />
         
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-sm text-blue-700">
-            <strong>Note:</strong> The authorized representative must be an official of the school with authority to submit this verification on behalf of the institution.
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+          <p className="text-sm text-amber-700">
+            <strong>Requirements:</strong> Please upload clear, high-quality images of your government-issued ID. Make sure all text is readable and the images are well-lit.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <FormField 
-            label="Full Name" 
-            id="fullName" 
-            name="fullName" 
-            value={formData.fullName} 
-            onChange={handleInputChange} 
-            placeholder="Enter representative's full name" 
-            required 
-          />
-          <FormField 
-            label="Position/Title" 
-            id="position" 
-            name="position" 
-            value={formData.position} 
-            onChange={handleInputChange} 
-            placeholder="Enter position (e.g., Principal, Dean)" 
-            required 
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <FormField 
-            label="Email Address" 
-            id="email" 
-            name="email" 
-            type="email" 
-            value={formData.email} 
-            onChange={handleInputChange} 
-            placeholder="representative@school.edu.ph" 
-            required 
-          />
-          <FormField 
-            label="Contact Number" 
-            id="contactNumber" 
-            name="contactNumber" 
-            type="tel" 
-            value={formData.contactNumber} 
-            onChange={handleInputChange} 
-            placeholder="Enter contact number" 
-            required 
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <FormField 
-            label="Nationality" 
-            id="nationality" 
-            name="nationality" 
-            value={formData.nationality} 
-            onChange={handleInputChange} 
-            placeholder="Enter nationality" 
-            required 
-          />
-          <FormField 
-            label="School Employee ID" 
-            id="schoolId" 
-            name="schoolId" 
-            value={formData.schoolId} 
-            onChange={handleInputChange} 
-            placeholder="Enter employee ID number" 
-            required 
-          />
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <SelectField 
             label="ID Type" 
@@ -710,56 +624,76 @@ export default function SchoolKybVerificationModal({
             required 
           />
         </div>
+
+        <FormField 
+          label="ID Expiry Date" 
+          id="expiryDate" 
+          name="expiryDate" 
+          type="date"
+          value={formData.expiryDate} 
+          onChange={handleInputChange} 
+          required 
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ImageUpload 
+            label="ID Front Image" 
+            id="frontImageFile" 
+            file={formData.frontImageFile}
+            imageUrl={formData.frontImageUrl}
+            onChange={handleFileChange} 
+            required 
+            accept="image/*,.pdf"
+          />
+          <ImageUpload 
+            label="ID Back Image" 
+            id="backImageFile" 
+            file={formData.backImageFile}
+            imageUrl={formData.backImageUrl}
+            onChange={handleFileChange} 
+            required 
+            accept="image/*,.pdf"
+          />
+        </div>
+
+        {isUploading && (
+          <div className="flex items-center justify-center p-4 bg-amber-50 rounded-md">
+            <Loader2 className="w-4 h-4 animate-spin text-amber-600 mr-2" />
+            <span className="text-sm text-amber-600">Uploading file...</span>
+          </div>
+        )}
       </div>
     );
   };
 
-  const renderDocuments = () => (
+  const renderSelfie = () => (
     <div className="space-y-4">
-      <StepHeader step="Required Documents" icon={FileText} gradient="from-amber-500 to-orange-600" />
+      <StepHeader step="Selfie Photo" icon={Camera} gradient="from-violet-500 to-fuchsia-600" />
       
-      <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-        <p className="text-sm text-amber-700">
-          <strong>Document Requirements:</strong> Please upload clear, legible copies of all required documents. Accepted formats: PDF, JPG, PNG, DOC, DOCX (Max 10MB each).
+      <div className="p-3 bg-violet-50 border border-violet-200 rounded-md">
+        <p className="text-sm text-violet-700">
+          <strong>Selfie Guidelines:</strong> Take a clear photo of yourself holding your ID next to your face. Make sure your face and the ID are both clearly visible and well-lit.
         </p>
       </div>
       
-      <div className="space-y-4">
-        <FileUpload 
-          label="Accreditation Certificate" 
-          id="accreditationDoc" 
-          formData={formData} 
+      <div className="max-w-md mx-auto">
+        <ImageUpload 
+          label="Selfie with ID" 
+          id="selfieFile" 
+          file={formData.selfieFile}
+          imageUrl={formData.selfiePhotoUrl}
           onChange={handleFileChange} 
           required 
-        />
-        <FileUpload 
-          label="Business Permit" 
-          id="businessPermitDoc" 
-          formData={formData} 
-          onChange={handleFileChange} 
-          required 
-        />
-        <FileUpload 
-          label="BIR Certificate of Registration" 
-          id="birCertificate" 
-          formData={formData} 
-          onChange={handleFileChange} 
-          required 
-        />
-        <FileUpload 
-          label="Authorization Letter from Board/Owner" 
-          id="authorizationLetter" 
-          formData={formData} 
-          onChange={handleFileChange} 
-          required 
-        />
-        <FileUpload 
-          label="General Information Sheet (GIS)" 
-          id="gisDoc" 
-          formData={formData} 
-          onChange={handleFileChange} 
+          accept="image/*"
         />
       </div>
+
+      {isUploading && (
+        <div className="flex items-center justify-center p-4 bg-violet-50 rounded-md">
+          <Loader2 className="w-4 h-4 animate-spin text-violet-600 mr-2" />
+          <span className="text-sm text-violet-600">Uploading photo...</span>
+        </div>
+      )}
     </div>
   );
 
@@ -776,19 +710,19 @@ export default function SchoolKybVerificationModal({
           <ul className="text-xs text-rose-700 space-y-1 list-disc list-inside">
             <li>All information provided in this application is true, accurate, and complete to the best of my knowledge</li>
             <li>I have the proper authority to submit this verification on behalf of the school</li>
-            <li>The school is in good standing and complies with all applicable laws and regulations</li>
+            <li>The documents uploaded are authentic and belong to me</li>
             <li>I understand that providing false information may result in rejection of this application</li>
-            <li>The school agrees to cooperate with any verification processes that may be required</li>
+            <li>I consent to the verification of the information and documents provided</li>
           </ul>
         </div>
 
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
           <h4 className="text-sm font-semibold text-blue-800 mb-2">Data Privacy Consent</h4>
           <p className="text-xs text-blue-700 mb-3">
-            By submitting this application, the school consents to:
+            By submitting this application, I consent to:
           </p>
           <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
-            <li>The collection, processing, and storage of the school's data for KYB verification purposes</li>
+            <li>The collection, processing, and storage of my personal data for KYB verification purposes</li>
             <li>Data processing in accordance with applicable data protection laws</li>
             <li>Sharing of necessary information with authorized verification partners</li>
             <li>Retention of data for regulatory compliance and audit purposes</li>
@@ -818,10 +752,10 @@ export default function SchoolKybVerificationModal({
   if (!isOpen) return null;
 
   const stepComponents = [
-    renderSchoolInfo,
+    renderPersonalInfo,
     renderAddress,
-    renderAuthorizedRepresentative,
-    renderDocuments,
+    renderIdDocuments,
+    renderSelfie,
     renderDeclarationConsent
   ];
 
@@ -832,7 +766,7 @@ export default function SchoolKybVerificationModal({
         <div className="bg-gradient-to-r from-indigo-600 to-purple-700 px-4 py-3 text-white flex justify-between items-center">
           <div>
             <h2 className="text-lg font-semibold">School KYB Verification</h2>
-            <p className="text-xs text-indigo-100">Know Your Business - School Registration</p>
+            <p className="text-xs text-indigo-100">Know Your Business - Identity Verification</p>
           </div>
           <button 
             onClick={onClose} 
@@ -926,9 +860,7 @@ export default function SchoolKybVerificationModal({
                 Submitting...
               </div>
             ) : currentStep === 5 ? (
-              <>
-                Submit
-              </>
+              'Submit'
             ) : (
               'Continue'
             )}

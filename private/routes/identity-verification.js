@@ -8,9 +8,9 @@ const authMiddleware = require("../middleware/auth");
 // Import controller functions
 const {
   getKycStatus,
-  submitStudentKyc,
-  submitIndividualSponsorKyb,
-  submitCorporateSponsorKyb,
+  submitStudentIdentityVerification,
+  submitIndividualSponsorIdentityVerification,
+  submitCorporateSponsorIdentityVerification,
   submitSchoolKyb,
   getVerificationById,
   getAllVerifications,
@@ -62,10 +62,22 @@ router.get("/status", authMiddleware, getKycStatus);
 router.get("/history", authMiddleware, getVerificationHistory);
 
 // Identity submission routes (all go directly to admin)
-router.post("/student/submit", authMiddleware, submitStudentKyc);
-router.post("/individual-sponsor/submit", authMiddleware, submitIndividualSponsorKyb);
-router.post("/corporate-sponsor/submit", authMiddleware, submitCorporateSponsorKyb);
-router.post("/school/submit", authMiddleware, submitSchoolKyb);
+router.post(
+  "/student/submit",
+  authMiddleware,
+  submitStudentIdentityVerification
+);
+router.post(
+  "/individual-sponsor/submit",
+  authMiddleware,
+  submitIndividualSponsorIdentityVerification
+);
+router.post(
+  "/corporate-sponsor/submit",
+  authMiddleware,
+  submitCorporateSponsorIdentityVerification
+);
+router.post("/school/submit", authMiddleware, submitSchoolIdentityVerification);
 
 // Document management routes
 router.post("/upload-document", authMiddleware, upload.single("document"), uploadDocument);

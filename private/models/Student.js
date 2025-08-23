@@ -2,14 +2,14 @@
 const mongoose = require("mongoose");
 
 const studentSchema = new mongoose.Schema({
-  schoolId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "School",
-  },
-  // Add KYC reference
   kycId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "KycKybVerification",
+  },
+  profile: {
+    username: String,
+    gender: String,
+    age: Number,
   },
   scholarshipApplications: [
     {

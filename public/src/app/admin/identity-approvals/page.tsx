@@ -35,12 +35,13 @@ interface Stats {
   denied: number;
 }
 
-// Helper function to get user email safely
+// Get user email
 const getUserEmail = (verification: Verification): string => {
   if (typeof verification.userId === 'object' && verification.userId?.email) {
     return verification.userId.email;
   }
-  return 'N/A';
+  // proofOfIdentity always exists
+  return verification.proofOfIdentity.contactEmail;
 };
 
 // Status Badge Component
@@ -126,19 +127,9 @@ export default function IdentityApprovalsPage() {
 
   // Helper function to get persona name
   function getPersonaName(verification: Verification): string {
-    if (verification.student) {
-      const name = verification.student.fullName;
-      return `${name?.firstName || ''} ${name?.lastName || ''}`.trim();
-    }
-    if (verification.individualSponsor) {
-      const name = verification.individualSponsor.fullName;
-      return `${name?.firstName || ''} ${name?.lastName || ''}`.trim();
-    }
-    if (verification.corporateSponsor) {
-      return verification.corporateSponsor.corporateName || 'Corporate Sponsor';
-    }
-    if (verification.school) {
-      return verification.school.schoolName || 'School';
+    if (verification.proofOfIdentity?.fullName) {
+      const name = verification.proofOfIdentity.fullName;
+      return `${name.firstName || ''} ${name.middleName || ''} ${name.lastName || ''}`.trim();
     }
     return 'Unknown';
   }
@@ -360,48 +351,15 @@ export default function IdentityApprovalsPage() {
         <DialogContent className="max-w-8xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
-              {selectedVerification?.personaType === "student" && <GraduationCap className="h-6 w-6 text-blue-600" />}
-              {selectedVerification?.personaType === "sponsor" && <Users className="h-6 w-6 text-green-600" />}
-              {selectedVerification?.personaType === "school" && <Building className="h-6 w-6 text-purple-600" />}
+              {selectedVerification?.personaType === 'student' && <GraduationCap className="h-6 w-6 text-blue-600" />}
+              {selectedVerification?.personaType === 'sponsor' && <Users className="h-6 w-6 text-green-600" />}
+              {selectedVerification?.personaType === 'school' && <Building className="h-6 w-6 text-purple-600" />}
               <span>Verification Details - {selectedVerification ? getPersonaName(selectedVerification) : ''}</span>
             </DialogTitle>
           </DialogHeader>
 
           {selectedVerification && (
             <div className="space-y-4">
-              {/* Basic Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Basic Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Name</label>
-                      <p className="text-gray-900">{getPersonaName(selectedVerification)}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Email</label>
-                      <p className="text-gray-900">{getUserEmail(selectedVerification)}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Status</label>
-                      <StatusBadge status={selectedVerification.status} />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Submitted</label>
-                      <p className="text-gray-900">{new Date(selectedVerification.submittedAt).toLocaleDateString()}</p>
-                    </div>
-                    {selectedVerification.denialReason && (
-                      <div className="col-span-2">
-                        <label className="text-sm font-medium text-gray-700">Denial Reason</label>
-                        <p className="text-gray-900">{selectedVerification.denialReason}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Persona Specific Information */}
               <PersonaDetailsCard verification={selectedVerification} />
 
@@ -412,34 +370,45 @@ export default function IdentityApprovalsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {(selectedVerification.documents || selectedVerification.fileNames || []).map((doc: any, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <FileText className="h-4 w-4 text-gray-600" />
-                          <span className="text-gray-900">
-                            {typeof doc === 'string' ? doc : doc.fileName || `Document ${index + 1}`}
-                          </span>
-                          {typeof doc !== 'string' && doc.type && (
+                    {(() => {
+                      const documents = [];
+                      if (selectedVerification.proofOfIdentity) {
+                        const { idDetails, selfiePhotoUrl } = selectedVerification.proofOfIdentity;
+                        if (idDetails?.frontImageUrl) {
+                          documents.push({ fileUrl: idDetails.frontImageUrl, fileName: 'ID Front', type: 'idFront' });
+                        }
+                        if (idDetails?.backImageUrl) {
+                          documents.push({ fileUrl: idDetails.backImageUrl, fileName: 'ID Back', type: 'idBack' });
+                        }
+                        if (selfiePhotoUrl) {
+                          documents.push({ fileUrl: selfiePhotoUrl, fileName: 'Selfie', type: 'selfie' });
+                        }
+                      }
+                      return documents.map((doc, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <FileText className="h-4 w-4 text-gray-600" />
+                            <span className="text-gray-900">{doc.fileName}</span>
                             <span className="text-sm text-gray-500">({doc.type})</span>
-                          )}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}${doc.fileUrl}`, '_blank')}
+                            className="cursor-pointer"
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}${doc.fileUrl}`, '_blank')}
-                          className="cursor-pointer"
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          Download
-                        </Button>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </CardContent>
               </Card>
 
               {/* Action Buttons */}
-              {selectedVerification.status === "pending" && (
+              {selectedVerification.status === 'pending' && (
                 <div className="flex justify-end space-x-2 pt-4 border-t">
                   <Button
                     variant="outline"

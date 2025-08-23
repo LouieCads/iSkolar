@@ -37,7 +37,7 @@ export default function RoleSelection(): React.JSX.Element {
             else if (user.role === 'sponsor') router.replace('/sponsor');
             else if (user.role === 'school') router.replace('/school');
             else if (user.role === 'admin') router.replace('/admin');
-            else router.replace('/auth/welcome');
+            else router.replace('/auth/profile-setup');
           }
         }
       } catch (e) {
@@ -83,11 +83,8 @@ export default function RoleSelection(): React.JSX.Element {
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
       }
-      // Redirect based on role
-      if (selectedRole === "student") router.push("/student");
-      else if (selectedRole === "sponsor") router.push("/sponsor");
-      else if (selectedRole === "school") router.push("/school");
-      else if (selectedRole === "admin") router.push("/admin");
+      // Redirect to profile setup
+      router.push("/auth/profile-setup");
     } catch (error: any) {
       alert(error.response?.data?.message || "Role selection failed");
     }

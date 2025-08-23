@@ -13,24 +13,54 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
+export interface ProofOfIdentity {
+  fullName: {
+    firstName: string;
+    middleName?: string;
+    lastName: string;
+  };
+  dateOfBirth?: Date;
+  nationality?: string;
+  contactEmail: string;
+  contactNumber?: string;
+  address?: {
+    country?: string;
+    stateOrProvince?: string;
+    city?: string;
+    districtOrBarangay?: string;
+    street?: string;
+    postalCode?: string;
+  };
+  idDetails?: {
+    idType?: string;
+    frontImageUrl?: string;
+    backImageUrl?: string;
+    idNumber?: string;
+    expiryDate?: Date;
+  };
+  selfiePhotoUrl?: string;
+}
+
 export interface Verification {
   _id: string;
   userId: {
     _id: string;
     email: string;
-  } | string; // Can be populated object or just string ID
+    role?: string;
+    status?: string;
+  } | string;
   personaType: "student" | "sponsor" | "school";
   status: "unverified" | "pending" | "verified" | "denied";
   submittedAt: string;
-  verifiedAt?: string;
-  denialReason?: string;
+  proofOfIdentity: ProofOfIdentity; // ✅ Add this
+  resubmissionCount?: number;
+  cooldownUntil?: Date;
+  declarationsAndConsent: boolean;
   verifiedBy?: string;
-  student?: any;
-  individualSponsor?: any;
-  corporateSponsor?: any;
-  school?: any;
-  documents?: any[];
-  fileNames?: string[];
+  verifiedAt?: Date;
+  denialReason?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface VerificationResponse {

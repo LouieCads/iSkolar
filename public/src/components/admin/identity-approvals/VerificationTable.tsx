@@ -21,6 +21,35 @@ import {
 import { motion } from "framer-motion";
 
 // Types
+// Types
+interface ProofOfIdentity {
+  fullName: {
+    firstName: string;
+    middleName?: string;
+    lastName: string;
+  };
+  dateOfBirth?: Date;
+  nationality?: string;
+  contactEmail: string;
+  contactNumber?: string;
+  address?: {
+    country?: string;
+    stateOrProvince?: string;
+    city?: string;
+    districtOrBarangay?: string;
+    street?: string;
+    postalCode?: string;
+  };
+  idDetails?: {
+    idType?: string;
+    frontImageUrl?: string;
+    backImageUrl?: string;
+    idNumber?: string;
+    expiryDate?: Date;
+  };
+  selfiePhotoUrl?: string;
+}
+
 interface Verification {
   _id: string;
   userId: {
@@ -28,14 +57,19 @@ interface Verification {
     email: string;
     role?: string;
     status?: string;
-  } | string; // Can be populated object or just string ID
+  } | string;
   personaType: "student" | "sponsor" | "school";
-  status: string;
+  status: "unverified" | "pending" | "verified" | "denied";
   submittedAt: string;
-  student?: any;
-  individualSponsor?: any;
-  corporateSponsor?: any;
-  school?: any;
+  proofOfIdentity: ProofOfIdentity; // ✅ Added this property
+  resubmissionCount?: number;
+  cooldownUntil?: Date;
+  declarationsAndConsent: boolean;
+  verifiedBy?: string;
+  verifiedAt?: Date;
+  denialReason?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 interface VerificationTableProps {
@@ -99,7 +133,7 @@ const TableHeader = ({
           />
         </div>
         <div className="col-span-1">Type</div>
-        <div className="col-span-2">Name</div>
+        <div className="col-span-2 text-center">Name</div>
         <div className="col-span-3 text-center">Email</div>
         <div className="col-span-3">Submission Date</div>
         <div className="col-span-1 text-center">Status</div>
@@ -110,37 +144,14 @@ const TableHeader = ({
 };
 
 // Helper functions
+// Helper functions
 const getUserEmail = (verification: Verification): string => {
-  // First, try to get email from populated userId (this is the correct way)
-  if (typeof verification.userId === 'object' && verification.userId?.email) {
-    return verification.userId.email;
-  }
-  
-  // Fallback to persona-specific emails if userId is not populated
-  if (verification.student?.email) return verification.student.email;
-  if (verification.individualSponsor?.email) return verification.individualSponsor.email;
-  if (verification.corporateSponsor?.authorizedRepresentative?.email) return verification.corporateSponsor.authorizedRepresentative.email;
-  if (verification.school?.officialEmail) return verification.school.officialEmail;
-  
-  return 'N/A';
+  return verification.proofOfIdentity?.contactEmail || "Unknown";
 };
 
 const getPersonaName = (verification: Verification): string => {
-  if (verification.student) {
-    const name = verification.student.fullName;
-    return `${name?.firstName || ''} ${name?.lastName || ''}`.trim() || 'N/A';
-  }
-  if (verification.individualSponsor) {
-    const name = verification.individualSponsor.fullName;
-    return `${name?.firstName || ''} ${name?.lastName || ''}`.trim() || 'N/A';
-  }
-  if (verification.corporateSponsor) {
-    return verification.corporateSponsor.corporateName || 'Corporate Sponsor';
-  }
-  if (verification.school) {
-    return verification.school.schoolName || 'School';
-  }
-  return 'Unknown';
+  const { firstName, middleName, lastName } = verification.proofOfIdentity.fullName;
+  return [firstName, middleName, lastName].filter(Boolean).join(" ");
 };
 
 const getPersonaIcon = (personaType: string) => {

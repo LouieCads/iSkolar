@@ -27,6 +27,64 @@ const findExistingPersonaRecord = async (userId, personaType) => {
   }
 };
 
+// Helper function to validate proofOfIdentity data
+const validateProofOfIdentity = (proofOfIdentity) => {
+  if (!proofOfIdentity) {
+    return "Proof of identity is required";
+  }
+
+  const {
+    fullName,
+    dateOfBirth,
+    nationality,
+    contactEmail,
+    contactNumber,
+    address,
+    idDetails,
+    selfiePhotoUrl,
+  } = proofOfIdentity;
+
+  // Validate full name
+  if (!fullName?.firstName || !fullName?.lastName) {
+    return "First name and last name are required";
+  }
+
+  // Validate basic fields
+  if (!dateOfBirth || !nationality || !contactEmail || !contactNumber) {
+    return "Date of birth, nationality, contact email, and contact number are required";
+  }
+
+  // Validate address
+  if (
+    !address?.country ||
+    !address?.stateOrProvince ||
+    !address?.city ||
+    !address?.districtOrBarangay ||
+    !address?.street ||
+    !address?.postalCode
+  ) {
+    return "Complete address information is required";
+  }
+
+  // Validate ID details
+  if (
+    !idDetails?.idType ||
+    !idDetails?.frontImageUrl ||
+    !idDetails?.backImageUrl ||
+    !idDetails?.idNumber ||
+    !idDetails?.expiryDate
+  ) {
+    return "Complete ID details including front and back images are required";
+  }
+
+  // Validate selfie
+  if (!selfiePhotoUrl) {
+    return "Selfie photo with ID is required for identity verification";
+  }
+
+  return null; // No validation errors
+};
+
 // Get KYC/KYB status for current user
 exports.getKycStatus = async (req, res) => {
   try {
@@ -50,7 +108,7 @@ exports.getKycStatus = async (req, res) => {
       denialReason: kycVerification.denialReason,
       cooldownUntil: kycVerification.cooldownUntil,
       resubmissionCount: kycVerification.resubmissionCount,
-      documents: kycVerification.documents,
+      proofOfIdentity: kycVerification.proofOfIdentity,
     });
   } catch (error) {
     res
@@ -60,10 +118,10 @@ exports.getKycStatus = async (req, res) => {
 };
 
 // Submit Student KYC - DIRECTLY TO ADMIN
-exports.submitStudentKyc = async (req, res) => {
+exports.submitStudentIdentityVerification = async (req, res) => {
   try {
     const userId = req.user.id;
-    const studentData = req.body;
+    const { declarationsAndConsent, proofOfIdentity } = req.body;
 
     // Check if user already has a KYC record
     const existingKyc = await KycKybVerification.findOne({ userId });
@@ -90,56 +148,28 @@ exports.submitStudentKyc = async (req, res) => {
       });
     }
 
-    // Validate school selection
-    // const schoolName = studentData.student?.schoolName;
-    // if (!schoolName) {
-    //   return res.status(400).json({ message: "School name is required." });
-    // }
+    // Validate declarations and consent
+    if (
+      typeof declarationsAndConsent !== "boolean" ||
+      !declarationsAndConsent
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Declarations and consent are required" });
+    }
 
-    // Find the verified school by schoolName
-    // const school = await School.aggregate([
-    //   {
-    //     $match: {
-    //       schoolName: new RegExp(`^${schoolName}$`, "i"),
-    //     },
-    //   },
-    //   {
-    //     $lookup: {
-    //       from: "kyckybverifications",
-    //       localField: "kycId",
-    //       foreignField: "_id",
-    //       as: "kycVerification",
-    //     },
-    //   },
-    //   {
-    //     $match: {
-    //       "kycVerification.status": "verified",
-    //     },
-    //   },
-    //   {
-    //     $limit: 1,
-    //   },
-    // ]);
-
-    // if (!school || school.length === 0) {
-    //   return res.status(400).json({
-    //     message:
-    //       "Selected school not found or not verified. Please select a verified school.",
-    //   });
-    // }
-
-    // const schoolRecord = school[0];
-
-    // Find existing Student record
-    const existingStudent = await findExistingPersonaRecord(userId, "student");
+    // Validate proof of identity
+    const validationError = validateProofOfIdentity(proofOfIdentity);
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
 
     const kycData = {
       userId,
       personaType: "student",
       status: "pending", // Goes directly to pending for admin review
-      declarationsAndConsent: studentData.declarationsAndConsent,
-      student: studentData.student,
-      documents: studentData.documents || [],
+      declarationsAndConsent,
+      proofOfIdentity,
       submittedAt: new Date(),
     };
 
@@ -152,6 +182,9 @@ exports.submitStudentKyc = async (req, res) => {
       verification = new KycKybVerification(kycData);
       await verification.save();
     }
+
+    // Find existing Student record
+    const existingStudent = await findExistingPersonaRecord(userId, "student");
 
     // Update or create Student record
     if (existingStudent) {
@@ -168,8 +201,8 @@ exports.submitStudentKyc = async (req, res) => {
     }
 
     const message = existingKyc
-      ? "Student KYC resubmitted successfully and sent to admin for review"
-      : "Student KYC submitted successfully and sent to admin for review";
+      ? "Identity form resubmitted successfully"
+      : "Identity form submitted successfully";
 
     res.status(existingKyc ? 200 : 201).json({
       message,
@@ -179,52 +212,17 @@ exports.submitStudentKyc = async (req, res) => {
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Error submitting Student KYC", error: error.message });
+      .json({ message: "Error submitting Student Identity Verification", error: error.message });
   }
 };
 
 // Submit Individual Sponsor KYB
-exports.submitIndividualSponsorKyb = async (req, res) => {
+exports.submitIndividualSponsorIdentityVerification = async (req, res) => {
   try {
-    console.log("=== Individual Sponsor KYB Submission ===");
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
-
     const userId = req.user.id;
-    const sponsorData = req.body;
+    const { declarationsAndConsent, proofOfIdentity } = req.body;
 
-    // Validate required fields - declarationsAndConsent should be boolean
-    if (
-      typeof sponsorData.declarationsAndConsent !== "boolean" ||
-      !sponsorData.declarationsAndConsent
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Declarations and consent are required" });
-    }
-
-    if (!sponsorData.individualSponsor) {
-      return res
-        .status(400)
-        .json({ message: "Individual sponsor data is required" });
-    }
-
-    // Validate required individual sponsor fields
-    const { individualSponsor } = sponsorData;
-    if (
-      !individualSponsor.fullName?.firstName ||
-      !individualSponsor.fullName?.lastName
-    ) {
-      return res
-        .status(400)
-        .json({ message: "First name and last name are required" });
-    }
-
-    if (!individualSponsor.email || !individualSponsor.mobileNumber) {
-      return res
-        .status(400)
-        .json({ message: "Email and mobile number are required" });
-    }
-
+    // Check if user already has a KYC record
     const existingKyb = await KycKybVerification.findOne({ userId });
 
     if (existingKyb && existingKyb.status === "verified") {
@@ -237,6 +235,7 @@ exports.submitIndividualSponsorKyb = async (req, res) => {
         .json({ message: "Verification is already pending" });
     }
 
+    // Check cooldown period
     if (
       existingKyb &&
       existingKyb.cooldownUntil &&
@@ -248,82 +247,67 @@ exports.submitIndividualSponsorKyb = async (req, res) => {
       });
     }
 
+    // Validate declarations and consent
+    if (
+      typeof declarationsAndConsent !== "boolean" ||
+      !declarationsAndConsent
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Declarations and consent are required" });
+    }
+
+    // Validate proof of identity
+    const validationError = validateProofOfIdentity(proofOfIdentity);
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
+
     const kybData = {
       userId,
       personaType: "sponsor",
       status: "pending",
-      declarationsAndConsent: sponsorData.declarationsAndConsent,
-      individualSponsor: sponsorData.individualSponsor,
-      documents: sponsorData.documents || [],
+      declarationsAndConsent,
+      proofOfIdentity,
       submittedAt: new Date(),
     };
 
+    let verification;
     if (existingKyb) {
       Object.assign(existingKyb, kybData);
       existingKyb.resubmissionCount = (existingKyb.resubmissionCount || 0) + 1;
-      await existingKyb.save();
-
-      console.log("Individual Sponsor KYB updated successfully");
-      res.status(200).json({
-        message: "Individual Sponsor KYB resubmitted successfully",
-        verification: existingKyb,
-      });
+      verification = await existingKyb.save();
     } else {
-      const newKyb = new KycKybVerification(kybData);
-      await newKyb.save();
-
-      console.log("Individual Sponsor KYB created successfully");
-      res.status(201).json({
-        message: "Individual Sponsor KYB submitted successfully",
-        verification: newKyb,
-      });
+      verification = new KycKybVerification(kybData);
+      await verification.save();
     }
+
+    console.log("Individual Sponsor Identity submitted successfully");
+    const message = existingKyb
+      ? "Identity form resubmitted successfully"
+      : "Identity form submitted successfully";
+
+    res.status(existingKyb ? 200 : 201).json({
+      message,
+      verification,
+      nextStep: "Waiting for admin approval",
+    });
   } catch (error) {
-    console.error("Individual Sponsor KYB Error:", error);
+    console.error("Individual Sponsor Identity Verification Error:", error);
     res.status(500).json({
-      message: "Error submitting Individual Sponsor KYB",
+      message: "Error submitting Individual Sponsor Identity Verification",
       error: error.message,
     });
   }
 };
 
 // Submit Corporate Sponsor KYB
-exports.submitCorporateSponsorKyb = async (req, res) => {
+exports.submitCorporateSponsorIdentityVerification = async (req, res) => {
   try {
-    console.log("=== Corporate Sponsor KYB Submission ===");
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
-
     const userId = req.user.id;
-    const corporateData = req.body;
+    const { declarationsAndConsent, proofOfIdentity } = req.body;
 
-    // Validate required fields - declarationsAndConsent should be boolean
-    if (
-      typeof corporateData.declarationsAndConsent !== "boolean" ||
-      !corporateData.declarationsAndConsent
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Declarations and consent are required" });
-    }
-
-    if (!corporateData.corporateSponsor) {
-      return res
-        .status(400)
-        .json({ message: "Corporate sponsor data is required" });
-    }
-
-    // Validate required corporate sponsor fields
-    const { corporateSponsor } = corporateData;
-    if (!corporateSponsor.corporateName) {
-      return res.status(400).json({ message: "Corporate name is required" });
-    }
-
-    if (!corporateSponsor.authorizedRepresentative?.fullName) {
-      return res
-        .status(400)
-        .json({ message: "Authorized representative information is required" });
-    }
-
+    // Check if user already has a KYC record
     const existingKyb = await KycKybVerification.findOne({ userId });
 
     if (existingKyb && existingKyb.status === "verified") {
@@ -336,6 +320,7 @@ exports.submitCorporateSponsorKyb = async (req, res) => {
         .json({ message: "Verification is already pending" });
     }
 
+    // Check cooldown period
     if (
       existingKyb &&
       existingKyb.cooldownUntil &&
@@ -347,103 +332,80 @@ exports.submitCorporateSponsorKyb = async (req, res) => {
       });
     }
 
-    const kybData = {
-      userId,
-      personaType: "sponsor",
-      status: "pending",
-      declarationsAndConsent: corporateData.declarationsAndConsent,
-      corporateSponsor: corporateData.corporateSponsor,
-      documents: corporateData.documents || [],
-      submittedAt: new Date(),
-    };
-
-    if (existingKyb) {
-      Object.assign(existingKyb, kybData);
-      existingKyb.resubmissionCount = (existingKyb.resubmissionCount || 0) + 1;
-      await existingKyb.save();
-
-      console.log("Corporate Sponsor KYB updated successfully");
-      res.status(200).json({
-        message: "Corporate Sponsor KYB resubmitted successfully",
-        verification: existingKyb,
-      });
-    } else {
-      const newKyb = new KycKybVerification(kybData);
-      await newKyb.save();
-
-      console.log("Corporate Sponsor KYB created successfully");
-      res.status(201).json({
-        message: "Corporate Sponsor KYB submitted successfully",
-        verification: newKyb,
-      });
-    }
-  } catch (error) {
-    console.error("Corporate Sponsor KYB Error:", error);
-    res.status(500).json({
-      message: "Error submitting Corporate Sponsor KYB",
-      error: error.message,
-    });
-  }
-};
-
-// Submit School KYB
-exports.submitSchoolKyb = async (req, res) => {
-  try {
-    console.log("=== School KYB Submission ===");
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
-
-    const userId = req.user.id;
-    const schoolData = req.body;
-
-    // Validate required fields
-    if (!schoolData.declarationsAndConsent) {
+    // Validate declarations and consent
+    if (
+      typeof declarationsAndConsent !== "boolean" ||
+      !declarationsAndConsent
+    ) {
       return res
         .status(400)
         .json({ message: "Declarations and consent are required" });
     }
 
-    if (!schoolData.school || !schoolData.school.schoolName) {
-      return res.status(400).json({ message: "School name is required" });
+    // Validate proof of identity
+    const validationError = validateProofOfIdentity(proofOfIdentity);
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
     }
 
-    if (!schoolData.school.schoolType) {
-      return res.status(400).json({ message: "School type is required" });
+    const kybData = {
+      userId,
+      personaType: "sponsor",
+      status: "pending",
+      declarationsAndConsent,
+      proofOfIdentity,
+      submittedAt: new Date(),
+    };
+
+    let verification;
+    if (existingKyb) {
+      Object.assign(existingKyb, kybData);
+      existingKyb.resubmissionCount = (existingKyb.resubmissionCount || 0) + 1;
+      verification = await existingKyb.save();
+    } else {
+      verification = new KycKybVerification(kybData);
+      await verification.save();
     }
 
-    if (!schoolData.school.officialEmail) {
-      return res.status(400).json({ message: "Official email is required" });
-    }
+    console.log("Corporate Sponsor KYB submitted successfully");
+    const message = existingKyb
+      ? "Identity form resubmitted successfully"
+      : "Identity form KYB submitted successfully";
 
+    res.status(existingKyb ? 200 : 201).json({
+      message,
+      verification,
+      nextStep: "Waiting for admin approval",
+    });
+  } catch (error) {
+    console.error("Corporate Sponsor KYB Error:", error);
+    res.status(500).json({
+      message: "Error submitting Corporate Sponsor Identity Verification",
+      error: error.message,
+    });
+  }
+};
+
+// Submit School Identity Verification
+exports.submitSchoolIdentityVerification = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { declarationsAndConsent, proofOfIdentity } = req.body;
+
+    // Validate required fields
     if (
-      !schoolData.school.contactNumbers ||
-      schoolData.school.contactNumbers.length === 0
+      typeof declarationsAndConsent !== "boolean" ||
+      !declarationsAndConsent
     ) {
       return res
         .status(400)
-        .json({ message: "At least one contact number is required" });
+        .json({ message: "Declarations and consent are required" });
     }
 
-    if (
-      !schoolData.school.businessVerification ||
-      !schoolData.school.businessVerification.tin
-    ) {
-      return res.status(400).json({ message: "TIN is required" });
-    }
-
-    if (
-      !schoolData.school.businessVerification ||
-      !schoolData.school.businessVerification.schoolIdNumber
-    ) {
-      return res.status(400).json({ message: "School ID number is required" });
-    }
-
-    if (
-      !schoolData.school.authorizedRepresentative ||
-      !schoolData.school.authorizedRepresentative.fullName
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Authorized representative full name is required" });
+    // Validate proof of identity
+    const validationError = validateProofOfIdentity(proofOfIdentity);
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
     }
 
     const existingKyb = await KycKybVerification.findOne({ userId });
@@ -473,9 +435,8 @@ exports.submitSchoolKyb = async (req, res) => {
       userId,
       personaType: "school",
       status: "pending",
-      declarationsAndConsent: schoolData.declarationsAndConsent,
-      school: schoolData.school,
-      fileNames: schoolData.documents || [],
+      declarationsAndConsent,
+      proofOfIdentity,
       submittedAt: new Date(),
     };
 
@@ -494,16 +455,12 @@ exports.submitSchoolKyb = async (req, res) => {
 
     if (existingSchool) {
       // Update existing School record
-      existingSchool.schoolName = schoolData.school.schoolName;
-      existingSchool.schoolType = schoolData.school.schoolType;
       existingSchool.kycId = verification._id;
       await existingSchool.save();
       console.log("Updated existing School record");
     } else {
       // Create new School record only if none exists
       const schoolRecord = new School({
-        schoolName: schoolData.school.schoolName,
-        schoolType: schoolData.school.schoolType,
         kycId: verification._id,
       });
       await schoolRecord.save();
@@ -513,47 +470,42 @@ exports.submitSchoolKyb = async (req, res) => {
     console.log("School KYB submitted successfully");
     res.status(existingKyb ? 200 : 201).json({
       message: existingKyb
-        ? "School KYB resubmitted successfully"
-        : "School KYB submitted successfully",
+        ? "Identity form resubmitted successfully"
+        : "Identity form submitted successfully",
       verification,
     });
   } catch (error) {
-    console.error("School KYB Error:", error);
-    res
-      .status(500)
-      .json({ message: "Error submitting School KYB", error: error.message });
+    console.error("School Identity Verification Error:", error);
+    res.status(500).json({
+      message: "Error submitting School Identity Verification",
+      error: error.message,
+    });
   }
 };
 
-// Upload document
+// Upload document/image for identity verification
 exports.uploadDocument = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { documentType } = req.body;
+    const { documentType } = req.body; // e.g., 'idFront', 'idBack', 'selfie'
 
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const verification = await KycKybVerification.findOne({ userId });
-
-    if (!verification) {
-      return res.status(404).json({ message: "Verification record not found" });
+    // Validate document type
+    const allowedTypes = ["idFront", "idBack", "selfie"];
+    if (!allowedTypes.includes(documentType)) {
+      return res.status(400).json({ message: "Invalid document type" });
     }
 
-    const newDocument = {
-      type: documentType,
-      fileName: req.file.originalname,
-      fileUrl: `/public/documents/${req.file.filename}`,
-      uploadedAt: new Date(),
-    };
-
-    verification.documents.push(newDocument);
-    await verification.save();
+    const fileUrl = `/public/documents/${req.file.filename}`;
 
     res.status(200).json({
       message: "Document uploaded successfully",
-      document: newDocument,
+      fileUrl,
+      documentType,
+      fileName: req.file.originalname,
     });
   } catch (error) {
     res
@@ -565,36 +517,20 @@ exports.uploadDocument = async (req, res) => {
 // Delete document
 exports.deleteDocument = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { documentId } = req.params;
+    const { filePath } = req.body;
 
-    const verification = await KycKybVerification.findOne({ userId });
-
-    if (!verification) {
-      return res.status(404).json({ message: "Verification record not found" });
+    if (!filePath) {
+      return res.status(400).json({ message: "File path is required" });
     }
-
-    const documentIndex = verification.documents.findIndex(
-      (doc) => doc._id.toString() === documentId
-    );
-
-    if (documentIndex === -1) {
-      return res.status(404).json({ message: "Document not found" });
-    }
-
-    const document = verification.documents[documentIndex];
 
     // Delete file from filesystem
     try {
-      await fs.unlink(path.join(__dirname, "..", document.fileUrl));
+      await fs.unlink(path.join(__dirname, "..", filePath));
+      res.status(200).json({ message: "Document deleted successfully" });
     } catch (fileError) {
       console.error("Error deleting file:", fileError);
+      res.status(500).json({ message: "Error deleting file from filesystem" });
     }
-
-    verification.documents.splice(documentIndex, 1);
-    await verification.save();
-
-    res.status(200).json({ message: "Document deleted successfully" });
   } catch (error) {
     res
       .status(500)
@@ -611,11 +547,12 @@ exports.getVerificationById = async (req, res) => {
       return res.status(403).json({ message: "Admin access required" });
     }
 
-    const verification = await KycKybVerification.findById(verificationId)
-      .populate({
-        path: "userId",
-        select: "email role status"
-      });
+    const verification = await KycKybVerification.findById(
+      verificationId
+    ).populate({
+      path: "userId",
+      select: "email role status",
+    });
 
     if (!verification) {
       return res.status(404).json({ message: "Verification not found" });
@@ -656,7 +593,7 @@ exports.getAllVerifications = async (req, res) => {
     const verifications = await KycKybVerification.find(filter)
       .populate({
         path: "userId",
-        select: "email role status"
+        select: "email role status",
       })
       .sort(sort)
       .limit(limit * 1)
@@ -665,7 +602,10 @@ exports.getAllVerifications = async (req, res) => {
     const total = await KycKybVerification.countDocuments(filter);
 
     // Log to debug - remove in production
-    console.log("Sample verification with user:", JSON.stringify(verifications[0], null, 2));
+    console.log(
+      "Sample verification with user:",
+      JSON.stringify(verifications[0], null, 2)
+    );
 
     res.status(200).json({
       verifications,
@@ -771,7 +711,7 @@ exports.getVerificationHistory = async (req, res) => {
 exports.resubmitVerification = async (req, res) => {
   try {
     const userId = req.user.id;
-    const updateData = req.body;
+    const { declarationsAndConsent, proofOfIdentity } = req.body;
 
     const verification = await KycKybVerification.findOne({ userId });
 
@@ -798,26 +738,25 @@ exports.resubmitVerification = async (req, res) => {
       });
     }
 
-    // Update verification data based on persona type
-    if (verification.personaType === "student") {
-      verification.student = { ...verification.student, ...updateData.student };
-    } else if (verification.personaType === "sponsor") {
-      if (updateData.individualSponsor) {
-        verification.individualSponsor = {
-          ...verification.individualSponsor,
-          ...updateData.individualSponsor,
-        };
-      }
-      if (updateData.corporateSponsor) {
-        verification.corporateSponsor = {
-          ...verification.corporateSponsor,
-          ...updateData.corporateSponsor,
-        };
-      }
-    } else if (verification.personaType === "school") {
-      verification.school = { ...verification.school, ...updateData.school };
+    // Validate declarations and consent
+    if (
+      typeof declarationsAndConsent !== "boolean" ||
+      !declarationsAndConsent
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Declarations and consent are required" });
     }
 
+    // Validate proof of identity
+    const validationError = validateProofOfIdentity(proofOfIdentity);
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
+
+    // Update verification data
+    verification.declarationsAndConsent = declarationsAndConsent;
+    verification.proofOfIdentity = proofOfIdentity;
     verification.status = "pending";
     verification.denialReason = undefined;
     verification.cooldownUntil = undefined; // Clear any existing cooldown
@@ -910,7 +849,7 @@ exports.bulkUpdateStatus = async (req, res) => {
       }
     }
 
-    // Update User's isVerified field for all affected users
+    // Update User's isVerified field based on verification status
     if (result.modifiedCount > 0) {
       const userIds = verifications.map((v) => v.userId);
 

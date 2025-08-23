@@ -46,11 +46,6 @@ export default function SchoolLayout({
       icon: LayoutDashboard
     },
     {
-      name: 'KYC Pre-Approvals',
-      path: '/school/kyc-approvals',
-      icon: Shield
-    },
-    {
       name: 'Applications',
       path: '/school/applications',
       icon: Users

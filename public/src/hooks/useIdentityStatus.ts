@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { kycService, KycStatus } from '@/services/kycService';
+import { kycService, KycStatus } from '@/services/studentIdentityVerificationService';
 
 export function useKycStatus() {
   const [status, setStatus] = useState<KycStatus | null>(null);

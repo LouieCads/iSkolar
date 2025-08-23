@@ -2,20 +2,14 @@
 const mongoose = require("mongoose");
 
 const schoolSchema = new mongoose.Schema({
-  // School identification fields
-  schoolName: {
-    type: String,
-    unique: true,
-    trim: true,
-  },
-  schoolType: {
-    type: String,
-  },
-  // Remove verificationStatus - will use KycKybVerification instead
-  // Add KYC reference
   kycId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "KycKybVerification",
+  },
+  profile: {
+    schoolName: String,
+    schoolType: String,
+    yearEstablished: Number,
   },
   courses: [
     {

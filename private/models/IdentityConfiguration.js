@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const KycKybConfigurationSchema = new mongoose.Schema({
+const IdentityConfigurationSchema = new mongoose.Schema({
   idTypes: {
     type: [String],
     default: ["UMID", "Passport", "Company ID"],
@@ -38,6 +38,6 @@ const KycKybConfigurationSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model(
-  "KycKybConfiguration",
-  KycKybConfigurationSchema
+  "IdentityConfiguration",
+  IdentityConfigurationSchema
 );

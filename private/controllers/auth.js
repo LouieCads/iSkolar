@@ -243,8 +243,9 @@ exports.selectRole = async (req, res) => {
       message: "Role selected successfully",
       token,
       role,
+      subRole, // Include subRole in response
       personaId: persona._id,
-      requiresKYC: role !== "admin", // Admins don't need KYC
+      requiresProfileSetup: role !== "admin", // Redirect to profile setup except for admin
       user: {
         id: user._id,
         email: user.email,
@@ -303,6 +304,109 @@ exports.getProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Get profile error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+exports.setupProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.role || !user.personaId) {
+      return res.status(400).json({ message: "User must select role first" });
+    }
+
+    // Get the profile data from request body
+    const { profileData } = req.body;
+
+    if (!profileData) {
+      return res.status(400).json({ message: "Profile data is required" });
+    }
+
+    // Update persona based on role
+    let persona;
+    switch (user.role) {
+      case "student":
+        persona = await Student.findById(user.personaId);
+        if (persona) {
+          persona.profile = {
+            username: profileData.username || "",
+            gender: profileData.gender || "",
+            age: profileData.age || null,
+          };
+          await persona.save();
+        }
+        break;
+
+      case "sponsor":
+        persona = await Sponsor.findById(user.personaId);
+        if (persona) {
+          if (persona.subRole === "individual") {
+            persona.profile.individual = {
+              username: profileData.username || "",
+              gender: profileData.gender || "",
+              age: profileData.age || null,
+            };
+          } else if (persona.subRole === "corporate") {
+            persona.profile.corporate = {
+              companyName: profileData.companyName || "",
+              organizationType: profileData.organizationType || "",
+              industrySector: profileData.industrySector || "",
+            };
+          }
+          await persona.save();
+        }
+        break;
+
+      case "school":
+        persona = await School.findById(user.personaId);
+        if (persona) {
+          persona.profile = {
+            schoolName: profileData.schoolName || "",
+            schoolType: profileData.schoolType || "",
+            yearEstablished: profileData.yearEstablished || null,
+          };
+          await persona.save();
+        }
+        break;
+
+      case "admin":
+        // Admin might not need profile setup, or can be handled differently
+        persona = await Admin.findById(user.personaId);
+        // Add admin profile logic if needed
+        break;
+
+      default:
+        return res.status(400).json({ message: "Invalid role" });
+    }
+
+    if (!persona) {
+      return res.status(404).json({ message: "Persona not found" });
+    }
+
+    // Mark user as verified/completed profile setup
+    user.isVerified = true;
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile setup completed successfully",
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        personaId: user.personaId,
+        personaModel: user.personaModel,
+        isVerified: user.isVerified,
+        persona: persona,
+      },
+    });
+  } catch (error) {
+    console.error("Profile setup error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

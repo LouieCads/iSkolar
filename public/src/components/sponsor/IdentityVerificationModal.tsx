@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, User, MapPin, Briefcase, FileText, Shield, X, AlertCircle, Building, Loader2 } from 'lucide-react';
+import { CheckCircle, User, MapPin, FileText, Shield, X, AlertCircle, Building, Loader2, Camera, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,8 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { useKycKybConfiguration } from '@/hooks/useIdentityConfiguration';
-import { kycKybService } from '@/services/kycKybService';
-import { Progress } from '@/components/ui/progress';
+import { kycKybService } from '@/services/sponsorIdentityVerificationService';
 
 // Types for better clarity
 interface FormData {
@@ -21,11 +20,63 @@ interface StepConfig {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   gradient: string;
-  fields: Array<{ name: string; label: string; type: string; required?: boolean; options?: string[] }>;
-  render?: () => React.JSX.Element;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+// Initial form data structure
+const INITIAL_FORM_DATA = {
+  // Personal Information
+  firstName: '',
+  middleName: '',
+  lastName: '',
+  dateOfBirth: '',
+  nationality: '',
+  contactEmail: '',
+  contactNumber: '',
+  
+  // Address
+  country: '',
+  stateOrProvince: '',
+  city: '',
+  districtOrBarangay: '',
+  street: '',
+  postalCode: '',
+  
+  // ID Details
+  idType: '',
+  idNumber: '',
+  expiryDate: '',
+  frontImageFile: null,
+  backImageFile: null,
+  frontImageUrl: '',
+  backImageUrl: '',
+  
+  // Selfie
+  selfieFile: null,
+  selfiePhotoUrl: '',
+  
+  // Consent
+  consent: false,
+};
+
+// Required fields validation per step
+const REQUIRED_FIELDS = {
+  1: ['firstName', 'lastName', 'dateOfBirth', 'nationality', 'contactEmail', 'contactNumber'],
+  2: ['country', 'stateOrProvince', 'city', 'districtOrBarangay', 'street', 'postalCode'],
+  3: ['idType', 'idNumber', 'expiryDate', 'frontImageUrl', 'backImageUrl'],
+  4: ['selfiePhotoUrl'],
+  5: ['consent'],
+};
+
+// Step configurations
+const STEPS: StepConfig[] = [
+  { title: 'Personal Info', icon: User, gradient: 'from-indigo-500 to-purple-600' },
+  { title: 'Address', icon: MapPin, gradient: 'from-teal-500 to-cyan-600' },
+  { title: 'ID Details', icon: FileText, gradient: 'from-amber-500 to-orange-600' },
+  { title: 'Selfie Photo', icon: Camera, gradient: 'from-purple-500 to-pink-600' },
+  { title: 'Declaration', icon: Shield, gradient: 'from-rose-500 to-pink-600' },
+];
 
 // Loading Spinner Component
 const LoadingSpinner = ({ message = "Loading..." }) => (
@@ -45,101 +96,78 @@ const StepHeader = ({ step, icon: Icon, gradient }) => (
   </div>
 );
 
-// File Upload Progress Component
-const FileUploadProgress = ({ progress }: { progress: number }) => (
-  progress > 0 && progress < 100 ? (
-    <div className="mt-2">
-      <Progress value={progress} className="h-2" />
-      <p className="text-xs text-gray-500 mt-1">{progress}% uploaded</p>
-    </div>
-  ) : null
+// Form Field Component
+interface FormFieldProps {
+  label: string;
+  id: string;
+  type?: string;
+  required?: boolean;
+  children?: React.ReactNode;
+  [key: string]: any;
+}
+
+const FormField = ({ label, id, type = "text", required = false, children, ...props }: FormFieldProps) => (
+  <div>
+    <Label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      {label} {required && '*'}
+    </Label>
+    {children || <Input id={id} type={type} required={required} {...props} />}
+  </div>
 );
 
-// Form Field Component
-const FormField = ({
-  field,
-  value,
-  onChange,
-  onFileChange,
-  options,
-  isLoading,
-  error,
-  uploadProgress,
-}: {
-  field: { name: string; label: string; type: string; required?: boolean; options?: string[] };
-  value: string | boolean | File | null;
-  onChange: (name: string, value: string | boolean) => void;
-  onFileChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  options?: string[];
-  isLoading?: boolean;
-  error?: string;
-  uploadProgress?: number;
-}) => (
-  <div>
-    <Label htmlFor={field.name} className="text-sm font-medium text-gray-700 block mb-2">
-      {field.label} {field.required && '*'}
-    </Label>
-    {field.type === 'select' && options ? (
-      <Select name={field.name} value={value as string} onValueChange={(val) => onChange(field.name, val)} required={field.required}>
-        <SelectTrigger id={field.name}>
-          <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
-        </SelectTrigger>
-        <SelectContent>
-          {isLoading ? (
-            <SelectItem value="loading" disabled>Loading options...</SelectItem>
-          ) : error ? (
-            <SelectItem value="error" disabled>Error loading options</SelectItem>
-          ) : options.length === 0 ? (
-            <SelectItem value="none" disabled>No options available</SelectItem>
-          ) : (
-            options.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option}
-              </SelectItem>
-            ))
-          )}
-        </SelectContent>
-      </Select>
-    ) : field.type === 'file' ? (
-      <div className="border rounded-md p-3 bg-gray-50">
-        <input
-          id={field.name}
-          type="file"
-          name={field.name}
-          onChange={onFileChange}
-          accept=".pdf,.jpg,.jpeg,.png"
-          className="w-full px-2.5 py-1.5 text-sm rounded-md border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all bg-white"
-          required={field.required}
-        />
-        {value && value instanceof File && (
-          <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
-            <p className="text-xs text-green-700 flex items-center">
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Uploaded: {value.name}
-            </p>
-          </div>
+// Select Field Component
+const SelectField = ({ label, id, value, onValueChange, options, required = false, isLoading = false, error = null }) => (
+  <FormField label={label} id={id} required={required}>
+    <Select name={id} value={value} onValueChange={onValueChange} required={required}>
+      <SelectTrigger id={id} className="w-full">
+        <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+      </SelectTrigger>
+      <SelectContent>
+        {isLoading ? (
+          <SelectItem value="loading" disabled>Loading options...</SelectItem>
+        ) : error ? (
+          <SelectItem value="error" disabled>Error loading options</SelectItem>
+        ) : options.length === 0 ? (
+          <SelectItem value="none" disabled>No options available</SelectItem>
+        ) : (
+          options.map((option) => (
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
+          ))
         )}
-        <FileUploadProgress progress={uploadProgress || 0} />
+      </SelectContent>
+    </Select>
+  </FormField>
+);
+
+// Image Upload Component
+const ImageUpload = ({ label, id, file, imageUrl, onChange, required = false, accept = "image/*" }) => (
+  <div className="border rounded-md p-3 bg-gray-50">
+    <Label htmlFor={id} className="text-sm font-medium text-gray-800 block mb-2">
+      {label} {required && '*'}
+    </Label>
+    <input
+      id={id}
+      type="file"
+      name={id}
+      onChange={onChange}
+      accept={accept}
+      className="w-full px-2.5 py-1.5 text-sm rounded-md border border-gray-200 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all bg-white"
+      required={required}
+    />
+    {(file || imageUrl) && (
+      <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+        <p className="text-xs text-green-700 flex items-center">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          {file ? `Uploaded: ${file.name}` : 'Image uploaded successfully'}
+        </p>
       </div>
-    ) : field.type === 'checkbox' ? (
-      <Checkbox
-        id={field.name}
-        name={field.name}
-        checked={value as boolean}
-        onCheckedChange={(checked) => onChange(field.name, checked)}
-        className="h-4 w-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
-        required={field.required}
-      />
-    ) : (
-      <Input
-        id={field.name}
-        name={field.name}
-        type={field.type}
-        value={value as string}
-        onChange={(e) => onChange(field.name, e.target.value)}
-        placeholder={`Enter ${field.label.toLowerCase()}`}
-        required={field.required}
-      />
+    )}
+    {imageUrl && (
+      <div className="mt-2">
+        <img src={imageUrl} alt={label} className="max-w-full h-32 object-cover rounded border" />
+      </div>
     )}
   </div>
 );
@@ -178,6 +206,22 @@ const NotificationToast = ({ notification, onClose }) => (
   </AnimatePresence>
 );
 
+// Authorized Representative Notice Component
+const AuthorizedRepresentativeNotice = () => (
+  <div className="p-3 bg-blue-50 border border-blue-200 rounded-md mb-4">
+    <div className="flex items-start space-x-2">
+      <div>
+        <p className="text-sm font-semibold text-blue-800 mb-1">
+          Authorized Representative
+        </p>
+        <p className="text-xs text-blue-700">
+          As a corporate sponsor, please enter the information of the authorized representative who will be responsible for this verification and compliance matters.
+        </p>
+      </div>
+    </div>
+  </div>
+);
+
 // Main Modal Component
 export default function KycKybVerificationModal({ isOpen = true, onClose = () => {} }) {
   const { user } = useAuth();
@@ -187,21 +231,9 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
   const [error, setError] = useState('');
   const [subrole, setSubrole] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    firstName: '', middleName: '', lastName: '', email: '', mobileNumber: '', telephoneNumber: '',
-    gender: '', age: '', civilStatus: '', placeOfBirth: '', dateOfBirth: '', nationality: '',
-    country: '', province: '', city: '', barangay: '', street: '', zipCode: '',
-    natureOfWork: '', employmentType: '', sourceOfIncome: '', proofOfIncome: null,
-    governmentIdType: '', idNumber: '', governmentIdFront: null, governmentIdBack: null,
-    corporateName: '', organizationType: '', industrySector: '', registrationNumber: '',
-    tinNumber: '', dateOfIncorporation: '', countryOfRegistration: '',
-    repFullName: '', repPosition: '', repEmail: '', repContactNumber: '', repNationality: '',
-    repGovernmentIdType: '', repIdNumber: '', repGovernmentIdFront: null, repGovernmentIdBack: null,
-    companyLogo: null, certificateOfBusinessRegistration: null, articlesOfIncorporation: null,
-    boardResolution: null, generalInformationSheet: null, consent: false,
-  });
+  const [isUploading, setIsUploading] = useState(false);
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [notification, setNotification] = useState({ show: false, type: '', message: '' });
-  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -230,203 +262,77 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
     }
   };
 
-  // Step configurations
-  const individualSteps: StepConfig[] = [
-    {
-      title: 'Personal Info',
-      icon: User,
-      gradient: 'from-indigo-500 to-purple-600',
-      fields: [
-        { name: 'firstName', label: 'First Name', type: 'text', required: true },
-        { name: 'middleName', label: 'Middle Name', type: 'text' },
-        { name: 'lastName', label: 'Last Name', type: 'text', required: true },
-        { name: 'email', label: 'Email Address', type: 'email', required: true },
-        { name: 'mobileNumber', label: 'Mobile Number', type: 'tel', required: true },
-        { name: 'telephoneNumber', label: 'Telephone Number', type: 'tel' },
-        { name: 'gender', label: 'Gender', type: 'select', required: true, options: ['male', 'female', 'other'] },
-        { name: 'age', label: 'Age', type: 'number', required: true },
-        { name: 'civilStatus', label: 'Civil Status', type: 'select', required: true, options: ['single', 'married', 'divorced', 'widowed'] },
-        { name: 'placeOfBirth', label: 'Place of Birth', type: 'text', required: true },
-        { name: 'dateOfBirth', label: 'Date of Birth', type: 'date', required: true },
-        { name: 'nationality', label: 'Nationality', type: 'text', required: true },
-      ],
-    },
-    {
-      title: 'Address',
-      icon: MapPin,
-      gradient: 'from-teal-500 to-cyan-600',
-      fields: [
-        { name: 'country', label: 'Country', type: 'text', required: true },
-        { name: 'province', label: 'Province', type: 'text', required: true },
-        { name: 'city', label: 'City/Municipality', type: 'text', required: true },
-        { name: 'barangay', label: 'Barangay', type: 'text', required: true },
-        { name: 'street', label: 'Street', type: 'text', required: true },
-        { name: 'zipCode', label: 'Zip Code', type: 'text', required: true },
-      ],
-    },
-    {
-      title: 'Employment Info',
-      icon: Briefcase,
-      gradient: 'from-violet-500 to-fuchsia-600',
-      fields: [
-        { name: 'natureOfWork', label: 'Nature of Work', type: 'select', required: true, options: kycKybConfig.natureOfWork },
-        { name: 'employmentType', label: 'Employment Type', type: 'select', required: true, options: kycKybConfig.employmentType },
-        { name: 'sourceOfIncome', label: 'Source of Income', type: 'select', required: true, options: kycKybConfig.sourceOfIncome },
-      ],
-    },
-    {
-      title: 'Documents',
-      icon: FileText,
-      gradient: 'from-amber-500 to-orange-600',
-      fields: [
-        { name: 'governmentIdType', label: 'Government ID Type', type: 'select', required: true, options: kycKybConfig.idTypes },
-        { name: 'idNumber', label: 'ID Number', type: 'text', required: true },
-        { name: 'governmentIdFront', label: 'Government ID (Front)', type: 'file', required: true },
-        { name: 'governmentIdBack', label: 'Government ID (Back)', type: 'file', required: true },
-        { name: 'proofOfIncome', label: 'Proof of Income', type: 'file', required: true },
-      ],
-    },
-    {
-      title: 'Declaration',
-      icon: Shield,
-      gradient: 'from-rose-500 to-pink-600',
-      fields: [{ name: 'consent', label: 'I agree to the terms and conditions', type: 'checkbox', required: true }],
-      render: () => (
-        <div className="space-y-4 animate-fadeIn">
-          <StepHeader step="Declaration & Consent" icon={Shield} gradient="from-rose-500 to-pink-600" />
-          <div className="p-3 bg-rose-50 rounded-md">
-            <p className="text-xs text-gray-700 mb-3">
-              I declare that all information provided is true and accurate. I understand that false information may lead to
-              application rejection. I consent to the collection, processing, and storage of my personal and/or corporate data
-              for KYC/KYB verification per applicable laws.
-            </p>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="consent"
-                name="consent"
-                checked={formData.consent as boolean}
-                onCheckedChange={(checked) => handleChange('consent', checked)}
-                className="h-4 w-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
-                required
-              />
-              <Label htmlFor="consent" className="text-xs text-gray-700">
-                I agree to the terms and conditions *
-              </Label>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-  ];
-
-  const corporateSteps: StepConfig[] = [
-    {
-      title: 'Company Info',
-      icon: Building,
-      gradient: 'from-indigo-500 to-purple-600',
-      fields: [
-        { name: 'corporateName', label: 'Corporate Name', type: 'text', required: true },
-        { name: 'organizationType', label: 'Organization Type', type: 'select', required: true, options: kycKybConfig.organizationType },
-        { name: 'industrySector', label: 'Industry Sector', type: 'select', required: true, options: kycKybConfig.industrySector },
-        { name: 'registrationNumber', label: 'Registration Number', type: 'text', required: true },
-        { name: 'tinNumber', label: 'TIN Number', type: 'text', required: true },
-        { name: 'dateOfIncorporation', label: 'Date of Incorporation', type: 'date', required: true },
-        { name: 'countryOfRegistration', label: 'Country of Registration', type: 'text', required: true },
-      ],
-    },
-    {
-      title: 'Representative',
-      icon: User,
-      gradient: 'from-teal-500 to-cyan-600',
-      fields: [
-        { name: 'repFullName', label: 'Full Name', type: 'text', required: true },
-        { name: 'repPosition', label: 'Position', type: 'text', required: true },
-        { name: 'repEmail', label: 'Email Address', type: 'email', required: true },
-        { name: 'repContactNumber', label: 'Contact Number', type: 'tel', required: true },
-        { name: 'repNationality', label: 'Nationality', type: 'text', required: true },
-        { name: 'repGovernmentIdType', label: 'Government ID Type', type: 'select', required: true, options: kycKybConfig.idTypes },
-        { name: 'repIdNumber', label: 'ID Number', type: 'text', required: true },
-      ],
-    },
-    {
-      title: 'Documents',
-      icon: FileText,
-      gradient: 'from-amber-500 to-orange-600',
-      fields: [
-        { name: 'repGovernmentIdFront', label: 'Representative Government ID (Front)', type: 'file', required: true },
-        { name: 'repGovernmentIdBack', label: 'Representative Government ID (Back)', type: 'file', required: true },
-        { name: 'companyLogo', label: 'Company Logo', type: 'file', required: true },
-        { name: 'certificateOfBusinessRegistration', label: 'Certificate of Business Registration', type: 'file', required: true },
-        { name: 'articlesOfIncorporation', label: 'Articles of Incorporation', type: 'file', required: true },
-        { name: 'boardResolution', label: 'Board Resolution', type: 'file', required: true },
-        { name: 'generalInformationSheet', label: 'General Information Sheet', type: 'file', required: false },
-      ],
-    },
-    {
-      title: 'Declaration',
-      icon: Shield,
-      gradient: 'from-rose-500 to-pink-600',
-      fields: [{ name: 'consent', label: 'I agree to the terms and conditions', type: 'checkbox', required: true }],
-      render: () => (
-        <div className="space-y-4 animate-fadeIn">
-          <StepHeader step="Declaration & Consent" icon={Shield} gradient="from-rose-500 to-pink-600" />
-          <div className="p-3 bg-rose-50 rounded-md">
-            <p className="text-xs text-gray-700 mb-3">
-              I declare that all information provided is true and accurate. I understand that false information may lead to
-              application rejection. I consent to the collection, processing, and storage of my personal and/or corporate data
-              for KYC/KYB verification per applicable laws.
-            </p>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="consent"
-                name="consent"
-                checked={formData.consent as boolean}
-                onCheckedChange={(checked) => handleChange('consent', checked)}
-                className="h-4 w-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
-                required
-              />
-              <Label htmlFor="consent" className="text-xs text-gray-700">
-                I agree to the terms and conditions *
-              </Label>
-            </div>
-          </div>
-        </div>
-      ),
-    },
-  ];
-
-  const steps = subrole === 'individual' ? individualSteps : corporateSteps;
-
-  const handleChange = (name: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, files } = e.target;
-    if (!files || !files[0]) return;
+  const handleSelectChange = (name, value) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
     const file = files[0];
-    setFormData((prev) => ({ ...prev, [name]: file }));
     
-    // Optional: Set progress for visual feedback
-    setUploadProgress((prev) => ({ ...prev, [name]: 100 }));
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      
+      let documentType;
+      let urlFieldName;
+      
+      if (name === 'frontImageFile') {
+        documentType = 'idFront';
+        urlFieldName = 'frontImageUrl';
+      } else if (name === 'backImageFile') {
+        documentType = 'idBack';
+        urlFieldName = 'backImageUrl';
+      } else if (name === 'selfieFile') {
+        documentType = 'selfie';
+        urlFieldName = 'selfiePhotoUrl';
+      } else {
+        showNotification('error', 'Invalid file type');
+        return;
+      }
+
+      const uploadResult = await kycKybService.uploadDocument(file, documentType);
+      if (!uploadResult.fileUrl) {
+        throw new Error('No file URL returned from server');
+      }
+      
+      setFormData(prev => {
+        const newFormData = {
+          ...prev,
+          [name]: file,
+          [urlFieldName]: uploadResult.fileUrl,
+        };
+        console.log('Updated formData:', newFormData);
+        return newFormData;
+      });
+
+      showNotification('success', 'File uploaded successfully');
+    } catch (error) {
+      console.error('File upload error:', error);
+      showNotification('error', error.message || error.response?.data?.message || 'Error uploading file');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const validateStep = () => {
-    const currentFields = steps[currentStep - 1].fields.filter((field) => field.required);
-    const missingFields = currentFields.filter((field) => {
-      const value = formData[field.name];
-      if (typeof value === 'boolean') {
-        return !value;
-      }
-      if (field.type === 'file') {
-        return !value;
-      }
-      return !value || (typeof value === 'string' && value.trim() === '');
-    });
+    const missingFields = REQUIRED_FIELDS[currentStep].filter(
+      field => !formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === '')
+    );
+    console.log('Missing fields in step', currentStep, ':', missingFields);
+    console.log('Current formData:', formData);
 
     if (missingFields.length > 0) {
-      showNotification('error', 'Missing required fields');
+      showNotification('error', 'Please fill in all required fields');
       return false;
     }
 
@@ -435,12 +341,12 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
   };
 
   const handleNext = () => {
-    if (validateStep()) {
-      if (currentStep === steps.length) {
-        handleSubmit();
+  if (validateStep()) {
+    if (currentStep === STEPS.length) {
+      handleSubmit();
       } else {
-        setCurrentStep((curr) => curr + 1);
-      }
+      setCurrentStep((curr) => (curr < STEPS.length ? curr + 1 : curr));
+    }
     }
   };
 
@@ -453,124 +359,45 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
     try {
       setIsSubmitting(true);
 
-      // First, upload documents if any
-      const uploadedDocuments = [];
-      
-      // Helper function to upload a single document
-      // const uploadDocument = async (file: File, documentType: string) => {
-      //   if (file) {
-      //     try {
-      //       const response = await kycKybService.uploadDocument(file, documentType);
-      //       return {
-      //         type: documentType,
-      //         fileName: response.document.fileName,
-      //         fileUrl: response.document.fileUrl,
-      //         uploadedAt: response.document.uploadedAt
-      //       };
-      //     } catch (error) {
-      //       console.error(`Error uploading ${documentType}:`, error);
-      //       throw new Error(`Failed to upload ${documentType}`);
-      //     }
-      //   }
-      //   return null;
-      // };
+      // Structure data to match backend proofOfIdentity format
+      const proofOfIdentityData = {
+        declarationsAndConsent: formData.consent as boolean,
+        proofOfIdentity: {
+          fullName: {
+            firstName: formData.firstName as string,
+            middleName: formData.middleName as string || '',
+            lastName: formData.lastName as string
+          },
+          dateOfBirth: formData.dateOfBirth as string,
+          nationality: formData.nationality as string,
+          contactEmail: formData.contactEmail as string,
+          contactNumber: formData.contactNumber as string,
+          address: {
+            country: formData.country as string,
+            stateOrProvince: formData.stateOrProvince as string,
+            city: formData.city as string,
+            districtOrBarangay: formData.districtOrBarangay as string,
+            street: formData.street as string,
+            postalCode: formData.postalCode as string
+          },
+          idDetails: {
+            idType: formData.idType as string,
+            frontImageUrl: formData.frontImageUrl as string,
+            backImageUrl: formData.backImageUrl as string,
+            idNumber: formData.idNumber as string,
+            expiryDate: formData.expiryDate as string
+          },
+          selfiePhotoUrl: formData.selfiePhotoUrl as string
+        }
+      };
 
+      console.log('Submitting Sponsor Data:', proofOfIdentityData);
+
+      // Submit based on subrole
       if (subrole === 'individual') {
-        // Upload individual sponsor documents
-        // const proofOfIncomeDoc = await uploadDocument(formData.proofOfIncome as File, 'proof_of_income');
-        // const idFrontDoc = await uploadDocument(formData.governmentIdFront as File, 'government_id_front');
-        // const idBackDoc = await uploadDocument(formData.governmentIdBack as File, 'government_id_back');
-
-        // Filter out null documents
-        // const documents = [proofOfIncomeDoc, idFrontDoc, idBackDoc].filter(Boolean);
-
-        // Structure data to match your model exactly
-        const individualData = {
-          declarationsAndConsent: formData.consent as boolean, // Boolean as per your model
-          individualSponsor: {
-            fullName: {
-              firstName: formData.firstName as string,
-              middleName: formData.middleName as string || '',
-              lastName: formData.lastName as string
-            },
-            email: formData.email as string,
-            mobileNumber: formData.mobileNumber as string,
-            telephone: formData.telephoneNumber as string || '',
-            gender: formData.gender as string,
-            age: parseInt(formData.age as string),
-            civilStatus: formData.civilStatus as string,
-            nationality: formData.nationality as string,
-            dateOfBirth: formData.dateOfBirth as string,
-            placeOfBirth: formData.placeOfBirth as string,
-            address: {
-              country: formData.country as string,
-              province: formData.province as string,
-              city: formData.city as string,
-              barangay: formData.barangay as string,
-              street: formData.street as string,
-              zipCode: formData.zipCode as string
-            },
-            natureOfWork: formData.natureOfWork as string,
-            employmentType: formData.employmentType as string,
-            sourceOfIncome: formData.sourceOfIncome as string,
-            idDetails: {
-              idType: formData.governmentIdType as string,
-              idNumber: formData.idNumber as string
-            }
-          },
-          // documents: documents
-        };
-
-        console.log('Submitting Individual Sponsor Data:', individualData);
-        await kycKybService.submitIndividualSponsorKyb(individualData);
-
+        await kycKybService.submitIndividualSponsorKyb(proofOfIdentityData);
       } else {
-        // Upload corporate sponsor documents
-        // const companyLogoDoc = await uploadDocument(formData.companyLogo as File, 'company_logo');
-        // const certBusinessRegDoc = await uploadDocument(formData.certificateOfBusinessRegistration as File, 'business_registration');
-        // const articlesIncorpDoc = await uploadDocument(formData.articlesOfIncorporation as File, 'articles_of_incorporation');
-        // const boardResolutionDoc = await uploadDocument(formData.boardResolution as File, 'board_resolution');
-        // const generalInfoSheetDoc = await uploadDocument(formData.generalInformationSheet as File, 'gis');
-        // const repIdFrontDoc = await uploadDocument(formData.repGovernmentIdFront as File, 'government_id_front');
-        // const repIdBackDoc = await uploadDocument(formData.repGovernmentIdBack as File, 'government_id_back');
-
-        // Filter out null documents
-        // const documents = [
-        //   companyLogoDoc,
-        //   certBusinessRegDoc,
-        //   articlesIncorpDoc,
-        //   boardResolutionDoc,
-        //   generalInfoSheetDoc,
-        //   repIdFrontDoc,
-        //   repIdBackDoc
-        // ].filter(Boolean);
-
-        // Structure data to match your model exactly
-        const corporateData = {
-          declarationsAndConsent: formData.consent as boolean, // Boolean as per your model
-          corporateSponsor: {
-            corporateName: formData.corporateName as string,
-            organizationType: formData.organizationType as string,
-            industrySector: formData.industrySector as string,
-            registrationNumber: formData.registrationNumber as string,
-            tin: formData.tinNumber as string,
-            dateOfIncorporation: formData.dateOfIncorporation as string,
-            countryOfRegistration: formData.countryOfRegistration as string,
-            authorizedRepresentative: {
-              fullName: formData.repFullName as string,
-              position: formData.repPosition as string,
-              email: formData.repEmail as string,
-              contactNumber: formData.repContactNumber as string,
-              nationality: formData.repNationality as string,
-              idType: formData.repGovernmentIdType as string,
-              idNumber: formData.repIdNumber as string
-            }
-          },
-          // documents: documents
-        };
-
-        console.log('Submitting Corporate Sponsor Data:', corporateData);
-        await kycKybService.submitCorporateSponsorKyb(corporateData);
+        await kycKybService.submitCorporateSponsorKyb(proofOfIdentityData);
       }
 
       showNotification('success', 'Verification submitted successfully!');
@@ -599,32 +426,295 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
     }
   };
 
-  const renderStep = (step: StepConfig) => {
-    if (step.render) {
-      return step.render();
-    }
+  // Render step components
+  const renderPersonalInfo = () => (
+    <div className="space-y-4 animate-fadeIn">
+      <StepHeader step="Personal Information" icon={User} gradient="from-indigo-500 to-purple-600" />
+      
+      {/* Show notice only for corporate sponsors */}
+      {subrole === 'corporate' && <AuthorizedRepresentativeNotice />}
+      
+      {/* Name Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <FormField 
+          label="First Name" 
+          id="firstName" 
+          name="firstName" 
+          value={formData.firstName} 
+          onChange={handleInputChange} 
+          placeholder="Enter first name" 
+          required 
+        />
+        <FormField 
+          label="Middle Name" 
+          id="middleName" 
+          name="middleName" 
+          value={formData.middleName} 
+          onChange={handleInputChange} 
+          placeholder="Enter middle name" 
+        />
+        <FormField 
+          label="Last Name" 
+          id="lastName" 
+          name="lastName" 
+          value={formData.lastName} 
+          onChange={handleInputChange} 
+          placeholder="Enter last name" 
+          required 
+        />
+      </div>
 
-    return (
-      <div className="space-y-4 animate-fadeIn">
-        <StepHeader step={step.title} icon={step.icon} gradient={step.gradient} />
-        <div className={`grid grid-cols-1 ${step.fields.length > 4 ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-3`}>
-          {step.fields.map((field) => (
-            <FormField
-              key={field.name}
-              field={field}
-              value={formData[field.name]}
-              onChange={handleChange}
-              onFileChange={field.type === 'file' ? handleFileChange : undefined}
-              options={field.options}
-              isLoading={kycKybConfig.isLoading}
-              error={kycKybConfig.error}
-              uploadProgress={uploadProgress[field.name]}
-            />
-          ))}
+      {/* Basic Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <FormField 
+          label="Date of Birth" 
+          id="dateOfBirth" 
+          name="dateOfBirth" 
+          type="date" 
+          value={formData.dateOfBirth} 
+          onChange={handleInputChange} 
+          required 
+        />
+        <FormField 
+          label="Nationality" 
+          id="nationality" 
+          name="nationality" 
+          value={formData.nationality} 
+          onChange={handleInputChange} 
+          placeholder="Enter nationality" 
+          required 
+        />
+      </div>
+
+      {/* Contact Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <FormField 
+          label="Contact Email" 
+          id="contactEmail" 
+          name="contactEmail" 
+          type="email" 
+          value={formData.contactEmail} 
+          onChange={handleInputChange} 
+          placeholder={subrole === 'corporate' ? "representative@company.com" : "Enter email address"} 
+          required 
+        />
+        <FormField 
+          label="Contact Number" 
+          id="contactNumber" 
+          name="contactNumber" 
+          type="tel" 
+          value={formData.contactNumber} 
+          onChange={handleInputChange} 
+          placeholder={subrole === 'corporate' ? "+63 912 345 6789" : "Enter phone number"} 
+          required 
+        />
+      </div>
+    </div>
+  );
+
+  const renderAddress = () => (
+    <div className="space-y-4 animate-fadeIn">
+      <StepHeader step="Address Information" icon={MapPin} gradient="from-teal-500 to-cyan-600" />
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <FormField 
+          label="Country" 
+          id="country" 
+          name="country" 
+          value={formData.country} 
+          onChange={handleInputChange} 
+          placeholder="Enter country" 
+          required 
+        />
+        <FormField 
+          label="State/Province" 
+          id="stateOrProvince" 
+          name="stateOrProvince" 
+          value={formData.stateOrProvince} 
+          onChange={handleInputChange} 
+          placeholder="Enter state or province" 
+          required 
+        />
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <FormField 
+          label="City" 
+          id="city" 
+          name="city" 
+          value={formData.city} 
+          onChange={handleInputChange} 
+          placeholder="Enter city" 
+          required 
+        />
+        <FormField 
+          label="District/Barangay" 
+          id="districtOrBarangay" 
+          name="districtOrBarangay" 
+          value={formData.districtOrBarangay} 
+          onChange={handleInputChange} 
+          placeholder="Enter district or barangay" 
+          required 
+        />
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <FormField 
+          label="Street Address" 
+          id="street" 
+          name="street" 
+          value={formData.street} 
+          onChange={handleInputChange} 
+          placeholder="Enter street address" 
+          required 
+        />
+        <FormField 
+          label="Postal Code" 
+          id="postalCode" 
+          name="postalCode" 
+          value={formData.postalCode} 
+          onChange={handleInputChange} 
+          placeholder="Enter postal code" 
+          required 
+        />
+      </div>
+    </div>
+  );
+
+  const renderIdDetails = () => (
+    <div className="space-y-4 animate-fadeIn">
+      <StepHeader step="ID Details" icon={FileText} gradient="from-amber-500 to-orange-600" />
+      
+      {/* ID Type and Details */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <SelectField 
+          label="ID Type" 
+          id="idType" 
+          value={formData.idType} 
+          onValueChange={(value) => handleSelectChange('idType', value)} 
+          options={kycKybConfig.idTypes || []} 
+          isLoading={kycKybConfig.isLoading}
+          error={kycKybConfig.error}
+          required 
+        />
+        <FormField 
+          label="ID Number" 
+          id="idNumber" 
+          name="idNumber" 
+          value={formData.idNumber} 
+          onChange={handleInputChange} 
+          placeholder="Enter ID number" 
+          required 
+        />
+      </div>
+
+      <FormField 
+        label="ID Expiry Date" 
+        id="expiryDate" 
+        name="expiryDate" 
+        type="date" 
+        value={formData.expiryDate} 
+        onChange={handleInputChange} 
+        required 
+      />
+
+      {/* Image Uploads */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ImageUpload 
+          label="ID Front Image" 
+          id="frontImageFile" 
+          file={formData.frontImageFile}
+          imageUrl={formData.frontImageUrl}
+          onChange={handleFileChange} 
+          required 
+          accept="image/*,.pdf"
+        />
+        <ImageUpload 
+          label="ID Back Image" 
+          id="backImageFile" 
+          file={formData.backImageFile}
+          imageUrl={formData.backImageUrl}
+          onChange={handleFileChange} 
+          required 
+          accept="image/*,.pdf"
+        />
+      </div>
+
+      {isUploading && (
+        <div className="flex items-center justify-center p-4 bg-amber-50 rounded-md">
+          <Loader2 className="w-4 h-4 animate-spin text-amber-600 mr-2" />
+          <span className="text-sm text-amber-600">Uploading file...</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSelfiePhoto = () => (
+    <div className="space-y-4 animate-fadeIn">
+      <StepHeader step="Selfie Photo" icon={Camera} gradient="from-purple-500 to-pink-600" />
+      
+      <div className="p-3 bg-violet-50 border border-violet-200 rounded-md">
+				<p className="text-sm text-violet-700">
+					<strong>Selfie Guidelines:</strong> Take a clear photo of yourself holding your ID next to your face. Make sure your face and the ID are both clearly visible and well-lit.
+				</p>
+			</div>
+			
+			<div className="max-w-md mx-auto">
+				<ImageUpload 
+					label="Selfie with ID" 
+					id="selfieFile" 
+					file={formData.selfieFile}
+					imageUrl={formData.selfiePhotoUrl}
+					onChange={handleFileChange} 
+					required 
+					accept="image/*"
+				/>
+			</div>
+
+      {isUploading && (
+        <div className="flex items-center justify-center p-4 bg-purple-50 rounded-md">
+          <Loader2 className="w-4 h-4 animate-spin text-purple-600 mr-2" />
+          <span className="text-sm text-purple-600">Uploading photo...</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderDeclarationConsent = () => (
+    <div className="space-y-4 animate-fadeIn">
+      <StepHeader step="Declaration & Consent" icon={Shield} gradient="from-rose-500 to-pink-600" />
+      
+      <div className="p-4 bg-rose-50 rounded-md">
+        <h4 className="text-sm font-semibold text-gray-800 mb-2">Terms and Conditions</h4>
+        <div className="space-y-2 text-xs text-gray-700 mb-4">
+          <p>By proceeding with this verification, I declare that:</p>
+          <ul className="list-disc list-inside space-y-1 ml-2">
+            <li>All information provided is true, accurate, and complete</li>
+            <li>The identity documents and photos submitted are genuine and belong to me</li>
+            {subrole === 'corporate' && (
+              <li>I have the proper authority to represent the organization in this verification process</li>
+            )}
+            <li>I understand that false information may lead to application rejection</li>
+            <li>I consent to the collection, processing, and storage of my personal data for KYC/KYB verification purposes</li>
+            <li>I understand that my data will be handled in accordance with applicable data protection laws</li>
+          </ul>
+        </div>
+        <div className="flex items-start space-x-2">
+          <Checkbox
+            id="consent"
+            name="consent"
+            checked={formData.consent === true}
+            onCheckedChange={(checked) => handleSelectChange('consent', checked === true)}
+            className="h-4 w-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500 mt-0.5"
+            required
+          />
+          <Label htmlFor="consent" className="text-xs text-gray-700 leading-relaxed">
+            I agree to the terms and conditions stated above and consent to the processing of my personal data for verification purposes. *
+          </Label>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
 
   if (loading) {
     return (
@@ -654,13 +744,21 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
 
   if (!isOpen) return null;
 
+  const stepComponents = [
+    renderPersonalInfo,
+    renderAddress,
+    renderIdDetails,
+    renderSelfiePhoto,
+    renderDeclarationConsent
+  ];
+
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-purple-700 px-4 py-3 text-white flex justify-between items-center">
           <h2 className="text-lg font-semibold">
-            {subrole === 'individual' ? 'KYC Verification' : 'KYB Verification'}
+            {subrole === 'individual' ? 'Individual Sponsor KYC' : 'Corporate Sponsor KYB'} Verification
           </h2>
           <button
             onClick={onClose}
@@ -673,7 +771,7 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
         {/* Progress Steps */}
         <div className="px-4 py-3 bg-gray-50">
           <div className="flex justify-center items-center">
-            {steps.map((step, index) => {
+            {STEPS.map((step, index) => {
               const StepIcon = step.icon;
               const isCompleted = currentStep > index + 1;
               const isCurrent = currentStep === index + 1;
@@ -696,7 +794,7 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
                       {step.title}
                     </p>
                   </div>
-                  {index < steps.length - 1 && (
+                  {index < STEPS.length - 1 && (
                     <div className={`w-8 h-1 rounded-full ${
                       isCompleted || isCurrent ? 'bg-emerald-500' : 'bg-gray-200'
                     }`} />
@@ -704,13 +802,13 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
                 </div>
               );
             })}
-					</div>
-				</div>
+          </div>
+        </div>
 
-				{/* Form Content */}
-				<div className="px-4 py-4 overflow-y-auto max-h-[60vh]">
-					{renderStep(steps[currentStep - 1])}
-				</div>
+        {/* Form Content */}
+        <div className="px-4 py-4 overflow-y-auto max-h-[60vh]">
+          {stepComponents[currentStep - 1]()}
+        </div>
 
 				{/* Footer */}
 				<div className="px-4 py-3 bg-gray-50 border-t flex justify-between items-center min-h-[60px]">
@@ -727,14 +825,14 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
 						Previous
 					</button>
 					<p className="text-xs text-gray-500 font-medium">
-						Step {currentStep} of {steps.length}
+						Step {currentStep} of {STEPS.length}
 					</p>
 					<button
 						onClick={handleNext}
-						disabled={currentStep === steps.length && !formData.consent}
+						disabled={currentStep === STEPS.length && !formData.consent}
 						className={`px-4 py-2 text-sm font-medium rounded-md transition-all border ${
-							currentStep === steps.length && !formData.consent
-								? 'bg-gray-300 text-gray-500 cursor-pointer cursor-not-allowed border-gray-300'
+							currentStep === STEPS.length && !formData.consent
+								? 'bg-gray-300 text-gray-500 cursor-not-allowed border-gray-300'
 								: 'bg-gradient-to-r from-indigo-500 cursor-pointer to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 border-transparent'
 						}`}
 						style={{ minWidth: '100px', visibility: 'visible' }}
@@ -744,10 +842,8 @@ export default function KycKybVerificationModal({ isOpen = true, onClose = () =>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 Submitting...
               </div>
-            ) : currentStep === 5 ? (
-              <>
-                Submit
-              </>
+            ) : currentStep === STEPS.length ? (
+              'Submit'
             ) : (
               'Continue'
             )}

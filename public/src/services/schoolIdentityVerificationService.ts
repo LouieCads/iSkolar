@@ -1,3 +1,5 @@
+// /services/kybService.ts
+
 import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
@@ -11,97 +13,51 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
-export interface KybStatus {
-  status: 'unverified' | 'pending' | 'pre-approved' | 'verified' | 'denied';
-  personaType?: 'School' | 'Sponsor';
-  documents?: any[];
-  denialReason?: string;
-  cooldownUntil?: string;
+export interface KycKybStatus {
+  status: 'unverified' | 'pending' | 'verified' | 'denied';
+  personaType?: 'student' | 'sponsor' | 'school';
   submittedAt?: string;
   verifiedAt?: string;
+  denialReason?: string;
+  cooldownUntil?: string;
   resubmissionCount?: number;
+  proofOfIdentity?: any;
 }
 
-export interface IndividualSponsorData {
+export interface SchoolKybData {
   declarationsAndConsent: boolean;
-  individualSponsor: {
+  proofOfIdentity: {
     fullName: {
       firstName: string;
       middleName?: string;
       lastName: string;
     };
-    email: string;
-    mobileNumber: string;
-    gender: string;
-    age: number;
-    civilStatus: string;
-    nationality: string;
     dateOfBirth: string;
-    placeOfBirth: string;
+    nationality: string;
+    contactEmail: string;
+    contactNumber: string;
     address: {
       country: string;
-      province: string;
+      stateOrProvince: string;
       city: string;
-      barangay: string;
+      districtOrBarangay: string;
       street: string;
-      zipCode: string;
+      postalCode: string;
     };
-    employment: {
-      company: string;
-      position: string;
-      workAddress: string;
-      monthlyIncome: number;
-      yearsOfEmployment: number;
-    };
-    identification: {
+    idDetails: {
       idType: string;
+      frontImageUrl: string;
+      backImageUrl: string;
       idNumber: string;
+      expiryDate: string;
     };
+    selfiePhotoUrl: string;
   };
-  documents: File[];
 }
 
-export interface CorporateSponsorData {
-  declarationsAndConsent: boolean;
-  corporateSponsor: {
-    corporateName: string;
-    businessType: string;
-    tin: string;
-    businessRegistrationNumber: string;
-    dateOfIncorporation: string;
-    businessAddress: {
-      country: string;
-      province: string;
-      city: string;
-      barangay: string;
-      street: string;
-      zipCode: string;
-    };
-    contactEmail: string;
-    contactNumbers: string[];
-    website?: string;
-    authorizedRepresentative: {
-      fullName: string;
-      position: string;
-      email: string;
-      contactNumber: string;
-      nationality: string;
-      idType: string;
-      idNumber: string;
-    };
-    businessDetails: {
-      industry: string;
-      annualRevenue: number;
-      numberOfEmployees: number;
-      businessDescription: string;
-    };
-  };
-  documents: File[];
-}
-
-export const kybService = {
-  // Get KYB status for current user
-  async getKybStatus(): Promise<KybStatus> {
+export const kycKybService = {
+  // Get KYC/KYB status for current user
+  async getKycStatus(): Promise<KycKybStatus> {
     try {
       const response = await axios.get(`${API_URL}/identity-verification/status`);
       return response.data;
@@ -109,16 +65,16 @@ export const kybService = {
       if (error.response?.status === 401) {
         throw new Error('Please log in');
       }
-      throw new Error(error.response?.data?.message || 'Error fetching KYB status');
+      throw new Error(error.response?.data?.message || 'Error fetching KYC/KYB status');
     }
   },
 
-  // Submit Individual Sponsor KYB
-  async submitIndividualSponsorKyb(sponsorData: IndividualSponsorData) {
+  // Submit School KYB
+  async submitSchoolKyb(schoolData: SchoolKybData) {
     try {
       const response = await axios.post(
-        `${API_URL}/identity-verification/individual-sponsor/submit`,
-        sponsorData,
+        `${API_URL}/identity-verification/school/submit`,
+        schoolData,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -130,28 +86,7 @@ export const kybService = {
       if (error.response?.status === 401) {
         throw new Error('Please log in');
       }
-      throw new Error(error.response?.data?.message || 'Error submitting Individual Sponsor KYB');
-    }
-  },
-
-  // Submit Corporate Sponsor KYB
-  async submitCorporateSponsorKyb(corporateData: CorporateSponsorData) {
-    try {
-      const response = await axios.post(
-        `${API_URL}/identity-verification/corporate-sponsor/submit`,
-        corporateData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new Error('Please log in');
-      }
-      throw new Error(error.response?.data?.message || 'Error submitting Corporate Sponsor KYB');
+      throw new Error(error.response?.data?.message || 'Error submitting School KYB');
     }
   },
 
@@ -181,10 +116,13 @@ export const kybService = {
   },
 
   // Delete document
-  async deleteDocument(documentId: string) {
+  async deleteDocument(filePath: string) {
     try {
       const response = await axios.delete(
-        `${API_URL}/identity-verification/document/${documentId}`
+        `${API_URL}/identity-verification/delete-document`,
+        {
+          data: { filePath }
+        }
       );
       return response.data;
     } catch (error: any) {

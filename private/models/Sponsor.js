@@ -11,6 +11,19 @@ const sponsorSchema = new mongoose.Schema({
     enum: ["individual", "corporate"],
     required: true,
   },
+  profile: {
+    individual: {
+      username: String,
+      gender: String,
+      age: Number,
+    },
+    corporate: {
+      companyName: String,
+      organizationType: String,
+      industrySector: String,
+    },
+  },
+
   walletBalance: {
     phpc: { type: Number, default: 0 },
     usdt: { type: Number, default: 0 },
