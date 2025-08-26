@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ConnectButton } from "@rainbow-me/rainbowkit"
 
 // Types for verifiable credentials
 interface VerifiableCredential {
@@ -634,7 +635,7 @@ export default function StudentMyProfilePage() {
       {/* Credentials Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Section Header */}
-        <div className="flex items-center justify-end mb-6">
+        <div className="flex items-center justify-end mb-6 gap-2">
           <Button
             onClick={() => setIsUploadModalOpen(true)}
             className="bg-blue-600 text-sm hover:bg-blue-700"
@@ -642,6 +643,7 @@ export default function StudentMyProfilePage() {
             <Plus className="w-4 h-4 mr-1" />
             Upload
           </Button>
+          <ConnectButton />
         </div>
 
         {/* Separator Line */}
