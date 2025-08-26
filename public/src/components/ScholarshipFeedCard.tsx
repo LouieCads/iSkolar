@@ -115,7 +115,7 @@ export default function ScholarshipCard({ scholarship }) {
       <div className="w-65 h-65 mx-auto rounded-lg overflow-hidden relative mt-2">
         {hasUploadedImage ? (
           <img
-            src={imageSource}
+            src="/placeholder.jpg"
             alt={`${scholarship.selectedSchool} banner`}
             className="w-full h-full object-cover"
           />
@@ -276,7 +276,7 @@ export default function ScholarshipCard({ scholarship }) {
               <div className="w-32 h-32 flex-shrink-0 rounded-md overflow-hidden bg-white/10 relative">
                 {hasUploadedImage ? (
                   <img
-                    src={imageSource}
+                    src="/placeholder.jpg"
                     alt={`${scholarship.selectedSchool} banner`}
                     className="w-full h-full object-cover rounded-md"
                   />

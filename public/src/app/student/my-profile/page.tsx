@@ -26,6 +26,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConnectButton } from "@rainbow-me/rainbowkit"
+import {abi, contractAddresses} from "@/lib/constants"
+import {
+  useAccount,
+  useWriteContract,
+  useChainId,
+  useReadContract,
+  useWatchContractEvent,
+} from "wagmi"
 
 // Types for verifiable credentials
 interface VerifiableCredential {

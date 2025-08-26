@@ -2,8 +2,8 @@ const { ethers, deployments, network } = require("hardhat");
 const fs = require("fs");
 
 const FRONTEND_ADDRESSES_FILE =
-  "@/lib/constants/contractAddresses.json";
-const FRONTEND_ABI_FILE = "@/lib/constants/abi.json";
+  "../public/src/lib/constants/contractAddresses.json";
+const FRONTEND_ABI_FILE = "../public/src/lib/constants/abi.json";
 
 module.exports = async ({ getNamedAccounts }) => {
   if (process.env.UPDATE_FRONTEND) {
@@ -17,7 +17,7 @@ module.exports = async ({ getNamedAccounts }) => {
 async function updateAbi(getNamedAccounts) {
   const deployer = (await getNamedAccounts()).deployer;
   const signer = await ethers.getSigner(deployer);
-  const raffle = await ethers.getContractAt(
+  const credentialRegistry = await ethers.getContractAt(
     "CredentialRegistry",
     (
       await deployments.get("CredentialRegistry")
@@ -25,14 +25,17 @@ async function updateAbi(getNamedAccounts) {
     signer
   );
 
-  fs.writeFileSync(FRONTEND_ABI_FILE, raffle.interface.formatJson());
+  fs.writeFileSync(
+    FRONTEND_ABI_FILE,
+    credentialRegistry.interface.formatJson()
+  );
 }
 
 async function updateContractAddresses(getNamedAccounts) {
   const deployer = (await getNamedAccounts()).deployer;
   const signer = await ethers.getSigner(deployer);
-  const raffle = await ethers.getContractAt(
-    "Raffle",
+  const credentialRegistry = await ethers.getContractAt(
+    "CredentialRegistry",
     (
       await deployments.get("CredentialRegistry")
     ).address,
@@ -46,11 +49,11 @@ async function updateContractAddresses(getNamedAccounts) {
   );
 
   if (chainId in contractAddresses) {
-    if (!contractAddresses[chainId].includes(raffle.target)) {
-      contractAddresses[chainId].push(raffle.target);
+    if (!contractAddresses[chainId].includes(credentialRegistry.target)) {
+      contractAddresses[chainId].push(credentialRegistry.target);
     }
   } else {
-    contractAddresses[chainId] = [raffle.target];
+    contractAddresses[chainId] = [credentialRegistry.target];
   }
   fs.writeFileSync(FRONTEND_ADDRESSES_FILE, JSON.stringify(contractAddresses));
 }
